@@ -8,6 +8,8 @@ import Typography from '@mui/material/Typography';
 import { _products } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { Breadcrumbs } from 'src/components/breadcrumbs';
+
 import { ProductItem } from '../product-item';
 import { ProductSort } from '../product-sort';
 import { CartIcon } from '../product-cart-widget';
@@ -87,6 +89,14 @@ export function ProductsView() {
   return (
     <DashboardContent>
       <CartIcon totalItems={8} />
+
+      <Breadcrumbs
+        links={[
+          { name: 'Dashboard', href: '/' },
+          { name: 'Product', href: '/products' },
+          { name: 'List' },
+        ]}
+      />
 
       <Typography variant="h4" sx={{ mb: 5 }}>
         Products
