@@ -19,6 +19,11 @@ export const UserCreatePage = lazy(() => import('src/pages/user-create'));
 export const ProductListPage = lazy(() => import('src/pages/product-list'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const ProductsPage = lazy(() => import('src/pages/products'));
+export const TeamsPage = lazy(() => import('src/pages/teams'));
+export const TeamDetailPage = lazy(() => import('src/pages/team-detail'));
+export const ProjectsPage = lazy(() => import('src/pages/projects'));
+export const ProjectDetailPage = lazy(() => import('src/pages/project-detail'));
+export const ChatPage = lazy(() => import('src/pages/chat'));
 export const OrderPage = lazy(() => import('src/pages/order'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 
@@ -53,6 +58,11 @@ export const routesSection: RouteObject[] = [
     ),
     children: [
       { index: true, element: <DashboardPage /> },
+      { path: 'teams', element: <TeamsPage /> },
+      { path: 'teams/:id', element: <TeamDetailPage /> },
+      { path: 'projects', element: <ProjectsPage /> },
+      { path: 'projects/:id', element: <ProjectDetailPage /> },
+      { path: 'chat', element: <ChatPage /> },
       { path: 'user', element: <UserPage /> },
       { path: 'user/create', element: <UserCreatePage /> },
       { path: 'products', element: <ProductsPage /> },
