@@ -19,22 +19,46 @@ import { Iconify } from 'src/components/iconify';
 const USERS_STORAGE_KEY = 'app_users';
 const SESSION_STORAGE_KEY = 'app_session';
 
-export function SignInView() {
+export function SignUpView() {
   const router = useRouter();
 
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSignIn = useCallback(
+  const handleSignUp = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       setError('');
 
       // Validate inputs
-      if (!email || !password) {
-        setError('Please enter both email and password');
+      if (!displayName || !email || !password || !confirmPassword) {
+        setError('Please fill in all fields');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters long');
+        return;
+      }
+
+      // Strong password check (letters, numbers, special characters, max 8 chars)
+      const strongPasswordRegex =
+        /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{1,8}$/;
+
+      if (!strongPasswordRegex.test(password)) {
+        setError(
+          'Password must include letters, numbers, and special characters, and must not exceed 8 characters'
+        );
         return;
       }
 
@@ -42,32 +66,45 @@ export function SignInView() {
       const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
       const users = storedUsers ? JSON.parse(storedUsers) : [];
 
-      // Check if user exists and password matches
-      const user = users.find(
-        (u: { email: string; password: string }) => u.email === email && u.password === password
-      );
-
-      if (user) {
-        // Store session
-        const session = {
-          email: user.email,
-          displayName: user.displayName || user.email,
-          photoURL: user.photoURL || '/assets/images/avatar/avatar-25.webp',
-          loggedInAt: new Date().toISOString(),
-        };
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-        router.push('/');
-      } else {
-        setError('Invalid email or password. Please try again.');
+      // Check if user already exists
+      const existingUser = users.find((u: { email: string }) => u.email === email);
+      if (existingUser) {
+        setError('An account with this email already exists');
+        return;
       }
+
+      // Create new user
+      const newUser = {
+        email,
+        password,
+        displayName,
+        photoURL: '/assets/images/avatar/avatar-25.webp',
+        createdAt: new Date().toISOString(),
+      };
+
+      // Save user to localStorage
+      users.push(newUser);
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+
+      // Create session and log in automatically
+      const session = {
+        email: newUser.email,
+        displayName: newUser.displayName,
+        photoURL: newUser.photoURL,
+        loggedInAt: new Date().toISOString(),
+      };
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+
+      // Redirect to home
+      router.push('/');
     },
-    [email, password, router]
+    [displayName, email, password, confirmPassword, router]
   );
 
   const renderForm = (
     <Box
       component="form"
-      onSubmit={handleSignIn}
+      onSubmit={handleSignUp}
       sx={{
         gap: 2,
         width: 1,
@@ -80,6 +117,18 @@ export function SignInView() {
           {error}
         </Alert>
       )}
+
+      <TextField
+        fullWidth
+        name="displayName"
+        label="Full Name"
+        value={displayName}
+        onChange={(e) => setDisplayName(e.target.value)}
+        required
+        slotProps={{
+          inputLabel: { shrink: true },
+        }}
+      />
 
       <TextField
         fullWidth
@@ -116,20 +165,38 @@ export function SignInView() {
         }}
       />
 
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+      {/* Password rules */}
+      <Typography variant="caption" sx={{ color: 'text.secondary', mt: -1 }}>
+        Password must contain letters, numbers, and special characters, and must not be more than 8
+        characters.
+      </Typography>
+
+      <TextField
+        fullWidth
+        name="confirmPassword"
+        label="Confirm Password"
+        type={showConfirmPassword ? 'text' : 'password'}
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+        required
+        slotProps={{
+          inputLabel: { shrink: true },
+          input: {
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
+                  <Iconify
+                    icon={showConfirmPassword ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
+                  />
+                </IconButton>
+              </InputAdornment>
+            ),
+          },
         }}
-      >
-        <Link variant="body2" color="inherit">
-          Forgot password?
-        </Link>
-      </Box>
+      />
 
       <Button fullWidth size="large" type="submit" color="inherit" variant="contained">
-        Sign in
+        Sign up
       </Button>
     </Box>
   );
@@ -146,15 +213,15 @@ export function SignInView() {
           textAlign: 'center',
         }}
       >
-        <Typography variant="h5">Sign in</Typography>
+        <Typography variant="h5">Sign up</Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Don&apos;t have an account?
+          Already have an account?
           <Link
             variant="subtitle2"
             sx={{ ml: 0.5, cursor: 'pointer' }}
-            onClick={() => router.push('/sign-up')}
+            onClick={() => router.push('/sign-in')}
           >
-            Get started
+            Sign in
           </Link>
         </Typography>
       </Box>
