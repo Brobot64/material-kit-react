@@ -2,18 +2,27 @@ import type { StackProps } from '@mui/material/Stack';
 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
+
+import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-export function NavUpgrade({ sx, ...other }: StackProps) {
+type NavUpgradeProps = StackProps & {
+  onClose?: () => void;
+};
+
+export function NavUpgrade({ sx, onClose, ...other }: NavUpgradeProps) {
   return (
     <Box
       sx={[
         {
+          p: 2,
           mb: 4,
           display: 'flex',
           textAlign: 'center',
+          position: 'relative',
           alignItems: 'center',
           flexDirection: 'column',
         },
@@ -21,6 +30,17 @@ export function NavUpgrade({ sx, ...other }: StackProps) {
       ]}
       {...other}
     >
+      {onClose ? (
+        <IconButton
+          size="small"
+          aria-label="Dismiss upgrade section"
+          onClick={onClose}
+          sx={{ position: 'absolute', top: 8, right: 8 }}
+        >
+          <Iconify icon="mingcute:close-line" width={18} />
+        </IconButton>
+      ) : null}
+
       <Typography
         variant="h6"
         sx={[
