@@ -90,10 +90,11 @@ export function AuthLayout({
       sx={[
         (theme) => ({
           alignItems: 'center',
-          p: theme.spacing(3, 2, 10, 2),
-          [theme.breakpoints.up(layoutQuery)]: {
-            justifyContent: 'center',
-            p: theme.spacing(10, 0, 10, 0),
+          justifyContent: 'center',
+          minHeight: '100vh',
+          p: theme.spacing(4, 2, 6, 2),
+          [theme.breakpoints.up(layoutQuery)]: {         
+            p: theme.spacing(8, 0, 8, 0),
           },
         }),
         ...(Array.isArray(slotProps?.main?.sx)

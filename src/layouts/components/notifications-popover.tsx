@@ -17,6 +17,8 @@ import ListSubheader from '@mui/material/ListSubheader';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import ListItemButton from '@mui/material/ListItemButton';
 
+import { useRouter } from 'src/routes/hooks';
+
 import { fToNow } from 'src/utils/format-time';
 
 import { useNotifications } from 'src/contexts/notification-context';
@@ -38,25 +40,26 @@ type NotificationItemProps = {
 
 export type NotificationsPopoverProps = IconButtonProps & {
   data?: NotificationItemProps[];
+  onViewAll?: () => void;
+  onMarkAllAsRead?: (items: NotificationItemProps[]) => void | Promise<void>;
+  groupBy?: (items: NotificationItemProps[]) => { label: string; items: NotificationItemProps[] }[];
 };
 
-export function NotificationsPopover({ data = [], sx, ...other }: NotificationsPopoverProps) {
-  const { notifications: contextNotifications, unreadCount, markAllAsRead } = useNotifications();
-  
-  // Use context notifications if available, otherwise fall back to prop data
-  const notifications = contextNotifications.length > 0 
-    ? contextNotifications.map((n) => ({
-        id: n.id,
-        type: n.type,
-        title: n.title,
-        isUnRead: !n.read,
-        description: n.message,
-        avatarUrl: null,
-        postedAt: n.createdAt,
-      }))
-    : data;
 
-  const totalUnRead = unreadCount > 0 ? unreadCount : notifications.filter((item) => item.isUnRead === true).length;
+
+export function NotificationsPopover({
+  data = [],
+  sx,
+  onViewAll,
+  onMarkAllAsRead,
+  groupBy,
+  ...other
+}: NotificationsPopoverProps) {
+  const router = useRouter();
+
+  const [notifications, setNotifications] = useState(data);
+
+  const totalUnRead = notifications.filter((item) => item.isUnRead === true).length;
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
 
@@ -68,9 +71,34 @@ export function NotificationsPopover({ data = [], sx, ...other }: NotificationsP
     setOpenPopover(null);
   }, []);
 
-  const handleMarkAllAsRead = useCallback(() => {
-    markAllAsRead();
-  }, [markAllAsRead]);
+  const handleMarkAllAsRead = useCallback(async () => {
+    const updatedNotifications = notifications.map((notification) => ({
+      ...notification,
+      isUnRead: false,
+    }));
+
+    setNotifications(updatedNotifications);
+    await onMarkAllAsRead?.(updatedNotifications);
+  }, [notifications, onMarkAllAsRead]);
+
+  const handleViewAll = useCallback(
+    (viewAllHandler?: NotificationsPopoverProps['onViewAll']) => {
+      handleClosePopover();
+      if (viewAllHandler) {
+        viewAllHandler();
+        return;
+      }
+      router.push('/notifications');
+    },
+    [handleClosePopover, router]
+  );
+
+  const sections: { label: string; items: NotificationItemProps[] }[] = groupBy?.(
+    notifications
+  ) ?? [
+    { label: 'New', items: notifications.slice(0, 2) },
+    { label: 'Before that', items: notifications.slice(2, 5) },
+  ];
 
   return (
     <>
@@ -80,7 +108,7 @@ export function NotificationsPopover({ data = [], sx, ...other }: NotificationsP
         sx={sx}
         {...other}
       >
-        <Badge badgeContent={totalUnRead} color="error">
+        <Badge color="error" badgeContent={totalUnRead} invisible={totalUnRead === 0}>
           <Iconify width={24} icon="solar:bell-bing-bold-duotone" />
         </Badge>
       </IconButton>
@@ -113,9 +141,6 @@ export function NotificationsPopover({ data = [], sx, ...other }: NotificationsP
         >
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="subtitle1">Notifications</Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              You have {totalUnRead} unread messages
-            </Typography>
           </Box>
 
           {totalUnRead > 0 && (
@@ -130,37 +155,28 @@ export function NotificationsPopover({ data = [], sx, ...other }: NotificationsP
         <Divider sx={{ borderStyle: 'dashed' }} />
 
         <Scrollbar fillContent sx={{ minHeight: 240, maxHeight: { xs: 360, sm: 'none' } }}>
-          <List
-            disablePadding
-            subheader={
-              <ListSubheader disableSticky sx={{ py: 1, px: 2.5, typography: 'overline' }}>
-                New
-              </ListSubheader>
-            }
-          >
-            {notifications.slice(0, 2).map((notification) => (
-              <NotificationItem key={notification.id} notification={notification} />
-            ))}
-          </List>
-
-          <List
-            disablePadding
-            subheader={
-              <ListSubheader disableSticky sx={{ py: 1, px: 2.5, typography: 'overline' }}>
-                Before that
-              </ListSubheader>
-            }
-          >
-            {notifications.slice(2, 5).map((notification) => (
-              <NotificationItem key={notification.id} notification={notification} />
-            ))}
-          </List>
+          
+          {sections.map((section) => (
+            <List
+              key={section.label}
+              disablePadding
+              subheader={
+                <ListSubheader disableSticky sx={{ py: 1, px: 2.5, typography: 'overline' }}>
+                  {section.label}
+                </ListSubheader>
+              }
+            >
+              {section.items.map((notification) => (
+                <NotificationItem key={notification.id} notification={notification} />
+              ))}
+            </List>
+          ))}
         </Scrollbar>
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
         <Box sx={{ p: 1 }}>
-          <Button fullWidth disableRipple color="inherit">
+          <Button fullWidth disableRipple color="inherit" onClick={() => handleViewAll(onViewAll)}>
             View all
           </Button>
         </Box>

@@ -133,6 +133,7 @@ export function NavContent({
   onToggleCollapsed 
 }: NavContentProps) {
   const pathname = usePathname();
+  const [showUpgrade, setShowUpgrade] = useState(true);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const handleToggleExpand = useCallback((title: string) => {
@@ -285,7 +286,8 @@ export function NavContent({
 
       {!collapsed && slots?.bottomArea}
 
-      {!collapsed && <NavUpgrade />}
+
+      <NavUpgrade />
     </>
   );
 }
