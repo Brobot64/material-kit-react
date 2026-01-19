@@ -30,6 +30,7 @@ export const api = {
   login: (data: any) => request<{ accessToken: string; user: any }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   register: (data: any) => request<{ userId: string; message: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   verifyOtp: (data: any) => request<{ message: string }>('/auth/verify-otp', { method: 'POST', body: JSON.stringify(data) }),
+  resendOtp: (data: any) => request<{ message: string }>('/auth/resend-otp', { method: 'POST', body: JSON.stringify(data) }),
 
   // Teams
   getTeams: () => request<{ teams: any[] }>('/teams'),

@@ -39,6 +39,10 @@ export function SignInView() {
         router.push('/');
       } catch (err: any) {
         console.error(err);
+        if (err.message && err.message.toLowerCase() === 'account not verified') {
+          router.push(`/verify-otp?email=${email}`);
+          return;
+        }
         setError(err.message || 'Login failed');
       } finally {
         setLoading(false);

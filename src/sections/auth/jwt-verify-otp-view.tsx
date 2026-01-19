@@ -20,10 +20,11 @@ export function JwtVerifyOtpView() {
   const router = useRouter();
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email');
-  const { verifyOtp } = useAuth();
+  const { verifyOtp, resendOtp } = useAuth();
 
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleVerify = useCallback(
@@ -37,6 +38,7 @@ export function JwtVerifyOtpView() {
       try {
         setLoading(true);
         setError('');
+        setSuccess('');
         await verifyOtp(email, otp);
         router.push('/');
       } catch (err: any) {
@@ -49,9 +51,23 @@ export function JwtVerifyOtpView() {
   );
 
   const handleResend = useCallback(async () => {
-     // TODO: Implement resend logic
-     console.log('Resend OTP');
-  }, []);
+    if (!email) {
+      setError('Email is missing');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+      await resendOtp(email);
+      setSuccess('OTP resent successfully');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend OTP');
+    } finally {
+      setLoading(false);
+    }
+  }, [email, resendOtp]);
 
   const renderForm = (
     <Box
@@ -70,6 +86,12 @@ export function JwtVerifyOtpView() {
         </Alert>
       )}
 
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
       <TextField
         fullWidth
         name="otp"
@@ -85,7 +107,11 @@ export function JwtVerifyOtpView() {
 
       <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>
         Don&apos;t have a code?{' '}
-        <Link variant="subtitle2" sx={{ cursor: 'pointer' }} onClick={handleResend}>
+        <Link
+          variant="subtitle2"
+          sx={{ cursor: 'pointer', ...(loading && { pointerEvents: 'none', opacity: 0.5 }) }}
+          onClick={handleResend}
+        >
           Resend code
         </Link>
       </Typography>
@@ -107,6 +133,7 @@ export function JwtVerifyOtpView() {
         color="inherit"
         variant="outlined"
         onClick={() => router.push('/sign-in')}
+        disabled={loading}
       >
         Return to Sign In
       </Button>

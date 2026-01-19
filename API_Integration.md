@@ -71,3 +71,16 @@ response:
 {
   "message": "Email verified successfully"
 }
+
+
+
+POST:
+http://localhost:4000/v1/auth/resend-otp
+{
+  "email": "ibrahimsulaymandev@gmail.com"
+}
+
+success sample response:
+{
+  "message": "OTP resent successfully"
+}

@@ -13,6 +13,7 @@ type AuthContextType = {
   login: (data: any) => Promise<void>;
   register: (data: any) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
 };
@@ -81,6 +82,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const resendOtp = async (email: string) => {
+    await api.resendOtp({ email });
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
@@ -104,6 +109,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         login,
         register,
         verifyOtp,
+        resendOtp,
         logout,
         updateUser,
       }}
