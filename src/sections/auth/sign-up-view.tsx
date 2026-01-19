@@ -15,17 +15,17 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { useAuth } from 'src/contexts/auth-context';
+
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
-
-const USERS_STORAGE_KEY = 'app_users';
-const SESSION_STORAGE_KEY = 'app_session';
 
 const STEPS = ['Account Info', 'Security', 'Business Info', 'Address'];
 
 export function SignUpView() {
   const router = useRouter();
+  const { register } = useAuth();
 
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState('');
@@ -50,7 +50,7 @@ export function SignUpView() {
     setError('');
   };
 
-  const validateStep = (step: number) => {
+  const validateStep = useCallback((step: number) => {
     if (step === 0) {
       if (!formData.displayName || !formData.email || !formData.phone) {
         return 'Please fill in all fields';
@@ -86,7 +86,7 @@ export function SignUpView() {
       }
     }
     return null;
-  };
+  }, [formData]);
 
   const handleNext = () => {
     const stepError = validateStep(activeStep);
@@ -103,7 +103,7 @@ export function SignUpView() {
   };
 
   const handleSignUp = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       const stepError = validateStep(activeStep);
       if (stepError) {
@@ -111,41 +111,28 @@ export function SignUpView() {
         return;
       }
 
-      // Get registered users from localStorage
-      const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
-
-      // Check if user already exists
-      const existingUser = users.find((u: { email: string }) => u.email === formData.email);
-      if (existingUser) {
-        setError('An account with this email already exists');
-        return;
+      try {
+        await register({
+             fullName: formData.displayName,
+             email: formData.email,
+             password: formData.password,
+             role: 'user',
+             phone: formData.phone,
+             businessName: formData.businessName,
+             businessMobile: formData.businessMobile,
+             address: {
+                 street: formData.street,
+                 city: formData.city,
+                 state: formData.state,
+             }
+        });
+        
+        router.push(`/verify-otp?email=${formData.email}`);
+      } catch (err: any) {
+        setError(err.message || 'Registration failed');
       }
-
-      // Create new user
-      const newUser = {
-        ...formData,
-        photoURL: '/assets/images/avatar/avatar-25.webp',
-        createdAt: new Date().toISOString(),
-      };
-
-      // Save user to localStorage
-      users.push(newUser);
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-
-      // Create session and log in automatically
-      const session = {
-        email: newUser.email,
-        displayName: newUser.displayName,
-        photoURL: newUser.photoURL,
-        loggedInAt: new Date().toISOString(),
-      };
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-
-      // Redirect to home
-      router.push('/');
     },
-    [formData, activeStep, router]
+    [formData, activeStep, router, register, validateStep]
   );
 
   const renderStepContent = (step: number) => {

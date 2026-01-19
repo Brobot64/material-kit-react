@@ -1,10 +1,10 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
 
 // ----------------------------------------------------------------------
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('accessToken');
 
   const response = await fetch(url, {
     ...options,
@@ -16,7 +16,8 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `API Error: ${response.statusText}`);
   }
 
   return response.json();
@@ -25,6 +26,11 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 // ----------------------------------------------------------------------
 
 export const api = {
+  // Auth
+  login: (data: any) => request<{ accessToken: string; user: any }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  register: (data: any) => request<{ userId: string; message: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  verifyOtp: (data: any) => request<{ message: string }>('/auth/verify-otp', { method: 'POST', body: JSON.stringify(data) }),
+
   // Teams
   getTeams: () => request<{ teams: any[] }>('/teams'),
   getTeam: (id: string) => request<{ team: any }>(`/teams/${id}`),
