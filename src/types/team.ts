@@ -23,6 +23,22 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  status?: 'online' | 'offline' | 'away';
+  status?: string;
+  // API fields
+  _id?: string;
+  fullName?: string;
+  isActive?: boolean;
+  role?: string;
+  themePreference?: string;
+  languagePreference?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  isEmailVerified?: boolean;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+  };
 }
 

@@ -10,6 +10,8 @@ import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgr
 import { AuthLayout } from 'src/layouts/auth';
 import { DashboardLayout } from 'src/layouts/dashboard';
 
+import { AuthGuard, GuestGuard } from './components';
+
 // ----------------------------------------------------------------------
 
 export const DashboardPage = lazy(() => import('src/pages/dashboard'));
@@ -19,6 +21,7 @@ export const UserCreatePage = lazy(() => import('src/pages/user-create'));
 export const ProductListPage = lazy(() => import('src/pages/product-list'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const SignUpPage = lazy(() => import('src/pages/sign-up'));
+export const VerifyOtpPage = lazy(() => import('src/pages/auth/verify-otp'));
 export const ProductsPage = lazy(() => import('src/pages/products'));
 export const TeamsPage = lazy(() => import('src/pages/teams'));
 export const TeamDetailPage = lazy(() => import('src/pages/team-detail'));
@@ -51,11 +54,13 @@ const renderFallback = () => (
 export const routesSection: RouteObject[] = [
   {
     element: (
-      <DashboardLayout>
-        <Suspense fallback={renderFallback()}>
-          <Outlet />
-        </Suspense>
-      </DashboardLayout>
+      <AuthGuard>
+        <DashboardLayout>
+          <Suspense fallback={renderFallback()}>
+            <Outlet />
+          </Suspense>
+        </DashboardLayout>
+      </AuthGuard>
     ),
     children: [
       { index: true, element: <DashboardPage /> },
@@ -75,16 +80,28 @@ export const routesSection: RouteObject[] = [
   {
     path: 'sign-in',
     element: (
-      <AuthLayout>
-        <SignInPage />
-      </AuthLayout>
+      <GuestGuard>
+        <AuthLayout>
+          <SignInPage />
+        </AuthLayout>
+      </GuestGuard>
     ),
   },
   {
     path: 'register',
     element: (
+      <GuestGuard>
+        <AuthLayout>
+          <SignUpPage />
+        </AuthLayout>
+      </GuestGuard>
+    ),
+  },
+  {
+    path: 'verify-otp',
+    element: (
       <AuthLayout>
-        <SignUpPage />
+        <VerifyOtpPage />
       </AuthLayout>
     ),
   },

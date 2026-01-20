@@ -287,7 +287,7 @@ export function NavContent({
       {!collapsed && slots?.bottomArea}
 
 
-      <NavUpgrade />
+      {/* <NavUpgrade /> */}
     </>
   );
 }

@@ -12,56 +12,43 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { useAuth } from 'src/contexts/auth-context';
+
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-const USERS_STORAGE_KEY = 'app_users';
-const SESSION_STORAGE_KEY = 'app_session';
-
 export function SignInView() {
   const router = useRouter();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSignIn = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       setError('');
+      setLoading(true);
 
-      // Validate inputs
-      if (!email || !password) {
-        setError('Please enter both email and password');
-        return;
-      }
-
-      // Get registered users from localStorage
-      const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
-
-      // Check if user exists and password matches
-      const user = users.find(
-        (u: { email: string; password: string }) => u.email === email && u.password === password
-      );
-
-      if (user) {
-        // Store session
-        const session = {
-          email: user.email,
-          displayName: user.displayName || user.email,
-          photoURL: user.photoURL || '/assets/images/avatar/avatar-25.webp',
-          loggedInAt: new Date().toISOString(),
-        };
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+      try {
+        await login({ email, password });
         router.push('/');
-      } else {
-        setError('Invalid email or password. Please try again.');
+      } catch (err: any) {
+        console.error(err);
+        if (err.message && err.message.toLowerCase() === 'account not verified') {
+          router.push(`/verify-otp?email=${email}`);
+          return;
+        }
+        setError(err.message || 'Login failed');
+      } finally {
+        setLoading(false);
       }
     },
-    [email, password, router]
+    [email, password, login, router]
   );
 
   const renderForm = (
@@ -128,7 +115,14 @@ export function SignInView() {
         </Link>
       </Box>
 
-      <Button fullWidth size="large" type="submit" color="inherit" variant="contained">
+      <Button
+        fullWidth
+        size="large"
+        type="submit"
+        color="inherit"
+        variant="contained"
+        disabled={loading}
+      >
         Sign in
       </Button>
     </Box>
