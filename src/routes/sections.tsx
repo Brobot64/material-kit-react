@@ -30,6 +30,8 @@ export const ProjectDetailPage = lazy(() => import('src/pages/project-detail'));
 export const ChatPage = lazy(() => import('src/pages/chat'));
 export const OrderPage = lazy(() => import('src/pages/order'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
+export const HomePage = lazy(() => import('src/pages/home-page'));
+
 
 const renderFallback = () => (
   <Box
@@ -110,4 +112,15 @@ export const routesSection: RouteObject[] = [
     element: <Page404 />,
   },
   { path: '*', element: <Page404 /> },
+  {
+    path: 'home',
+    element: (
+      <GuestGuard>
+        <AuthLayout>
+          <HomePage />
+        </AuthLayout>
+      </GuestGuard>
+    ),
+  },
+  // { path: 'home', element: <HomePage /> },
 ];
