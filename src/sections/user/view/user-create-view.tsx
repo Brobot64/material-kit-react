@@ -42,7 +42,7 @@ export function UserCreateView() {
 
   const handleInputChange = useCallback(
     (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [field]: event.target.value,
       }));
@@ -52,7 +52,7 @@ export function UserCreateView() {
 
   const handleSelectChange = useCallback(
     (field: string) => (event: any) => {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [field]: event.target.value,
       }));
@@ -61,7 +61,7 @@ export function UserCreateView() {
   );
 
   const handleSwitchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       emailVerified: event.target.checked,
     }));
@@ -91,12 +91,12 @@ export function UserCreateView() {
           {/* Profile Photo Upload */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
             <Avatar
-              sx={{ 
-                width: 120, 
-                height: 120, 
+              sx={{
+                width: 120,
+                height: 120,
                 bgcolor: 'grey.200',
                 cursor: 'pointer',
-                '&:hover': { bgcolor: 'grey.300' }
+                '&:hover': { bgcolor: 'grey.300' },
               }}
             >
               <Iconify icon="mingcute:add-line" width={40} />

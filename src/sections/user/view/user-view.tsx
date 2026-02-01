@@ -46,14 +46,17 @@ export function UserView() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Update tab counts
-  const statusCounts = _users.reduce((acc, user) => {
-    acc[user.status] = (acc[user.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const statusCounts = _users.reduce(
+    (acc, user) => {
+      acc[user.status] = (acc[user.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const tabsWithCounts = STATUS_TABS.map((tab) => ({
     ...tab,
-    count: tab.value === 'all' ? _users.length : (statusCounts[tab.value] || 0),
+    count: tab.value === 'all' ? _users.length : statusCounts[tab.value] || 0,
   }));
 
   const dataFiltered: UserProps[] = applyFilter({

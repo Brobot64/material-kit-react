@@ -50,43 +50,46 @@ export function SignUpView() {
     setError('');
   };
 
-  const validateStep = useCallback((step: number) => {
-    if (step === 0) {
-      if (!formData.displayName || !formData.email || !formData.phone) {
-        return 'Please fill in all fields';
+  const validateStep = useCallback(
+    (step: number) => {
+      if (step === 0) {
+        if (!formData.displayName || !formData.email || !formData.phone) {
+          return 'Please fill in all fields';
+        }
+        // Simple email validation
+        if (!/\S+@\S+\.\S+/.test(formData.email)) {
+          return 'Please enter a valid email address';
+        }
       }
-      // Simple email validation
-      if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        return 'Please enter a valid email address';
+      if (step === 1) {
+        if (!formData.password || !formData.confirmPassword) {
+          return 'Please fill in all fields';
+        }
+        if (formData.password !== formData.confirmPassword) {
+          return 'Passwords do not match';
+        }
+        if (formData.password.length < 6) {
+          return 'Password must be at least 6 characters long';
+        }
+        const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{1,8}$/;
+        if (!strongPasswordRegex.test(formData.password)) {
+          return 'Password must include letters, numbers, and special characters, and must not exceed 8 characters';
+        }
       }
-    }
-    if (step === 1) {
-      if (!formData.password || !formData.confirmPassword) {
-        return 'Please fill in all fields';
+      if (step === 2) {
+        if (!formData.businessName || !formData.businessMobile || !formData.street) {
+          return 'Please fill in all fields';
+        }
       }
-      if (formData.password !== formData.confirmPassword) {
-        return 'Passwords do not match';
+      if (step === 3) {
+        if (!formData.city || !formData.state) {
+          return 'Please fill in all fields';
+        }
       }
-      if (formData.password.length < 6) {
-        return 'Password must be at least 6 characters long';
-      }
-      const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{1,8}$/;
-      if (!strongPasswordRegex.test(formData.password)) {
-        return 'Password must include letters, numbers, and special characters, and must not exceed 8 characters';
-      }
-    }
-    if (step === 2) {
-      if (!formData.businessName || !formData.businessMobile || !formData.street) {
-        return 'Please fill in all fields';
-      }
-    }
-    if (step === 3) {
-      if (!formData.city || !formData.state) {
-        return 'Please fill in all fields';
-      }
-    }
-    return null;
-  }, [formData]);
+      return null;
+    },
+    [formData]
+  );
 
   const handleNext = () => {
     const stepError = validateStep(activeStep);
@@ -113,20 +116,20 @@ export function SignUpView() {
 
       try {
         await register({
-             fullName: formData.displayName,
-             email: formData.email,
-             password: formData.password,
-             role: 'user',
-             phone: formData.phone,
-             businessName: formData.businessName,
-             businessMobile: formData.businessMobile,
-             address: {
-                 street: formData.street,
-                 city: formData.city,
-                 state: formData.state,
-             }
+          fullName: formData.displayName,
+          email: formData.email,
+          password: formData.password,
+          role: 'user',
+          phone: formData.phone,
+          businessName: formData.businessName,
+          businessMobile: formData.businessMobile,
+          address: {
+            street: formData.street,
+            city: formData.city,
+            state: formData.state,
+          },
         });
-        
+
         router.push(`/verify-otp?email=${formData.email}`);
       } catch (err: any) {
         setError(err.message || 'Registration failed');
@@ -315,13 +318,7 @@ export function SignUpView() {
             Next
           </Button>
         ) : (
-          <Button
-            fullWidth
-            size="large"
-            variant="contained"
-            color="inherit"
-            onClick={handleSignUp}
-          >
+          <Button fullWidth size="large" variant="contained" color="inherit" onClick={handleSignUp}>
             Sign up
           </Button>
         )}

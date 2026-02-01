@@ -45,8 +45,6 @@ export type NotificationsPopoverProps = IconButtonProps & {
   groupBy?: (items: NotificationItemProps[]) => { label: string; items: NotificationItemProps[] }[];
 };
 
-
-
 export function NotificationsPopover({
   data = [],
   sx,
@@ -155,7 +153,6 @@ export function NotificationsPopover({
         <Divider sx={{ borderStyle: 'dashed' }} />
 
         <Scrollbar fillContent sx={{ minHeight: 240, maxHeight: { xs: 360, sm: 'none' } }}>
-          
           {sections.map((section) => (
             <List
               key={section.label}

@@ -1,6 +1,6 @@
 import type { ProjectMember } from 'src/types';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -22,13 +22,13 @@ export function ProjectMembers({ projectId }: ProjectMembersProps) {
 
   useEffect(() => {
     loadMembers();
-  }, [projectId]);
+  }, [loadMembers]);
 
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getProject(projectId);
     // setMembers(response.project.members);
-    
+
     // Demo data
     setMembers([
       {
@@ -44,7 +44,7 @@ export function ProjectMembers({ projectId }: ProjectMembersProps) {
         },
       },
     ]);
-  };
+  }, [projectId]);
 
   return (
     <Box>
@@ -82,4 +82,3 @@ export function ProjectMembers({ projectId }: ProjectMembersProps) {
     </Box>
   );
 }
-

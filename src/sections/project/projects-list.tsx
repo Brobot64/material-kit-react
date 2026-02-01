@@ -23,7 +23,10 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
   const navigate = useNavigate();
 
   const getStatusColor = (status: Project['status']) => {
-    const colors: Record<Project['status'], 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
+    const colors: Record<
+      Project['status'],
+      'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'
+    > = {
       planning: 'info',
       active: 'success',
       'on-hold': 'warning',
@@ -61,7 +64,14 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
         <Card key={project.id} sx={{ mb: 2 }}>
           <CardActionArea onClick={() => navigate(`/projects/${project.id}`)}>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'start',
+                  mb: 1,
+                }}
+              >
                 <Typography variant="h6">{project.name}</Typography>
                 <Chip label={project.status} color={getStatusColor(project.status)} size="small" />
               </Box>
@@ -71,7 +81,15 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
                 </Typography>
               )}
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Label color={project.priority === 'urgent' ? 'error' : project.priority === 'high' ? 'warning' : 'info'}>
+                <Label
+                  color={
+                    project.priority === 'urgent'
+                      ? 'error'
+                      : project.priority === 'high'
+                        ? 'warning'
+                        : 'info'
+                  }
+                >
                   {project.priority}
                 </Label>
                 <Typography variant="caption" color="text.secondary">
@@ -85,4 +103,3 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
     </Box>
   );
 }
-

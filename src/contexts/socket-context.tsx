@@ -27,7 +27,11 @@ type SocketProviderProps = {
   serverUrl?: string;
 };
 
-export function SocketProvider({ children, userId, serverUrl = 'http://localhost:3001' }: SocketProviderProps) {
+export function SocketProvider({
+  children,
+  userId,
+  serverUrl = 'http://localhost:3001',
+}: SocketProviderProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const messageCallbacksRef = useRef<Set<(message: ChatMessage) => void>>(new Set());
@@ -61,7 +65,11 @@ export function SocketProvider({ children, userId, serverUrl = 'http://localhost
     };
   }, [userId, serverUrl]);
 
-  const sendMessage = (chatId: string, content: string, type: 'text' | 'file' | 'image' = 'text') => {
+  const sendMessage = (
+    chatId: string,
+    content: string,
+    type: 'text' | 'file' | 'image' = 'text'
+  ) => {
     if (socket && isConnected) {
       socket.emit('sendMessage', { chatId, content, type });
     }
@@ -111,4 +119,3 @@ export function useSocket() {
   }
   return context;
 }
-

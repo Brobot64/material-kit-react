@@ -1,6 +1,6 @@
 import type { Project } from 'src/types';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
@@ -26,13 +26,13 @@ export function TeamProjects({ teamId }: TeamProjectsProps) {
 
   useEffect(() => {
     loadProjects();
-  }, [teamId]);
+  }, [loadProjects]);
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getProjects(teamId);
     // setProjects(response.projects);
-    
+
     // Demo data
     setProjects([
       {
@@ -47,10 +47,13 @@ export function TeamProjects({ teamId }: TeamProjectsProps) {
         updatedAt: new Date().toISOString(),
       },
     ]);
-  };
+  }, [teamId]);
 
   const getStatusColor = (status: Project['status']) => {
-    const colors: Record<Project['status'], 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
+    const colors: Record<
+      Project['status'],
+      'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'
+    > = {
       planning: 'info',
       active: 'success',
       'on-hold': 'warning',
@@ -79,9 +82,20 @@ export function TeamProjects({ teamId }: TeamProjectsProps) {
             <Card key={project.id}>
               <CardActionArea onClick={() => navigate(`/projects/${project.id}`)}>
                 <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'start',
+                      mb: 1,
+                    }}
+                  >
                     <Typography variant="h6">{project.name}</Typography>
-                    <Chip label={project.status} color={getStatusColor(project.status)} size="small" />
+                    <Chip
+                      label={project.status}
+                      color={getStatusColor(project.status)}
+                      size="small"
+                    />
                   </Box>
                   {project.description && (
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -89,7 +103,15 @@ export function TeamProjects({ teamId }: TeamProjectsProps) {
                     </Typography>
                   )}
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <Label color={project.priority === 'urgent' ? 'error' : project.priority === 'high' ? 'warning' : 'info'}>
+                    <Label
+                      color={
+                        project.priority === 'urgent'
+                          ? 'error'
+                          : project.priority === 'high'
+                            ? 'warning'
+                            : 'info'
+                      }
+                    >
                       {project.priority}
                     </Label>
                     <Typography variant="caption" color="text.secondary">
@@ -105,4 +127,3 @@ export function TeamProjects({ teamId }: TeamProjectsProps) {
     </Box>
   );
 }
-

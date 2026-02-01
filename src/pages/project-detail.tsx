@@ -7,4 +7,3 @@ const ProjectDetailView = lazy(() => import('src/sections/project/view/project-d
 export default function ProjectDetailPage() {
   return <ProjectDetailView />;
 }
-

@@ -1,6 +1,6 @@
 import type { ChatMessage } from 'src/types';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -50,17 +50,17 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
         leaveChat(`project-${projectId}`);
       }
     };
-  }, [projectId, isConnected, joinChat, leaveChat, onMessage, offMessage]);
+  }, [projectId, isConnected, joinChat, leaveChat, onMessage, offMessage, loadMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getChatMessages(`project-${projectId}`);
     // setMessages(response.messages);
-    
+
     // Demo data
     setMessages([
       {
@@ -78,7 +78,7 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
         },
       },
     ]);
-  };
+  }, [projectId]);
 
   const handleSend = () => {
     if (input.trim() && isConnected) {
@@ -127,7 +127,10 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
                     }}
                   >
                     {!isOwn && (
-                      <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 'fontWeightSemiBold' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ display: 'block', mb: 0.5, fontWeight: 'fontWeightSemiBold' }}
+                      >
                         {message.sender?.name}
                       </Typography>
                     )}
@@ -166,4 +169,3 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
     </Box>
   );
 }
-

@@ -1,6 +1,6 @@
 import type { TeamMember } from 'src/types';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -22,13 +22,13 @@ export function TeamMembers({ teamId }: TeamMembersProps) {
 
   useEffect(() => {
     loadMembers();
-  }, [teamId]);
+  }, [loadMembers]);
 
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getTeam(teamId);
     // setMembers(response.team.members);
-    
+
     // Demo data
     setMembers([
       {
@@ -45,7 +45,7 @@ export function TeamMembers({ teamId }: TeamMembersProps) {
         },
       },
     ]);
-  };
+  }, [teamId]);
 
   return (
     <Box>
@@ -83,4 +83,3 @@ export function TeamMembers({ teamId }: TeamMembersProps) {
     </Box>
   );
 }
-

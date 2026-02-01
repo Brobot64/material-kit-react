@@ -22,7 +22,6 @@ import { ChatWindow } from '../chat-window';
 export default function ChatView() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadChats();
@@ -30,11 +29,10 @@ export default function ChatView() {
 
   const loadChats = async () => {
     try {
-      setLoading(true);
       // TODO: Replace with actual API call
       // const response = await api.getChats();
       // setChats(response.chats);
-      
+
       // Demo data
       setChats([
         {
@@ -65,8 +63,6 @@ export default function ChatView() {
       ]);
     } catch (error) {
       console.error('Failed to load chats:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -78,7 +74,15 @@ export default function ChatView() {
         </Typography>
 
         <Card sx={{ display: 'flex', height: 700 }}>
-          <Box sx={{ width: 350, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column' }}>
+          <Box
+            sx={{
+              width: 350,
+              borderRight: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
               <Typography variant="h6">Chats</Typography>
             </Box>
@@ -130,4 +134,3 @@ export default function ChatView() {
     </Container>
   );
 }
-

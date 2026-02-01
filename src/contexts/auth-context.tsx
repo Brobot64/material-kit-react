@@ -16,6 +16,7 @@ type AuthContextType = {
   resendOtp: (email: string) => Promise<void>;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
+  appData: any;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,16 +29,24 @@ type AuthProviderProps = {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
+  // const [workspaces, setWorkspaces] = useState<WorkspacesPopoverProps['data']>([]);
+
+  const [appData, setAppData] = useState<any>(null);
+
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const initialize = async () => {
       try {
         const storedUser = localStorage.getItem('user');
+        const storedAppData = localStorage.getItem('appData');
         const accessToken = localStorage.getItem('accessToken');
 
         if (accessToken && storedUser) {
           setUser(JSON.parse(storedUser));
+        }
+        if (storedAppData) {
+          setAppData(JSON.parse(storedAppData));
         }
       } catch (error) {
         console.error('Auth initialization failed:', error);
@@ -51,20 +60,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (data: any) => {
     const response = await api.login(data);
-    const { user: userData, accessToken } = response;
-    
+    const { user: userData, accessToken, appData: loginAppData } = response;
+
     // Map API user to internal User type if needed
     const mappedUser: User = {
-        ...userData,
-        // Add compatibility fields
-        id: userData._id,
-        name: userData.fullName,
-        avatar: '/assets/images/avatar/avatar-25.webp', // Default avatar
+      ...userData,
+      // Add compatibility fields
+      id: userData._id,
+      name: userData.fullName,
+      avatar: '/assets/images/avatar/avatar-25.webp', // Default avatar
     };
 
     setUser(mappedUser);
+    setAppData(loginAppData);
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('user', JSON.stringify(mappedUser));
+    localStorage.setItem('appData', JSON.stringify(loginAppData));
   };
 
   const register = async (data: any) => {
@@ -76,9 +87,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await api.verifyOtp({ email, otp });
     // After verification, we might want to refresh user data or update local state
     if (user && user.email === email) {
-        const updatedUser = { ...user, isEmailVerified: true };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+      const updatedUser = { ...user, isEmailVerified: true };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
@@ -88,8 +99,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = () => {
     setUser(null);
+    setAppData(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('appData');
   };
 
   const updateUser = (updates: Partial<User>) => {
@@ -112,6 +125,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         resendOtp,
         logout,
         updateUser,
+        appData,
       }}
     >
       {children}
@@ -126,4 +140,3 @@ export function useAuth() {
   }
   return context;
 }
-

@@ -126,8 +126,8 @@ export function JwtVerifyOtpView() {
       >
         Verify
       </Button>
-      
-       <Button
+
+      <Button
         fullWidth
         size="large"
         color="inherit"
@@ -142,7 +142,7 @@ export function JwtVerifyOtpView() {
 
   return (
     <>
-        <Box
+      <Box
         sx={{
           gap: 1,
           display: 'flex',
@@ -152,10 +152,14 @@ export function JwtVerifyOtpView() {
           textAlign: 'center',
         }}
       >
-      <Iconify icon="solar:shield-keyhole-bold-duotone" width={64} sx={{ color: 'primary.main', mb: 2 }} />
-      
+        <Iconify
+          icon="solar:shield-keyhole-bold-duotone"
+          width={64}
+          sx={{ color: 'primary.main', mb: 2 }}
+        />
+
         <Typography variant="h4">Verify OTP</Typography>
-        
+
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           We have sent a verification code to {email}
         </Typography>

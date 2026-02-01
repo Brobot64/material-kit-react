@@ -1,7 +1,7 @@
 import type { ButtonBaseProps } from '@mui/material/ButtonBase';
 
-import { useState, useCallback } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Popover from '@mui/material/Popover';
@@ -19,7 +19,8 @@ export type WorkspacesPopoverProps = ButtonBaseProps & {
     id: string;
     name: string;
     logo: string;
-    plan: string;
+    isMain: boolean;
+    isActive: boolean;
   }[];
 };
 
@@ -27,6 +28,12 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
   const [workspace, setWorkspace] = useState(data[0]);
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (data.length > 0 && !workspace) {
+      setWorkspace(data[0]);
+    }
+  }, [data, workspace]);
 
   const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setOpenPopover(event.currentTarget);
@@ -44,13 +51,30 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
     [handleClosePopover]
   );
 
-  const renderAvatar = (alt: string, src: string) => (
-    <Box component="img" alt={alt} src={src} sx={{ width: 24, height: 24, borderRadius: '50%' }} />
+  const renderAvatar = (alt: string, src: string, isActive: boolean) => (
+    <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+      <Box
+        component="img"
+        alt={alt}
+        src={src}
+        sx={{ width: 24, height: 24, borderRadius: '50%' }}
+      />
+      <Box
+        sx={{
+          right: -2,
+          bottom: -2,
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          position: 'absolute',
+          border: (theme) => `solid 2px ${theme.vars.palette.background.paper}`,
+          bgcolor: isActive ? 'success.main' : 'error.main',
+        }}
+      />
+    </Box>
   );
 
-  const renderLabel = (plan: string) => (
-    <Label color={plan === 'Free' ? 'default' : 'info'}>{plan}</Label>
-  );
+  const renderLabel = (isMain: boolean) => (isMain ? <Label color="info">Main</Label> : null);
 
   return (
     <>
@@ -71,7 +95,7 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
         }}
         {...other}
       >
-        {renderAvatar(workspace?.name, workspace?.logo)}
+        {renderAvatar(workspace?.name ?? '', workspace?.logo ?? '', !!workspace?.isActive)}
 
         <Box
           sx={{
@@ -84,7 +108,7 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
           }}
         >
           {workspace?.name}
-          {renderLabel(workspace?.plan)}
+          {renderLabel(!!workspace?.isMain)}
         </Box>
 
         <Iconify width={16} icon="carbon:chevron-sort" sx={{ color: 'text.disabled' }} />
@@ -116,13 +140,13 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
               selected={option.id === workspace?.id}
               onClick={() => handleChangeWorkspace(option)}
             >
-              {renderAvatar(option.name, option.logo)}
+              {renderAvatar(option.name, option.logo, option.isActive)}
 
               <Box component="span" sx={{ flexGrow: 1 }}>
                 {option.name}
               </Box>
 
-              {renderLabel(option.plan)}
+              {renderLabel(option.isMain)}
             </MenuItem>
           ))}
         </MenuList>

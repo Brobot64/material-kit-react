@@ -1,6 +1,6 @@
 import type { Chat, ChatMessage } from 'src/types';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -51,17 +51,17 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
         leaveChat(chatId);
       }
     };
-  }, [chatId, isConnected, joinChat, leaveChat, onMessage, offMessage]);
+  }, [chatId, isConnected, joinChat, leaveChat, onMessage, offMessage, loadChat, loadMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const loadChat = async () => {
+  const loadChat = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getChat(chatId);
     // setChat(response.chat);
-    
+
     // Demo data
     setChat({
       id: chatId,
@@ -70,13 +70,13 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
       unreadCount: 0,
       updatedAt: new Date().toISOString(),
     });
-  };
+  }, [chatId]);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getChatMessages(chatId);
     // setMessages(response.messages);
-    
+
     // Demo data
     setMessages([
       {
@@ -94,7 +94,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
         },
       },
     ]);
-  };
+  }, [chatId]);
 
   const handleSend = () => {
     if (input.trim() && isConnected) {
@@ -142,7 +142,10 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
                   }}
                 >
                   {!isOwn && (
-                    <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 'fontWeightSemiBold' }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ display: 'block', mb: 0.5, fontWeight: 'fontWeightSemiBold' }}
+                    >
                       {message.sender?.name}
                     </Typography>
                   )}
@@ -180,4 +183,3 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
     </Box>
   );
 }
-

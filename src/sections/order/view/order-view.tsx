@@ -48,70 +48,82 @@ export function OrderView() {
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
 
   // Update tab counts
-  const statusCounts = _orders.reduce((acc, order) => {
-    acc[order.status] = (acc[order.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const statusCounts = _orders.reduce(
+    (acc, order) => {
+      acc[order.status] = (acc[order.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const tabsWithCounts = STATUS_TABS.map((tab) => ({
     ...tab,
-    count: tab.value === 'all' ? _orders.length : (statusCounts[tab.value] || 0),
+    count: tab.value === 'all' ? _orders.length : statusCounts[tab.value] || 0,
   }));
 
   // Filter orders
   const filteredOrders = _orders.filter((order) => {
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchesSearch = 
+    const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.customer.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return matchesStatus && matchesSearch;
   });
 
-  const handleSelectAllClick = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      const newSelected = filteredOrders.map((order) => order.id);
+  const handleSelectAllClick = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (event.target.checked) {
+        const newSelected = filteredOrders.map((order) => order.id);
+        setSelected(newSelected);
+        return;
+      }
+      setSelected([]);
+    },
+    [filteredOrders]
+  );
+
+  const handleClick = useCallback(
+    (id: string) => {
+      const selectedIndex = selected.indexOf(id);
+      let newSelected: string[] = [];
+
+      if (selectedIndex === -1) {
+        newSelected = newSelected.concat(selected, id);
+      } else if (selectedIndex === 0) {
+        newSelected = newSelected.concat(selected.slice(1));
+      } else if (selectedIndex === selected.length - 1) {
+        newSelected = newSelected.concat(selected.slice(0, -1));
+      } else if (selectedIndex > 0) {
+        newSelected = newSelected.concat(
+          selected.slice(0, selectedIndex),
+          selected.slice(selectedIndex + 1)
+        );
+      }
       setSelected(newSelected);
-      return;
-    }
-    setSelected([]);
-  }, [filteredOrders]);
-
-  const handleClick = useCallback((id: string) => {
-    const selectedIndex = selected.indexOf(id);
-    let newSelected: string[] = [];
-
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, id);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1)
-      );
-    }
-    setSelected(newSelected);
-  }, [selected]);
+    },
+    [selected]
+  );
 
   const handleExpandRow = useCallback((orderId: string) => {
-    setExpandedRows(prev => 
-      prev.includes(orderId) 
-        ? prev.filter(id => id !== orderId)
-        : [...prev, orderId]
+    setExpandedRows((prev) =>
+      prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]
     );
   }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'success';
-      case 'pending': return 'warning';
-      case 'cancelled': return 'error';
-      case 'refunded': return 'info';
-      default: return 'default';
+      case 'completed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'cancelled':
+        return 'error';
+      case 'refunded':
+        return 'info';
+      default:
+        return 'default';
     }
   };
 
@@ -218,7 +230,9 @@ export function OrderView() {
                   <TableCell padding="checkbox">
                     <Checkbox
                       indeterminate={selected.length > 0 && selected.length < filteredOrders.length}
-                      checked={filteredOrders.length > 0 && selected.length === filteredOrders.length}
+                      checked={
+                        filteredOrders.length > 0 && selected.length === filteredOrders.length
+                      }
                       onChange={handleSelectAllClick}
                     />
                   </TableCell>
@@ -264,12 +278,13 @@ export function OrderView() {
                               >
                                 {order.id}
                               </Typography>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleExpandRow(order.id)}
-                              >
+                              <IconButton size="small" onClick={() => handleExpandRow(order.id)}>
                                 <Iconify
-                                  icon={isExpanded ? 'eva:arrow-ios-upward-fill' : 'eva:arrow-ios-downward-fill'}
+                                  icon={
+                                    isExpanded
+                                      ? 'eva:arrow-ios-upward-fill'
+                                      : 'eva:arrow-ios-downward-fill'
+                                  }
                                   width={16}
                                 />
                               </IconButton>

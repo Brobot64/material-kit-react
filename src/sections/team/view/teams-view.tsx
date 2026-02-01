@@ -30,7 +30,7 @@ export default function TeamsView() {
       // TODO: Replace with actual API call
       // const response = await api.getTeams();
       // setTeams(response.teams);
-      
+
       // Demo data
       setTeams([
         {
@@ -55,7 +55,7 @@ export default function TeamsView() {
       // TODO: Replace with actual API call
       // const response = await api.createTeam(data);
       // setTeams((prev) => [response.team, ...prev]);
-      
+
       const newTeam: Team = {
         id: Date.now().toString(),
         ...data,
@@ -95,8 +95,11 @@ export default function TeamsView() {
         <TeamsList teams={teams} loading={loading} />
       </Card>
 
-      <TeamCreateDialog open={openCreate} onClose={() => setOpenCreate(false)} onCreate={handleCreateTeam} />
+      <TeamCreateDialog
+        open={openCreate}
+        onClose={() => setOpenCreate(false)}
+        onCreate={handleCreateTeam}
+      />
     </Container>
   );
 }
-

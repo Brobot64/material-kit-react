@@ -62,7 +62,7 @@ export const navData = [
       { title: 'Details', path: '/orders/details', icon: null },
     ],
   },
-  
+
   // Other sections
   {
     title: 'Blog',
