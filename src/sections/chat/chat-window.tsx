@@ -30,33 +30,6 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isConnected && chatId) {
-      joinChat(chatId);
-      loadChat();
-      loadMessages();
-    }
-
-    const handleMessage = (message: ChatMessage) => {
-      if (message.chatId === chatId) {
-        setMessages((prev) => [...prev, message]);
-      }
-    };
-
-    onMessage(handleMessage);
-
-    return () => {
-      offMessage(handleMessage);
-      if (isConnected) {
-        leaveChat(chatId);
-      }
-    };
-  }, [chatId, isConnected, joinChat, leaveChat, onMessage, offMessage, loadChat, loadMessages]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   const loadChat = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getChat(chatId);
@@ -95,6 +68,33 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
       },
     ]);
   }, [chatId]);
+
+  useEffect(() => {
+    if (isConnected && chatId) {
+      joinChat(chatId);
+      loadChat();
+      loadMessages();
+    }
+
+    const handleMessage = (message: ChatMessage) => {
+      if (message.chatId === chatId) {
+        setMessages((prev) => [...prev, message]);
+      }
+    };
+
+    onMessage(handleMessage);
+
+    return () => {
+      offMessage(handleMessage);
+      if (isConnected) {
+        leaveChat(chatId);
+      }
+    };
+  }, [chatId, isConnected, joinChat, leaveChat, onMessage, offMessage, loadChat, loadMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSend = () => {
     if (input.trim() && isConnected) {

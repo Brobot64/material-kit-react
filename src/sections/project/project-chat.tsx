@@ -30,6 +30,30 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const loadMessages = useCallback(async () => {
+    // TODO: Replace with actual API call
+    // const response = await api.getChatMessages(`project-${projectId}`);
+    // setMessages(response.messages);
+
+    // Demo data
+    setMessages([
+      {
+        id: '1',
+        chatId: `project-${projectId}`,
+        senderId: '1',
+        content: 'Welcome to the project chat!',
+        type: 'text',
+        createdAt: new Date().toISOString(),
+        readBy: [],
+        sender: {
+          id: '1',
+          name: 'John Doe',
+          email: 'john@example.com',
+        },
+      },
+    ]);
+  }, [projectId]);
+
   useEffect(() => {
     if (isConnected) {
       joinChat(`project-${projectId}`);
@@ -55,30 +79,6 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const loadMessages = useCallback(async () => {
-    // TODO: Replace with actual API call
-    // const response = await api.getChatMessages(`project-${projectId}`);
-    // setMessages(response.messages);
-
-    // Demo data
-    setMessages([
-      {
-        id: '1',
-        chatId: `project-${projectId}`,
-        senderId: '1',
-        content: 'Welcome to the project chat!',
-        type: 'text',
-        createdAt: new Date().toISOString(),
-        readBy: [],
-        sender: {
-          id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-        },
-      },
-    ]);
-  }, [projectId]);
 
   const handleSend = () => {
     if (input.trim() && isConnected) {

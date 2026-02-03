@@ -20,13 +20,14 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { fNumber, fCurrency } from 'src/utils/format-number';
+import { useRouter } from 'src/routes/hooks';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
@@ -46,7 +47,8 @@ type Props = {
 };
 
 export function ProductDetailView({ id }: Props) {
-  const { appData } = useAuth();
+  const router = useRouter();
+  const { appData, categories } = useAuth();
   const businessId = appData?.businessId;
 
   const [currentTab, setCurrentTab] = useState('info');
@@ -71,11 +73,28 @@ export function ProductDetailView({ id }: Props) {
     quantity: 0,
   });
 
+  const [variantDetails, setVariantDetails] = useState([{ key: '', value: '' }]);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success' as 'success' | 'error',
   });
+
+  const handleAddVariantDetail = () => {
+    setVariantDetails([...variantDetails, { key: '', value: '' }]);
+  };
+
+  const handleRemoveVariantDetail = (index: number) => {
+    const updatedDetails = variantDetails.filter((_, i) => i !== index);
+    setVariantDetails(updatedDetails.length ? updatedDetails : [{ key: '', value: '' }]);
+  };
+
+  const handleVariantDetailChange = (index: number, field: 'key' | 'value', value: string) => {
+    const updatedDetails = [...variantDetails];
+    updatedDetails[index][field] = value;
+    setVariantDetails(updatedDetails);
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -123,6 +142,14 @@ export function ProductDetailView({ id }: Props) {
       unit: product?.unit || 'unit',
       taxRate: product?.taxRate || 7.5,
     });
+    // Pre-populate details from parent if they exist
+    if (product?.details && Object.keys(product.details).length > 0) {
+      setVariantDetails(
+        Object.entries(product.details).map(([key, value]) => ({ key, value: String(value) }))
+      );
+    } else {
+      setVariantDetails([{ key: '', value: '' }]);
+    }
     setOpenVariantModal(true);
   };
 
@@ -130,6 +157,13 @@ export function ProductDetailView({ id }: Props) {
 
   const handleAddVariant = async () => {
     try {
+      const detailsObject = variantDetails.reduce((acc, item) => {
+        if (item.key.trim()) {
+          acc[item.key.trim()] = item.value;
+        }
+        return acc;
+      }, {} as any);
+
       const variantResponse = await api.addVariant(id, {
         name: newVariant.name,
         outletId: newVariant.outletId,
@@ -138,6 +172,7 @@ export function ProductDetailView({ id }: Props) {
         barcode: newVariant.barcode,
         brand: newVariant.brand,
         description: newVariant.description,
+        details: detailsObject,
       });
 
       if (newVariant.outletId) {
@@ -169,7 +204,9 @@ export function ProductDetailView({ id }: Props) {
 
   if (loading && !product) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box
+        sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -197,11 +234,7 @@ export function ProductDetailView({ id }: Props) {
         </Button>
       </Stack>
 
-      <Tabs
-        value={currentTab}
-        onChange={(e, newValue) => setCurrentTab(newPage => newValue)}
-        sx={{ mb: 3 }}
-      >
+      <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)} sx={{ mb: 3 }}>
         <Tab value="info" label="Information" />
         <Tab value="variants" label={`Variants (${variants.length})`} />
         <Tab value="logs" label="Audit Logs" />
@@ -209,7 +242,7 @@ export function ProductDetailView({ id }: Props) {
 
       {currentTab === 'info' && (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card sx={{ p: 3, textAlign: 'center' }}>
               <Avatar
                 src={product?.images?.[0]}
@@ -227,7 +260,7 @@ export function ProductDetailView({ id }: Props) {
               </Label>
             </Card>
           </Grid>
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Card sx={{ p: 3 }}>
               <Typography variant="subtitle1" sx={{ mb: 2 }}>
                 Details
@@ -243,7 +276,11 @@ export function ProductDetailView({ id }: Props) {
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Category
                   </Typography>
-                  <Typography variant="subtitle2">{product?.categoryName || 'N/A'}</Typography>
+                  <Typography variant="subtitle2">
+                    {product?.categoryName ||
+                      categories.find((c) => c._id === product?.categoryId)?.name ||
+                      'N/A'}
+                  </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -263,6 +300,18 @@ export function ProductDetailView({ id }: Props) {
                   </Typography>
                   <Typography variant="subtitle2">{product?.taxRate}%</Typography>
                 </Box>
+                {product?.details &&
+                  Object.entries(product.details).map(([key, value]) => (
+                    <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary', textTransform: 'capitalize' }}
+                      >
+                        {key}
+                      </Typography>
+                      <Typography variant="subtitle2">{String(value)}</Typography>
+                    </Box>
+                  ))}
                 <Divider />
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Description
@@ -283,29 +332,18 @@ export function ProductDetailView({ id }: Props) {
                   <TableRow>
                     <TableCell>Variant Name</TableCell>
                     <TableCell>SKU</TableCell>
-                    <TableCell>Stock Status</TableCell>
-                    <TableCell>Quantity</TableCell>
-                    <TableCell>Price</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {variants.map((variant) => (
-                    <TableRow key={variant._id} hover>
+                    <TableRow
+                      key={variant._id}
+                      hover
+                      onClick={() => router.push(`/products/${variant._id}`)}
+                      sx={{ cursor: 'pointer' }}
+                    >
                       <TableCell>{variant.name}</TableCell>
                       <TableCell>{variant.sku}</TableCell>
-                      <TableCell>
-                        <Label
-                          color={
-                            (variant.stockStatus === 'IN_STOCK' && 'success') ||
-                            (variant.stockStatus === 'LOW_STOCK' && 'warning') ||
-                            'error'
-                          }
-                        >
-                          {variant.stockStatus?.replace('_', ' ')}
-                        </Label>
-                      </TableCell>
-                      <TableCell>{fNumber(variant.totalQuantity)}</TableCell>
-                      <TableCell>{fCurrency(variant.price || 0)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -317,17 +355,22 @@ export function ProductDetailView({ id }: Props) {
 
       {currentTab === 'logs' && (
         <Grid container justifyContent="center">
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <AnalyticsOrderTimeline
               title="Product History"
               list={auditLogs.map((log) => ({
                 id: log._id,
                 title: log.description || log.action,
                 performer: log.actionBy?.name || 'System',
-                type: log.action.includes('CREATE') ? 'order1' : 
-                      log.action.includes('ADD') ? 'order2' : 
-                      log.action.includes('UPDATE') ? 'order3' : 
-                      log.action.includes('DELETE') ? 'order4' : 'order5',
+                type: log.action.includes('CREATE')
+                  ? 'order1'
+                  : log.action.includes('ADD')
+                    ? 'order2'
+                    : log.action.includes('UPDATE')
+                      ? 'order3'
+                      : log.action.includes('DELETE')
+                        ? 'order4'
+                        : 'order5',
                 time: log.createdAt,
               }))}
             />
@@ -340,7 +383,7 @@ export function ProductDetailView({ id }: Props) {
         <DialogTitle>Add Product Variant</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Stack spacing={3}>
                 <Typography variant="subtitle1">Variant Details</Typography>
                 <TextField
@@ -367,12 +410,60 @@ export function ProductDetailView({ id }: Props) {
                     type="number"
                     label="Tax Rate (%)"
                     value={newVariant.taxRate}
-                    onChange={(e) => setNewVariant({ ...newVariant, taxRate: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setNewVariant({ ...newVariant, taxRate: parseFloat(e.target.value) })
+                    }
                   />
+                </Box>
+
+                <Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      mb: 2,
+                    }}
+                  >
+                    <Typography variant="subtitle2">Additional Details</Typography>
+                    <IconButton size="small" onClick={handleAddVariantDetail} color="primary">
+                      <Iconify icon="mingcute:add-line" />
+                    </IconButton>
+                  </Box>
+                  <Stack spacing={2}>
+                    {variantDetails.map((detail, index) => (
+                      <Box key={index} sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                          size="small"
+                          label="Key"
+                          value={detail.key}
+                          onChange={(e) => handleVariantDetailChange(index, 'key', e.target.value)}
+                          sx={{ flex: 1 }}
+                        />
+                        <TextField
+                          size="small"
+                          label="Value"
+                          value={detail.value}
+                          onChange={(e) =>
+                            handleVariantDetailChange(index, 'value', e.target.value)
+                          }
+                          sx={{ flex: 1 }}
+                        />
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveVariantDetail(index)}
+                          disabled={variantDetails.length === 1 && !detail.key && !detail.value}
+                        >
+                          <Iconify icon="solar:trash-bin-trash-bold" />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Stack>
                 </Box>
               </Stack>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Stack spacing={3}>
                 <Typography variant="subtitle1">Inventory (Required)</Typography>
                 <TextField
@@ -395,14 +486,18 @@ export function ProductDetailView({ id }: Props) {
                     type="number"
                     label="Selling Price"
                     value={newVariant.sellingPrice}
-                    onChange={(e) => setNewVariant({ ...newVariant, sellingPrice: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setNewVariant({ ...newVariant, sellingPrice: parseFloat(e.target.value) })
+                    }
                   />
                   <TextField
                     fullWidth
                     type="number"
                     label="Cost Price"
                     value={newVariant.costPrice}
-                    onChange={(e) => setNewVariant({ ...newVariant, costPrice: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setNewVariant({ ...newVariant, costPrice: parseFloat(e.target.value) })
+                    }
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2 }}>
@@ -411,14 +506,18 @@ export function ProductDetailView({ id }: Props) {
                     type="number"
                     label="Quantity"
                     value={newVariant.quantity}
-                    onChange={(e) => setNewVariant({ ...newVariant, quantity: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setNewVariant({ ...newVariant, quantity: parseFloat(e.target.value) })
+                    }
                   />
                   <TextField
                     fullWidth
                     type="number"
                     label="Min Stock"
                     value={newVariant.minStock}
-                    onChange={(e) => setNewVariant({ ...newVariant, minStock: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setNewVariant({ ...newVariant, minStock: parseFloat(e.target.value) })
+                    }
                   />
                 </Box>
               </Stack>

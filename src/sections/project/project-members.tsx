@@ -20,10 +20,6 @@ type ProjectMembersProps = {
 export function ProjectMembers({ projectId }: ProjectMembersProps) {
   const [members, setMembers] = useState<ProjectMember[]>([]);
 
-  useEffect(() => {
-    loadMembers();
-  }, [loadMembers]);
-
   const loadMembers = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getProject(projectId);
@@ -45,6 +41,10 @@ export function ProjectMembers({ projectId }: ProjectMembersProps) {
       },
     ]);
   }, [projectId]);
+
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
 
   return (
     <Box>

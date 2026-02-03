@@ -152,6 +152,25 @@ export const api = {
     });
     return request<{ data: any[]; pagination: any }>(`/products?${query.toString()}`);
   },
+
+  // Categories
+  getCategories: (businessId: string) => request<any[]>(`/categories?businessId=${businessId}`),
+  addCategory: (data: {
+    businessId: string;
+    name: string;
+    description?: string;
+    parentId?: string;
+  }) => request<any>('/categories', { method: 'POST', body: JSON.stringify(data) }),
+  updateCategory: (
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      parentId?: string;
+      isActive?: boolean;
+    }
+  ) => request<any>(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
   getProduct: (id: string) => request<any>(`/products/${id}`),
   updateProduct: (id: string, data: any) =>
     request<any>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -164,6 +183,7 @@ export const api = {
     brand?: string;
     unit: string;
     taxRate: number;
+    categoryId?: string;
     description?: string;
     details?: any;
     hasVariants: boolean;

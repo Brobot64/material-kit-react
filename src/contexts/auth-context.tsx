@@ -1,6 +1,6 @@
 import type { User } from 'src/types';
 
-import { useState, useEffect, useContext, createContext, type ReactNode } from 'react';
+import { useState, useEffect, useContext, useCallback, createContext, type ReactNode } from 'react';
 
 import { api } from 'src/services/api';
 
@@ -17,6 +17,8 @@ type AuthContextType = {
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   appData: any;
+  categories: any[];
+  refreshCategories: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,8 +34,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // const [workspaces, setWorkspaces] = useState<WorkspacesPopoverProps['data']>([]);
 
   const [appData, setAppData] = useState<any>(null);
+  const [categories, setCategories] = useState<any[]>([]);
 
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const fetchCategories = useCallback(async () => {
+    if (appData?.businessId) {
+      try {
+        const data = await api.getCategories(appData.businessId);
+        setCategories(data);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    }
+  }, [appData?.businessId]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const refreshCategories = async () => {
+    await fetchCategories();
+  };
 
   useEffect(() => {
     const initialize = async () => {
@@ -126,6 +148,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         logout,
         updateUser,
         appData,
+        categories,
+        refreshCategories,
       }}
     >
       {children}

@@ -55,6 +55,11 @@ export const navData = [
     ],
   },
   {
+    title: 'Category',
+    path: '/categories',
+    icon: icon('ic-blog'), // Using ic-blog as a placeholder icon
+  },
+  {
     title: 'Order',
     icon: icon('ic-order'),
     children: [

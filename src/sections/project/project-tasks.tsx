@@ -24,10 +24,6 @@ type ProjectTasksProps = {
 export function ProjectTasks({ projectId }: ProjectTasksProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
-
   const loadTasks = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getTasks(projectId);
@@ -57,6 +53,10 @@ export function ProjectTasks({ projectId }: ProjectTasksProps) {
       },
     ]);
   }, [projectId]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   const getStatusColor = (status: Task['status']) => {
     const colors: Record<

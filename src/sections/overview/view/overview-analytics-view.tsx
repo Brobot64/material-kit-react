@@ -5,7 +5,6 @@ import Typography from '@mui/material/Typography';
 
 import { _tasks } from 'src/_mock';
 import { api } from 'src/services/api';
-import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { AnalyticsTasks } from '../analytics-tasks';

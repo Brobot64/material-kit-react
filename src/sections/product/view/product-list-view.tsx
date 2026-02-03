@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
+import { Stack } from '@mui/material';
 import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -45,30 +46,33 @@ import { Breadcrumbs } from 'src/components/breadcrumbs';
 
 export function ProductListView() {
   const router = useRouter();
-  const { appData } = useAuth();
+  const { appData, categories } = useAuth();
   const businessId = appData?.businessId;
 
   const [products, setProducts] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [openModal, setOpenModal] = useState(false);
   const [outlets, setOutlets] = useState<any[]>([]);
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success' as 'success' | 'error',
   });
 
-  const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>, id: string) => {
-    setOpenPopover(event.currentTarget);
-    setSelectedProductId(id);
-  }, []);
+  const handleOpenPopover = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>, id: string) => {
+      setOpenPopover(event.currentTarget);
+      setSelectedProductId(id);
+    },
+    []
+  );
 
   const handleClosePopover = useCallback(() => {
     setOpenPopover(null);
@@ -108,6 +112,7 @@ export function ProductListView() {
     brand: '',
     unit: '1',
     taxRate: 7.5,
+    categoryId: '',
     description: '',
     outletId: '',
     sellingPrice: 0,
@@ -115,6 +120,23 @@ export function ProductListView() {
     minStock: 0,
     quantity: 0,
   });
+
+  const [details, setDetails] = useState([{ key: '', value: '' }]);
+
+  const handleAddDetail = () => {
+    setDetails([...details, { key: '', value: '' }]);
+  };
+
+  const handleRemoveDetail = (index: number) => {
+    const updatedDetails = details.filter((_, i) => i !== index);
+    setDetails(updatedDetails.length ? updatedDetails : [{ key: '', value: '' }]);
+  };
+
+  const handleDetailChange = (index: number, field: 'key' | 'value', value: string) => {
+    const updatedDetails = [...details];
+    updatedDetails[index][field] = value;
+    setDetails(updatedDetails);
+  };
 
   const fetchProducts = useCallback(async () => {
     if (!businessId) return;
@@ -172,6 +194,7 @@ export function ProductListView() {
       brand: '',
       unit: '1',
       taxRate: 7.5,
+      categoryId: '',
       description: '',
       outletId: '',
       sellingPrice: 0,
@@ -179,11 +202,19 @@ export function ProductListView() {
       minStock: 0,
       quantity: 0,
     });
+    setDetails([{ key: '', value: '' }]);
   };
 
   const handleCreateProduct = async () => {
     if (!businessId) return;
     try {
+      const detailsObject = details.reduce((acc, item) => {
+        if (item.key.trim()) {
+          acc[item.key.trim()] = item.value;
+        }
+        return acc;
+      }, {} as any);
+
       // 1. Add Product
       const productResponse = await api.addProduct({
         businessId,
@@ -193,7 +224,9 @@ export function ProductListView() {
         brand: newProduct.brand,
         unit: newProduct.unit,
         taxRate: newProduct.taxRate,
+        categoryId: newProduct.categoryId,
         description: newProduct.description,
+        details: detailsObject,
         hasVariants: false,
         isActive: true,
       });
@@ -303,7 +336,9 @@ export function ProductListView() {
                               {product.name}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                              {product.categoryName || 'No Category'}
+                              {product.categoryName ||
+                                categories.find((c) => c._id === product.categoryId)?.name ||
+                                'No Category'}
                             </Typography>
                           </Box>
                         </Box>
@@ -327,7 +362,8 @@ export function ProductListView() {
 
                       <TableCell>
                         <Typography variant="body2">
-                          {fNumber(product.totalQuantity || 0)} / {fNumber(product.totalMinStock || 0)}
+                          {fNumber(product.totalQuantity || 0)} /{' '}
+                          {fNumber(product.totalMinStock || 0)}
                         </Typography>
                       </TableCell>
 
@@ -413,7 +449,7 @@ export function ProductListView() {
         <DialogTitle>Create New Product</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={3} sx={{ py: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <Typography variant="subtitle1">General Information</Typography>
                 <TextField
@@ -434,6 +470,20 @@ export function ProductListView() {
                   value={newProduct.brand}
                   onChange={(e) => setNewProduct({ ...newProduct, brand: e.target.value })}
                 />
+                <TextField
+                  select
+                  fullWidth
+                  label="Category"
+                  value={newProduct.categoryId}
+                  onChange={(e) => setNewProduct({ ...newProduct, categoryId: e.target.value })}
+                >
+                  <MenuItem value="">Select Category</MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category._id} value={category._id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
                     fullWidth
@@ -446,7 +496,9 @@ export function ProductListView() {
                     type="number"
                     label="Tax Rate (%)"
                     value={newProduct.taxRate}
-                    onChange={(e) => setNewProduct({ ...newProduct, taxRate: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, taxRate: parseFloat(e.target.value) })
+                    }
                   />
                 </Box>
                 <TextField
@@ -457,10 +509,54 @@ export function ProductListView() {
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                 />
+
+                <Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      mb: 2,
+                    }}
+                  >
+                    <Typography variant="subtitle2">Additional Details</Typography>
+                    <IconButton size="small" onClick={handleAddDetail} color="primary">
+                      <Iconify icon="mingcute:add-line" />
+                    </IconButton>
+                  </Box>
+                  <Stack spacing={2}>
+                    {details.map((detail, index) => (
+                      <Box key={index} sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                          size="small"
+                          label="Key (e.g. Color)"
+                          value={detail.key}
+                          onChange={(e) => handleDetailChange(index, 'key', e.target.value)}
+                          sx={{ flex: 1 }}
+                        />
+                        <TextField
+                          size="small"
+                          label="Value"
+                          value={detail.value}
+                          onChange={(e) => handleDetailChange(index, 'value', e.target.value)}
+                          sx={{ flex: 1 }}
+                        />
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveDetail(index)}
+                          disabled={details.length === 1 && !detail.key && !detail.value}
+                        >
+                          <Iconify icon="solar:trash-bin-trash-bold" />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
               </Box>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <Typography variant="subtitle1">Inventory Assignment</Typography>
                 <TextField
@@ -484,7 +580,9 @@ export function ProductListView() {
                   label="Selling Price"
                   disabled={!newProduct.outletId}
                   value={newProduct.sellingPrice}
-                  onChange={(e) => setNewProduct({ ...newProduct, sellingPrice: parseFloat(e.target.value) })}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, sellingPrice: parseFloat(e.target.value) })
+                  }
                 />
                 <TextField
                   fullWidth
@@ -492,7 +590,9 @@ export function ProductListView() {
                   label="Cost Price"
                   disabled={!newProduct.outletId}
                   value={newProduct.costPrice}
-                  onChange={(e) => setNewProduct({ ...newProduct, costPrice: parseFloat(e.target.value) })}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, costPrice: parseFloat(e.target.value) })
+                  }
                 />
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
@@ -501,7 +601,9 @@ export function ProductListView() {
                     label="Quantity"
                     disabled={!newProduct.outletId}
                     value={newProduct.quantity}
-                    onChange={(e) => setNewProduct({ ...newProduct, quantity: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, quantity: parseFloat(e.target.value) })
+                    }
                   />
                   <TextField
                     fullWidth
@@ -509,7 +611,9 @@ export function ProductListView() {
                     label="Min Stock"
                     disabled={!newProduct.outletId}
                     value={newProduct.minStock}
-                    onChange={(e) => setNewProduct({ ...newProduct, minStock: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, minStock: parseFloat(e.target.value) })
+                    }
                   />
                 </Box>
               </Box>

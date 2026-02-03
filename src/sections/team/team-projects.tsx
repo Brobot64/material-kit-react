@@ -1,7 +1,7 @@
 import type { Project } from 'src/types';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -24,10 +24,6 @@ export function TeamProjects({ teamId }: TeamProjectsProps) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
 
-  useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
-
   const loadProjects = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getProjects(teamId);
@@ -48,6 +44,10 @@ export function TeamProjects({ teamId }: TeamProjectsProps) {
       },
     ]);
   }, [teamId]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   const getStatusColor = (status: Project['status']) => {
     const colors: Record<

@@ -20,10 +20,6 @@ type TeamMembersProps = {
 export function TeamMembers({ teamId }: TeamMembersProps) {
   const [members, setMembers] = useState<TeamMember[]>([]);
 
-  useEffect(() => {
-    loadMembers();
-  }, [loadMembers]);
-
   const loadMembers = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getTeam(teamId);
@@ -46,6 +42,10 @@ export function TeamMembers({ teamId }: TeamMembersProps) {
       },
     ]);
   }, [teamId]);
+
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
 
   return (
     <Box>
