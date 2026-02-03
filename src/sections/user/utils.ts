@@ -55,10 +55,11 @@ export function getComparator<Key extends keyof any>(
 type ApplyFilterProps = {
   inputData: UserProps[];
   filterName: string;
+  statusFilter?: string;
   comparator: (a: any, b: any) => number;
 };
 
-export function applyFilter({ inputData, comparator, filterName }: ApplyFilterProps) {
+export function applyFilter({ inputData, comparator, filterName, statusFilter }: ApplyFilterProps) {
   const stabilizedThis = inputData.map((el, index) => [el, index] as const);
 
   stabilizedThis.sort((a, b) => {
@@ -73,6 +74,10 @@ export function applyFilter({ inputData, comparator, filterName }: ApplyFilterPr
     inputData = inputData.filter(
       (user) => user.name.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
     );
+  }
+
+  if (statusFilter) {
+    inputData = inputData.filter((user) => user.status === statusFilter);
   }
 
   return inputData;

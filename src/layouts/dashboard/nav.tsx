@@ -1,11 +1,13 @@
 import type { Theme, SxProps, Breakpoint } from '@mui/material/styles';
 
-import { useEffect } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import ListItem from '@mui/material/ListItem';
+import Collapse from '@mui/material/Collapse';
 import { useTheme } from '@mui/material/styles';
+import IconButton from '@mui/material/IconButton';
 import ListItemButton from '@mui/material/ListItemButton';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 
@@ -13,9 +15,9 @@ import { usePathname } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { Logo } from 'src/components/logo';
+import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
-import { NavUpgrade } from '../components/nav-upgrade';
 import { WorkspacesPopover } from '../components/workspaces-popover';
 
 import type { NavItem } from '../nav-config-dashboard';
@@ -31,6 +33,8 @@ export type NavContentProps = {
   };
   workspaces: WorkspacesPopoverProps['data'];
   sx?: SxProps<Theme>;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 };
 
 export function NavDesktop({
@@ -39,7 +43,13 @@ export function NavDesktop({
   slots,
   workspaces,
   layoutQuery,
-}: NavContentProps & { layoutQuery: Breakpoint }) {
+  collapsed,
+  onToggleCollapsed,
+}: NavContentProps & {
+  layoutQuery: Breakpoint;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+}) {
   const theme = useTheme();
 
   return (
@@ -62,7 +72,13 @@ export function NavDesktop({
         ...sx,
       }}
     >
-      <NavContent data={data} slots={slots} workspaces={workspaces} />
+      <NavContent
+        data={data}
+        slots={slots}
+        workspaces={workspaces}
+        collapsed={collapsed}
+        onToggleCollapsed={onToggleCollapsed}
+      />
     </Box>
   );
 }
@@ -107,16 +123,147 @@ export function NavMobile({
 
 // ----------------------------------------------------------------------
 
-export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
+export function NavContent({
+  data,
+  slots,
+  workspaces,
+  sx,
+  collapsed,
+  onToggleCollapsed,
+}: NavContentProps) {
   const pathname = usePathname();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const handleToggleExpand = useCallback((title: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]
+    );
+  }, []);
+
+  const renderNavItem = useCallback(
+    (item: NavItem, level: number = 0) => {
+      const isExpanded = expandedItems.includes(item.title);
+      const hasChildren = item.children && item.children.length > 0;
+      const isParentActive = item.children?.some((child) => child.path === pathname);
+      const isActive = item.path === pathname;
+
+      return (
+        <ListItem key={item.title} disableGutters disablePadding>
+          <Box sx={{ width: '100%' }}>
+            <ListItemButton
+              disableGutters
+              component={item.path ? RouterLink : 'div'}
+              href={item.path}
+              onClick={hasChildren ? () => handleToggleExpand(item.title) : undefined}
+              sx={[
+                (theme) => ({
+                  pl: collapsed ? 1.5 : 2 + level * 1,
+                  py: 1,
+                  gap: collapsed ? 0 : 2,
+                  pr: collapsed ? 1.5 : 1.5,
+                  borderRadius: 0.75,
+                  typography: 'body2',
+                  fontWeight: 'fontWeightMedium',
+                  color: theme.vars.palette.text.secondary,
+                  minHeight: 44,
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  cursor: hasChildren ? 'pointer' : 'default',
+                  ...((isActive || isParentActive) && {
+                    fontWeight: 'fontWeightSemiBold',
+                    color: theme.vars.palette.primary.main,
+                    bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.08),
+                    '&:hover': {
+                      bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.16),
+                    },
+                  }),
+                }),
+              ]}
+              title={collapsed ? item.title : undefined}
+            >
+              {level === 0 && (
+                <Box
+                  component="span"
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {item.icon}
+                </Box>
+              )}
+
+              {!collapsed && (
+                <>
+                  <Box component="span" sx={{ flexGrow: 1 }}>
+                    {item.title}
+                  </Box>
+                  {item.info && item.info}
+                  {hasChildren && (
+                    <Iconify
+                      icon={
+                        isExpanded ? 'eva:arrow-ios-upward-fill' : 'eva:arrow-ios-downward-fill'
+                      }
+                      width={16}
+                    />
+                  )}
+                </>
+              )}
+            </ListItemButton>
+
+            {/* Render children */}
+            {hasChildren && !collapsed && (
+              <Collapse in={isExpanded}>
+                <Box sx={{ pl: 2 }}>
+                  {item.children!.map((child) => renderNavItem(child, level + 1))}
+                </Box>
+              </Collapse>
+            )}
+          </Box>
+        </ListItem>
+      );
+    },
+    [pathname, collapsed, expandedItems, handleToggleExpand]
+  );
 
   return (
     <>
-      <Logo />
+      {/* Logo and Toggle Button */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'space-between',
+          mb: 2,
+        }}
+      >
+        {!collapsed && <Logo />}
+        {collapsed && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+            <Logo sx={{ width: 40, height: 40 }} />
+          </Box>
+        )}
+        {onToggleCollapsed && (
+          <IconButton
+            onClick={onToggleCollapsed}
+            sx={{
+              ml: collapsed ? 0 : 'auto',
+              color: 'text.secondary',
+            }}
+          >
+            <Iconify
+              icon={collapsed ? 'eva:arrow-ios-forward-fill' : 'eva:arrow-ios-downward-fill'}
+              width={16}
+            />
+          </IconButton>
+        )}
+      </Box>
 
-      {slots?.topArea}
+      {!collapsed && slots?.topArea}
 
-      <WorkspacesPopover data={workspaces} sx={{ my: 2 }} />
+      {!collapsed && <WorkspacesPopover data={workspaces} sx={{ my: 2 }} />}
 
       <Scrollbar fillContent>
         <Box
@@ -138,57 +285,14 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
               flexDirection: 'column',
             }}
           >
-            {data.map((item) => {
-              const isActived = item.path === pathname;
-
-              return (
-                <ListItem disableGutters disablePadding key={item.title}>
-                  <ListItemButton
-                    disableGutters
-                    component={RouterLink}
-                    href={item.path}
-                    sx={[
-                      (theme) => ({
-                        pl: 2,
-                        py: 1,
-                        gap: 2,
-                        pr: 1.5,
-                        borderRadius: 0.75,
-                        typography: 'body2',
-                        fontWeight: 'fontWeightMedium',
-                        color: theme.vars.palette.text.secondary,
-                        minHeight: 44,
-                        ...(isActived && {
-                          fontWeight: 'fontWeightSemiBold',
-                          color: theme.vars.palette.primary.main,
-                          bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.08),
-                          '&:hover': {
-                            bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.16),
-                          },
-                        }),
-                      }),
-                    ]}
-                  >
-                    <Box component="span" sx={{ width: 24, height: 24 }}>
-                      {item.icon}
-                    </Box>
-
-                    <Box component="span" sx={{ flexGrow: 1 }}>
-                      {item.title}
-                    </Box>
-
-                    {item.info && item.info}
-                  </ListItemButton>
-                </ListItem>
-              );
-            })}
+            {data.map((item) => renderNavItem(item))}
           </Box>
         </Box>
       </Scrollbar>
 
-      {slots?.bottomArea}
+      {!collapsed && slots?.bottomArea}
 
-      <NavUpgrade />
+      {/* <NavUpgrade /> */}
     </>
   );
 }
