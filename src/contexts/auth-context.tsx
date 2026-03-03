@@ -1,4 +1,4 @@
-import type { User } from 'src/types';
+import type { User, Outlet, Category } from 'src/types';
 
 import { useState, useEffect, useContext, useCallback, createContext, type ReactNode } from 'react';
 
@@ -17,8 +17,10 @@ type AuthContextType = {
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   appData: any;
-  categories: any[];
+  categories: Category[];
+  outlets: Outlet[];
   refreshCategories: () => Promise<void>;
+  refreshOutlets: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,7 +36,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // const [workspaces, setWorkspaces] = useState<WorkspacesPopoverProps['data']>([]);
 
   const [appData, setAppData] = useState<any>(null);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [outlets, setOutlets] = useState<Outlet[]>([]);
 
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -49,12 +52,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [appData?.businessId]);
 
+  const fetchOutlets = useCallback(async () => {
+    if (appData?.businessId) {
+      try {
+        const data = await api.getOutlets(appData.businessId);
+        setOutlets(data);
+      } catch (error) {
+        console.error('Failed to fetch outlets:', error);
+      }
+    }
+  }, [appData?.businessId]);
+
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
+  useEffect(() => {
+    fetchOutlets();
+  }, [fetchOutlets]);
+
   const refreshCategories = async () => {
     await fetchCategories();
+  };
+
+  const refreshOutlets = async () => {
+    await fetchOutlets();
   };
 
   useEffect(() => {
@@ -149,7 +171,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         updateUser,
         appData,
         categories,
+        outlets,
         refreshCategories,
+        refreshOutlets,
       }}
     >
       {children}

@@ -20,10 +20,11 @@
     /* Linting */
     "strict": true,
     "noEmit": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "types": ["@testing-library/jest-dom", "vitest"]
   },
   "include": ["src"],
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "src/**/*.test.tsx", "src/**/*.test.ts", "src/**/*.spec.tsx", "src/**/*.spec.ts"],
   "references": [
     {
       "path": "./tsconfig.node.json"

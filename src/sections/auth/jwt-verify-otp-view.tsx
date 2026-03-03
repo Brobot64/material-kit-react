@@ -100,6 +100,7 @@ export function JwtVerifyOtpView() {
         onChange={(e) => setOtp(e.target.value)}
         placeholder="Enter 6-digit code"
         required
+        autoComplete="one-time-code"
         slotProps={{
           inputLabel: { shrink: true },
         }}

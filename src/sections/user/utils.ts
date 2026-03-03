@@ -1,4 +1,4 @@
-import type { UserProps } from './user-table-row';
+import type { Employee } from 'src/types';
 
 // ----------------------------------------------------------------------
 
@@ -53,7 +53,7 @@ export function getComparator<Key extends keyof any>(
 // ----------------------------------------------------------------------
 
 type ApplyFilterProps = {
-  inputData: UserProps[];
+  inputData: Employee[];
   filterName: string;
   statusFilter?: string;
   comparator: (a: any, b: any) => number;
@@ -72,12 +72,12 @@ export function applyFilter({ inputData, comparator, filterName, statusFilter }:
 
   if (filterName) {
     inputData = inputData.filter(
-      (user) => user.name.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
+      (user) => user.userId.fullName.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
     );
   }
 
-  if (statusFilter) {
-    inputData = inputData.filter((user) => user.status === statusFilter);
+  if (statusFilter && statusFilter !== 'all') {
+    inputData = inputData.filter((user) => user.userId.status === statusFilter);
   }
 
   return inputData;
