@@ -17,12 +17,10 @@ export function FinancialOverviewView() {
   const [overview, setOverview] = useState<any>(null);
   const [incomeExpenseData, setIncomeExpenseData] = useState<any[]>([]);
   const [expenseBreakdown, setExpenseBreakdown] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [outlets, setOutlets] = useState<any[]>([]);
   const [selectedOutlet, setSelectedOutlet] = useState('all');
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
     try {
       const params = {
         outletId: selectedOutlet === 'all' ? undefined : selectedOutlet,
@@ -39,8 +37,6 @@ export function FinancialOverviewView() {
       setExpenseBreakdown(breakdownData);
     } catch (error) {
       console.error('Failed to fetch financial data:', error);
-    } finally {
-      setLoading(false);
     }
   }, [selectedOutlet]);
 

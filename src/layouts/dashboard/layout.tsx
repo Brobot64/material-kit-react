@@ -54,7 +54,7 @@ export function DashboardLayout({
 
   const { setMode } = useColorScheme();
 
-  const { user, appData, outlets } = useAuth();
+  const { user, outlets } = useAuth();
 
   useEffect(() => {
     if (user?.themePreference) {
