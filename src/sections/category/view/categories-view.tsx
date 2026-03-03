@@ -1,3 +1,5 @@
+import type { Category } from 'src/types';
+
 import { useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
@@ -7,6 +9,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Popover from '@mui/material/Popover';
+import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
 import MenuList from '@mui/material/MenuList';
@@ -17,12 +20,13 @@ import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
 import InputAdornment from '@mui/material/InputAdornment';
-import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { fDateTime } from 'src/utils/format-time';
 
@@ -38,20 +42,21 @@ import { Breadcrumbs } from 'src/components/breadcrumbs';
 // ----------------------------------------------------------------------
 
 export function CategoriesView() {
-  const { appData, categories, refreshCategories } = useAuth(); // Assuming I'll add refreshCategories to AuthContext
+  const { appData, categories, refreshCategories } = useAuth();
   const businessId = appData?.businessId;
 
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [openModal, setOpenModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   const [newCategory, setNewCategory] = useState({
     name: '',
     description: '',
     parentId: '',
+    isActive: true,
   });
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
@@ -79,12 +84,12 @@ export function CategoriesView() {
   const handleOpenModal = () => {
     setEditMode(false);
     setSelectedCategory(null);
-    setNewCategory({ name: '', description: '', parentId: '' });
+    setNewCategory({ name: '', description: '', parentId: '', isActive: true });
     setOpenModal(true);
   };
 
   const handleEditCategory = () => {
-    const category = categories.find((c) => c._id === popoverId);
+    const category = categories.find((c: Category) => c._id === popoverId);
     if (category) {
       setEditMode(true);
       setSelectedCategory(category);
@@ -92,6 +97,7 @@ export function CategoriesView() {
         name: category.name,
         description: category.description || '',
         parentId: category.parentId || '',
+        isActive: category.isActive !== false,
       });
       setOpenModal(true);
     }
@@ -103,28 +109,39 @@ export function CategoriesView() {
   };
 
   const handleSaveCategory = async () => {
-    if (!businessId) return;
+    console.log('handleSaveCategory called', { businessId, editMode, newCategory });
+    if (!businessId) {
+      setSnackbar({
+        open: true,
+        message: 'Error: Business ID not found. Please log in again.',
+        severity: 'error',
+      });
+      return;
+    }
+    setIsSubmitting(true);
     try {
       if (editMode && selectedCategory) {
+        console.log('Updating category', selectedCategory._id, newCategory);
         await api.updateCategory(selectedCategory._id, newCategory);
         setSnackbar({ open: true, message: 'Category updated successfully', severity: 'success' });
       } else {
-        await api.addCategory({ businessId, ...newCategory });
+        console.log('Adding new category', { businessId, ...newCategory });
+        const response = await api.addCategory({ businessId, ...newCategory });
+        console.log('Add category response:', response);
         setSnackbar({ open: true, message: 'Category added successfully', severity: 'success' });
       }
 
-      // We should really have a way to refresh categories in the context
-      if (refreshCategories) {
-        await refreshCategories();
-      }
-
+      await refreshCategories();
       handleCloseModal();
     } catch (error: any) {
+      console.error('Failed to save category:', error);
       setSnackbar({
         open: true,
         message: error.message || 'Failed to save category',
         severity: 'error',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -134,7 +151,7 @@ export function CategoriesView() {
 
   return (
     <DashboardContent>
-      <Breadcrumbs links={[{ name: 'Dashboard', href: '/' }, { name: 'Categories' }]} />
+      <Breadcrumbs links={[{ name: 'Dashboard', href: '/' }, { name: 'Categories' }]} sx={{ mb: 5 }} />
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
         <Typography variant="h4">Categories</Typography>
@@ -167,66 +184,60 @@ export function CategoriesView() {
 
         <Scrollbar>
           <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Table sx={{ minWidth: 800 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Parent</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Created At</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+            <Table sx={{ minWidth: 800 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Description</TableCell>
+                  <TableCell>Parent</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Created At</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredCategories.map((category: Category) => (
+                  <TableRow hover key={category._id}>
+                    <TableCell>
+                      <Typography variant="subtitle2" noWrap>
+                        {category.name}
+                      </Typography>
+                    </TableCell>
+
+                    <TableCell>{category.description || 'No description'}</TableCell>
+
+                    <TableCell>
+                      {categories.find((c: Category) => c._id === category.parentId)?.name || 'None'}
+                    </TableCell>
+
+                    <TableCell>
+                      <Label variant="soft" color={category.isActive ? 'success' : 'default'}>
+                        {category.isActive ? 'Active' : 'Inactive'}
+                      </Label>
+                    </TableCell>
+
+                    <TableCell>
+                      <Typography variant="body2">{fDateTime(category.createdAt)}</Typography>
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <IconButton onClick={(e) => handleOpenPopover(e, category._id)}>
+                        <Iconify icon="eva:more-vertical-fill" />
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredCategories.map((category) => (
-                    <TableRow hover key={category._id}>
-                      <TableCell>
-                        <Typography variant="subtitle2" noWrap>
-                          {category.name}
-                        </Typography>
-                      </TableCell>
-
-                      <TableCell>{category.description || 'No description'}</TableCell>
-
-                      <TableCell>
-                        {categories.find((c) => c._id === category.parentId)?.name || 'None'}
-                      </TableCell>
-
-                      <TableCell>
-                        <Label variant="soft" color={category.isActive ? 'success' : 'default'}>
-                          {category.isActive ? 'Active' : 'Inactive'}
-                        </Label>
-                      </TableCell>
-
-                      <TableCell>
-                        <Typography variant="body2">{fDateTime(category.createdAt)}</Typography>
-                      </TableCell>
-
-                      <TableCell align="right">
-                        <IconButton onClick={(e) => handleOpenPopover(e, category._id)}>
-                          <Iconify icon="eva:more-vertical-fill" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredCategories.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                        <Typography variant="h6" sx={{ color: 'text.disabled' }}>
-                          No categories found
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
+                ))}
+                {filteredCategories.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
+                      <Typography variant="h6" sx={{ color: 'text.disabled' }}>
+                        No categories found
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </TableContainer>
         </Scrollbar>
       </Card>
@@ -287,26 +298,37 @@ export function CategoriesView() {
             >
               <MenuItem value="">None</MenuItem>
               {categories
-                .filter((c) => c._id !== selectedCategory?._id)
-                .map((category) => (
+                .filter((c: Category) => c._id !== selectedCategory?._id)
+                .map((category: Category) => (
                   <MenuItem key={category._id} value={category._id}>
                     {category.name}
                   </MenuItem>
                 ))}
             </TextField>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={newCategory.isActive}
+                  onChange={(e) => setNewCategory({ ...newCategory, isActive: e.target.checked })}
+                />
+              }
+              label="Active"
+            />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModal} color="inherit">
             Cancel
           </Button>
-          <Button
+          <LoadingButton
             onClick={handleSaveCategory}
             variant="contained"
+            loading={isSubmitting}
             disabled={!newCategory.name.trim()}
           >
             {editMode ? 'Update' : 'Create'}
-          </Button>
+          </LoadingButton>
         </DialogActions>
       </Dialog>
 

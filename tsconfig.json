@@ -20,7 +20,8 @@
     /* Linting */
     "strict": true,
     "noEmit": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "types": ["@testing-library/jest-dom"]
   },
   "include": ["src"],
   "exclude": ["node_modules"],

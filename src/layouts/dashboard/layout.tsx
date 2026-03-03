@@ -1,14 +1,13 @@
 import type { Breakpoint } from '@mui/material/styles';
 
+import { useEffect } from 'react';
 import { merge } from 'es-toolkit';
-import { useState, useEffect } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import { useTheme, useColorScheme } from '@mui/material/styles';
 
-import { api } from 'src/services/api';
 import { _langs, _notifications } from 'src/_mock';
 import { useAuth } from 'src/contexts/auth-context';
 
@@ -55,9 +54,7 @@ export function DashboardLayout({
 
   const { setMode } = useColorScheme();
 
-  const { user, appData } = useAuth();
-
-  const [workspaces, setWorkspaces] = useState<WorkspacesPopoverProps['data']>([]);
+  const { user, appData, outlets } = useAuth();
 
   useEffect(() => {
     if (user?.themePreference) {
@@ -65,27 +62,13 @@ export function DashboardLayout({
     }
   }, [user?.themePreference, setMode]);
 
-  useEffect(() => {
-    const fetchOutlets = async () => {
-      if (appData?.businessId) {
-        try {
-          const outlets = await api.getOutlets(appData.businessId);
-          const mappedWorkspaces = outlets.map((outlet: any) => ({
-            id: outlet._id,
-            name: outlet.name,
-            logo: '/assets/icons/workspaces/logo-1.webp',
-            isMain: outlet.isMain,
-            isActive: outlet.isActive,
-          }));
-          setWorkspaces(mappedWorkspaces);
-        } catch (error) {
-          console.error('Failed to fetch outlets:', error);
-        }
-      }
-    };
-
-    fetchOutlets();
-  }, [appData?.businessId]);
+  const workspaces: WorkspacesPopoverProps['data'] = outlets.map((outlet) => ({
+    id: outlet._id,
+    name: outlet.name,
+    logo: '/assets/icons/workspaces/logo-1.webp',
+    isMain: !!outlet.isMain,
+    isActive: outlet.isActive,
+  }));
 
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
   const { value: collapsed, onToggle: onToggleCollapsed } = useBoolean();

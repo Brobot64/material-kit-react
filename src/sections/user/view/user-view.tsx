@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react';
+import type { Employee, EmployeePagination } from 'src/types';
+
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -10,63 +12,131 @@ import TableBody from '@mui/material/TableBody';
 import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
+import { Modal, Select, TextField, InputLabel, FormControl, MenuItem as MuiMenuItem } from '@mui/material';
 
-import { RouterLink } from 'src/routes/components';
-
-import { _users } from 'src/_mock';
+import { api } from 'src/services/api';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 
+import { emptyRows } from '../utils';
 import { TableNoData } from '../table-no-data';
 import { UserTableRow } from '../user-table-row';
 import { UserTableHead } from '../user-table-head';
 import { TableEmptyRows } from '../table-empty-rows';
 import { UserTableToolbar } from '../user-table-toolbar';
-import { emptyRows, applyFilter, getComparator } from '../utils';
-
-import type { UserProps } from '../user-table-row';
 
 // ----------------------------------------------------------------------
 
 const STATUS_TABS = [
-  { value: 'all', label: 'All', count: 0 },
-  { value: 'active', label: 'Active', count: 0 },
-  { value: 'pending', label: 'Pending', count: 0 },
-  { value: 'banned', label: 'Banned', count: 0 },
-  { value: 'rejected', label: 'Rejected', count: 0 },
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'suspended', label: 'Suspended' },
 ];
 
 export function UserView() {
   const table = useTable();
 
-  const [filterName, setFilterName] = useState('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [pagination, setPagination] = useState<EmployeePagination | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [outlets, setOutlets] = useState<any[]>([]);
+  const [selectedOutlet, setSelectedOutlet] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [filterName, setFilterName] = useState('');
 
-  // Update tab counts
-  const statusCounts = _users.reduce(
-    (acc, user) => {
-      acc[user.status] = (acc[user.status] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
-
-  const tabsWithCounts = STATUS_TABS.map((tab) => ({
-    ...tab,
-    count: tab.value === 'all' ? _users.length : statusCounts[tab.value] || 0,
-  }));
-
-  const dataFiltered: UserProps[] = applyFilter({
-    inputData: _users,
-    comparator: getComparator(table.order, table.orderBy),
-    filterName,
-    statusFilter: statusFilter === 'all' ? undefined : statusFilter,
+  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [newEmployee, setNewEmployee] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    role: 'sales_rep',
+    salary: 0,
+    position: '',
+    outletId: '',
   });
 
-  const notFound = !dataFiltered.length && (!!filterName || statusFilter !== 'all');
+  const fetchEmployees = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.getEmployees({
+        page: table.page + 1,
+        limit: table.rowsPerPage,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        outletId: selectedOutlet === 'all' ? undefined : selectedOutlet,
+      });
+      setEmployees(response.data);
+      setPagination(response.pagination);
+    } catch (error) {
+      console.error('Failed to fetch employees:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [table.page, table.rowsPerPage, statusFilter, selectedOutlet]);
+
+  const fetchOutlets = useCallback(async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.businessId) {
+        const data = await api.getOutlets(user.businessId);
+        setOutlets(data);
+        if (data.length > 0) {
+          setNewEmployee((prev) => ({ ...prev, outletId: data[0]._id }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch outlets:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOutlets();
+  }, [fetchOutlets]);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
+
+  const handleCreateEmployee = async () => {
+    try {
+      await api.createEmployee(newEmployee);
+      setOpenCreateModal(false);
+      fetchEmployees();
+      setNewEmployee({
+        fullName: '',
+        email: '',
+        phone: '',
+        role: 'sales_rep',
+        salary: 0,
+        position: '',
+        outletId: outlets[0]?._id || '',
+      });
+    } catch (error) {
+      console.error('Failed to create employee:', error);
+      alert(error instanceof Error ? error.message : 'Failed to create employee');
+    }
+  };
+
+  const handleFilterStatus = useCallback(
+    (event: React.SyntheticEvent, newValue: string) => {
+      setStatusFilter(newValue);
+      table.onResetPage();
+    },
+    [table]
+  );
+
+  const handleFilterOutlet = useCallback(
+    (event: any) => {
+      setSelectedOutlet(event.target.value);
+      table.onResetPage();
+    },
+    [table]
+  );
+
+  const notFound = !loading && !employees.length;
 
   return (
     <DashboardContent>
@@ -85,69 +155,61 @@ export function UserView() {
         }}
       >
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
-          Users
+          Employees
         </Typography>
         <Button
-          component={RouterLink}
-          href="/user/create"
           variant="contained"
           color="inherit"
           startIcon={<Iconify icon="mingcute:add-line" />}
+          onClick={() => setOpenCreateModal(true)}
         >
-          New user
+          New employee
         </Button>
       </Box>
 
       <Card>
-        <Tabs
-          value={statusFilter}
-          onChange={(event, newValue) => {
-            setStatusFilter(newValue);
-            table.onResetPage();
-          }}
-          sx={{
-            px: 2.5,
-            boxShadow: (theme) => `inset 0 -2px 0 0 ${theme.vars.palette.divider}`,
-          }}
-        >
-          {tabsWithCounts.map((tab) => (
-            <Tab
-              key={tab.value}
-              value={tab.value}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {tab.label}
-                  <Box
-                    sx={{
-                      ml: 1,
-                      px: 1,
-                      py: 0.25,
-                      borderRadius: 0.75,
-                      fontSize: 12,
-                      fontWeight: 'fontWeightBold',
-                      bgcolor: tab.value === statusFilter ? 'primary.main' : 'grey.300',
-                      color: tab.value === statusFilter ? 'primary.contrastText' : 'text.secondary',
-                    }}
-                  >
-                    {tab.count}
-                  </Box>
-                </Box>
-              }
-              sx={{
-                textTransform: 'capitalize',
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                },
-              }}
-            />
-          ))}
-        </Tabs>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2.5, py: 2 }}>
+          <Tabs
+            value={statusFilter}
+            onChange={handleFilterStatus}
+            sx={{
+              flexGrow: 1,
+              boxShadow: (theme) => `inset 0 -2px 0 0 ${theme.vars.palette.divider}`,
+            }}
+          >
+            {STATUS_TABS.map((tab) => (
+              <Tab
+                key={tab.value}
+                value={tab.value}
+                label={tab.label}
+                sx={{ textTransform: 'capitalize' }}
+              />
+            ))}
+          </Tabs>
+
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>Outlet</InputLabel>
+            <Select
+              value={selectedOutlet}
+              label="Outlet"
+              onChange={handleFilterOutlet}
+            >
+              <MuiMenuItem value="all">All Outlets</MuiMenuItem>
+              {outlets.map((outlet) => (
+                <MuiMenuItem key={outlet._id} value={outlet._id}>
+                  {outlet.name}
+                </MuiMenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
         <UserTableToolbar
           numSelected={table.selected.length}
           filterName={filterName}
           onFilterName={(event: React.ChangeEvent<HTMLInputElement>) => {
             setFilterName(event.target.value);
-            table.onResetPage();
+            // Local filtering for name if needed, or update API to support search
           }}
         />
 
@@ -157,42 +219,38 @@ export function UserView() {
               <UserTableHead
                 order={table.order}
                 orderBy={table.orderBy}
-                rowCount={_users.length}
+                rowCount={pagination?.total || 0}
                 numSelected={table.selected.length}
                 onSort={table.onSort}
                 onSelectAllRows={(checked) =>
                   table.onSelectAllRows(
                     checked,
-                    _users.map((user) => user.id)
+                    employees.map((user) => user._id)
                   )
                 }
                 headLabel={[
-                  { id: 'name', label: 'Name' },
-                  { id: 'company', label: 'Company' },
+                  { id: 'fullName', label: 'Name' },
+                  { id: 'position', label: 'Position' },
                   { id: 'role', label: 'Role' },
-                  { id: 'isVerified', label: 'Verified', align: 'center' },
+                  { id: 'salary', label: 'Salary' },
                   { id: 'status', label: 'Status' },
                   { id: '' },
                 ]}
               />
               <TableBody>
-                {dataFiltered
-                  .slice(
-                    table.page * table.rowsPerPage,
-                    table.page * table.rowsPerPage + table.rowsPerPage
-                  )
-                  .map((row) => (
-                    <UserTableRow
-                      key={row.id}
-                      row={row}
-                      selected={table.selected.includes(row.id)}
-                      onSelectRow={() => table.onSelectRow(row.id)}
-                    />
-                  ))}
+                {employees.map((row) => (
+                  <UserTableRow
+                    key={row._id}
+                    row={row as any}
+                    selected={table.selected.includes(row._id)}
+                    onSelectRow={() => table.onSelectRow(row._id)}
+                    onRefresh={fetchEmployees}
+                  />
+                ))}
 
                 <TableEmptyRows
                   height={68}
-                  emptyRows={emptyRows(table.page, table.rowsPerPage, _users.length)}
+                  emptyRows={emptyRows(table.page, table.rowsPerPage, pagination?.total || 0)}
                 />
 
                 {notFound && <TableNoData searchQuery={filterName} />}
@@ -204,13 +262,105 @@ export function UserView() {
         <TablePagination
           component="div"
           page={table.page}
-          count={_users.length}
+          count={pagination?.total || 0}
           rowsPerPage={table.rowsPerPage}
           onPageChange={table.onChangePage}
           rowsPerPageOptions={[5, 10, 25]}
           onRowsPerPageChange={table.onChangeRowsPerPage}
         />
       </Card>
+
+      {/* Create Employee Modal */}
+      <Modal open={openCreateModal} onClose={() => setOpenCreateModal(false)}>
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 500,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          <Typography variant="h6">Create New Employee</Typography>
+
+          <TextField
+            fullWidth
+            label="Full Name"
+            value={newEmployee.fullName}
+            onChange={(e) => setNewEmployee({ ...newEmployee, fullName: e.target.value })}
+          />
+
+          <TextField
+            fullWidth
+            label="Email"
+            type="email"
+            value={newEmployee.email}
+            onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+          />
+
+          <TextField
+            fullWidth
+            label="Phone"
+            value={newEmployee.phone}
+            onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+          />
+
+          <FormControl fullWidth>
+            <InputLabel>Role</InputLabel>
+            <Select
+              value={newEmployee.role}
+              label="Role"
+              onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
+            >
+              <MuiMenuItem value="sales_rep">Sales Representative</MuiMenuItem>
+              <MuiMenuItem value="store_manager">Store Manager</MuiMenuItem>
+              <MuiMenuItem value="admin">Admin</MuiMenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            label="Position"
+            value={newEmployee.position}
+            onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
+          />
+
+          <TextField
+            fullWidth
+            label="Salary"
+            type="number"
+            value={newEmployee.salary}
+            onChange={(e) => setNewEmployee({ ...newEmployee, salary: Number(e.target.value) })}
+          />
+
+          <FormControl fullWidth>
+            <InputLabel>Outlet</InputLabel>
+            <Select
+              value={newEmployee.outletId}
+              label="Outlet"
+              onChange={(e) => setNewEmployee({ ...newEmployee, outletId: e.target.value })}
+            >
+              {outlets.map((outlet) => (
+                <MuiMenuItem key={outlet._id} value={outlet._id}>
+                  {outlet.name}
+                </MuiMenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+            <Button onClick={() => setOpenCreateModal(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleCreateEmployee} color="primary">Create</Button>
+          </Box>
+        </Box>
+      </Modal>
     </DashboardContent>
   );
 }

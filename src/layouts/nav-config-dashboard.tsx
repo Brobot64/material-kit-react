@@ -20,6 +20,11 @@ export const navData = [
     icon: icon('ic-analytics'),
   },
   {
+    title: 'Financial Overview',
+    path: '/financial-overview',
+    icon: icon('ic-analytics'),
+  },
+  {
     title: 'Teams',
     path: '/teams',
     icon: icon('ic-user'),
@@ -35,16 +40,9 @@ export const navData = [
     icon: icon('ic-blog'),
   },
   {
-    title: 'User',
+    title: 'Employees',
+    path: '/user',
     icon: icon('ic-user'),
-    children: [
-      { title: 'Profile', path: '/user/profile', icon: null },
-      { title: 'Cards', path: '/user/cards', icon: null },
-      { title: 'List', path: '/user', icon: null },
-      { title: 'Create', path: '/user/create', icon: null },
-      { title: 'Edit', path: '/user/edit', icon: null },
-      { title: 'Account', path: '/user/account', icon: null },
-    ],
   },
   {
     title: 'Product',
@@ -66,6 +64,20 @@ export const navData = [
       { title: 'List', path: '/orders', icon: null },
       { title: 'Details', path: '/orders/details', icon: null },
     ],
+  },
+  {
+    title: 'Sales',
+    icon: icon('ic-cart'),
+    children: [
+      { title: 'New Sale', path: '/sales', icon: null },
+      { title: 'History', path: '/sales/history', icon: null },
+      { title: 'Pending', path: '/sales/pending', icon: null },
+    ],
+  },
+  {
+    title: 'Customers',
+    path: '/customers',
+    icon: icon('ic-user'),
   },
 
   // Other sections

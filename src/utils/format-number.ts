@@ -41,7 +41,7 @@ export function fCurrency(inputValue: InputNumberValue, options?: Options) {
 
   const fm = new Intl.NumberFormat(locale.code, {
     style: 'currency',
-    currency: locale.currency,
+    currency: "NGN",
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
     ...options,

@@ -1,3 +1,5 @@
+import type { Category } from 'src/types';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
 
 // ----------------------------------------------------------------------
@@ -120,6 +122,27 @@ export const api = {
     if (params.outletId) query.append('outletId', params.outletId);
     return request<any[]>(`/reporting/category-performance?${query.toString()}`);
   },
+  getFinancialOverview: (params: { startDate?: string; endDate?: string; outletId?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<any>(`/reporting/financial-overview?${query.toString()}`);
+  },
+  getIncomeExpenseGraph: (params: { period?: string; outletId?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<any[]>(`/reporting/graphs/income-expense?${query.toString()}`);
+  },
+  getExpenseBreakdownGraph: (params: { outletId?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<any[]>(`/reporting/graphs/expense-breakdown?${query.toString()}`);
+  },
 
   // Audit Logs
   getAuditLogs: (params: {
@@ -154,13 +177,19 @@ export const api = {
   },
 
   // Categories
-  getCategories: (businessId: string) => request<any[]>(`/categories?businessId=${businessId}`),
+  getCategories: (businessId: string) => request<Category[]>(`/categories?businessId=${businessId}`),
   addCategory: (data: {
     businessId: string;
     name: string;
     description?: string;
     parentId?: string;
-  }) => request<any>('/categories', { method: 'POST', body: JSON.stringify(data) }),
+  }) => {
+    const query = new URLSearchParams({ businessId: data.businessId });
+    return request<Category>(`/categories?${query.toString()}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
   updateCategory: (
     id: string,
     data: {
@@ -169,7 +198,7 @@ export const api = {
       parentId?: string;
       isActive?: boolean;
     }
-  ) => request<any>(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  ) => request<Category>(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
   getProduct: (id: string) => request<any>(`/products/${id}`),
   updateProduct: (id: string, data: any) =>
@@ -213,4 +242,111 @@ export const api = {
     minStock: number;
     quantity: number;
   }) => request<any>('/product-outlets/assign', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Sales
+  getProductOutlets: (params: { outletId: string; page?: number; limit?: number; search?: string }) => {
+    const query = new URLSearchParams();
+    const { outletId, ...rest } = params;
+    Object.entries(rest).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    const queryString = query.toString();
+    return request<any>(`/product-outlets/outlet/${outletId}${queryString ? `?${queryString}` : ''}`);
+  },
+  createSale: (data: {
+    items: {
+      productId: string;
+      quantity: number;
+      price?: number;
+      tax?: number;
+      discount?: number;
+    }[];
+    paymentMethod: string;
+    amountPaid: number;
+    customerId?: string;
+    paymentDeadline?: string;
+    notes?: string;
+  }) => request<any>('/sales', { method: 'POST', body: JSON.stringify(data) }),
+  addSalePayment: (saleId: string, data: { amount: number; paymentMethod: string; notes?: string }) =>
+    request<any>(`/sales/${saleId}/payments`, { method: 'POST', body: JSON.stringify(data) }),
+  getSalesHistory: (params: {
+    outletId?: string;
+    cashierId?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<any>(`/sales/history?${query.toString()}`);
+  },
+  getPendingSales: (params: { outletId?: string; customerId?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<any>(`/sales/pending?${query.toString()}`);
+  },
+
+  // Customers
+  getCustomers: (params: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<{ data: any[]; pagination: any }>(`/customers?${query.toString()}`);
+  },
+  getCustomer: (id: string) => request<any>(`/customers/${id}`),
+  createCustomer: (data: {
+    fullName: string;
+    phone: string;
+    email?: string;
+    notes?: string;
+    tags?: string[];
+  }) => request<any>('/customers', { method: 'POST', body: JSON.stringify(data) }),
+  updateCustomer: (id: string, data: { notes?: string; tags?: string[]; isActive?: boolean }) =>
+    request<any>(`/customers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deactivateCustomer: (id: string) => request<any>(`/customers/${id}`, { method: 'DELETE' }),
+
+  // Employees
+  getEmployees: (params: {
+    outletId?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<{ data: any[]; pagination: any }>(`/employees?${query.toString()}`);
+  },
+  getEmployee: (id: string) => request<any>(`/employees/${id}`),
+  createEmployee: (data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    role: string;
+    salary: number;
+    position: string;
+    outletId: string;
+  }) => request<any>('/employees', { method: 'POST', body: JSON.stringify(data) }),
+  updateEmployee: (id: string, data: { salary?: number; position?: string }) =>
+    request<any>(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteEmployee: (id: string) => request<any>(`/employees/${id}`, { method: 'DELETE' }),
+  updateEmployeeStatus: (data: { userId: string; status: string; isActive: boolean }) =>
+    request<any>('/employees/status', { method: 'PATCH', body: JSON.stringify(data) }),
+  updateEmployeePassword: (data: any) =>
+    request<any>('/employees/update-password', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Salaries
+  paySalary: (data: {
+    employeeId: string;
+    amount: number;
+    paymentMethod: string;
+    notes?: string;
+  }) => request<any>('/expenditures/salaries', { method: 'POST', body: JSON.stringify(data) }),
 };

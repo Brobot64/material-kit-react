@@ -1,3 +1,5 @@
+import type { Employee } from 'src/types';
+
 import { useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
@@ -9,30 +11,37 @@ import MenuList from '@mui/material/MenuList';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
+import { Modal, Button, Select, TextField, Typography, InputLabel, FormControl, MenuItem as MuiMenuItem } from '@mui/material';
+
+import { api } from 'src/services/api';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-export type UserProps = {
-  id: string;
-  name: string;
-  role: string;
-  status: string;
-  company: string;
-  avatarUrl: string;
-  isVerified: boolean;
-};
-
 type UserTableRowProps = {
-  row: UserProps;
+  row: Employee;
   selected: boolean;
   onSelectRow: () => void;
+  onRefresh: () => void;
 };
 
-export function UserTableRow({ row, selected, onSelectRow }: UserTableRowProps) {
+export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTableRowProps) {
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [openPayModal, setOpenPayModal] = useState(false);
+
+  const [editData, setEditData] = useState({
+    salary: row.salary,
+    position: row.position,
+  });
+
+  const [payData, setPayData] = useState({
+    amount: row.salary,
+    paymentMethod: 'bank_transfer',
+    notes: '',
+  });
 
   const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setOpenPopover(event.currentTarget);
@@ -41,6 +50,55 @@ export function UserTableRow({ row, selected, onSelectRow }: UserTableRowProps) 
   const handleClosePopover = useCallback(() => {
     setOpenPopover(null);
   }, []);
+
+  const handleUpdateStatus = useCallback(async (status: string) => {
+    try {
+      await api.updateEmployeeStatus({
+        userId: row.userId._id,
+        status,
+        isActive: status === 'active',
+      });
+      onRefresh();
+      handleClosePopover();
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  }, [row.userId._id, onRefresh, handleClosePopover]);
+
+  const handleDelete = useCallback(async () => {
+    if (window.confirm('Are you sure you want to delete this employee?')) {
+      try {
+        await api.deleteEmployee(row._id);
+        onRefresh();
+        handleClosePopover();
+      } catch (error) {
+        console.error('Failed to delete employee:', error);
+      }
+    }
+  }, [row._id, onRefresh, handleClosePopover]);
+
+  const handleEditHR = useCallback(async () => {
+    try {
+      await api.updateEmployee(row._id, editData);
+      setOpenEditModal(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Failed to update HR record:', error);
+    }
+  }, [row._id, editData, onRefresh]);
+
+  const handlePaySalary = useCallback(async () => {
+    try {
+      await api.paySalary({
+        employeeId: row._id,
+        ...payData,
+      });
+      setOpenPayModal(false);
+      alert('Salary payment recorded successfully');
+    } catch (error) {
+      console.error('Failed to pay salary:', error);
+    }
+  }, [row._id, payData]);
 
   return (
     <>
@@ -57,25 +115,21 @@ export function UserTableRow({ row, selected, onSelectRow }: UserTableRowProps) 
               alignItems: 'center',
             }}
           >
-            <Avatar alt={row.name} src={row.avatarUrl} />
-            {row.name}
+            <Avatar alt={row.userId.fullName} src="" />
+            {row.userId.fullName}
           </Box>
         </TableCell>
 
-        <TableCell>{row.company}</TableCell>
+        <TableCell>{row.position}</TableCell>
 
-        <TableCell>{row.role}</TableCell>
+        <TableCell>{row.userId.role ?? '—'}</TableCell>
 
-        <TableCell align="center">
-          {row.isVerified ? (
-            <Iconify width={22} icon="solar:check-circle-bold" sx={{ color: 'success.main' }} />
-          ) : (
-            '-'
-          )}
-        </TableCell>
+        <TableCell>{row.salary.toLocaleString()}</TableCell>
 
         <TableCell>
-          <Label color={(row.status === 'banned' && 'error') || 'success'}>{row.status}</Label>
+          <Label color={(row.userId.status === 'suspended' && 'error') || (row.userId.status === 'pending' && 'warning') || 'success'}>
+            {row.userId.status || 'active'}
+          </Label>
         </TableCell>
 
         <TableCell align="right">
@@ -97,7 +151,7 @@ export function UserTableRow({ row, selected, onSelectRow }: UserTableRowProps) 
           sx={{
             p: 0.5,
             gap: 0.5,
-            width: 140,
+            width: 160,
             display: 'flex',
             flexDirection: 'column',
             [`& .${menuItemClasses.root}`]: {
@@ -108,17 +162,124 @@ export function UserTableRow({ row, selected, onSelectRow }: UserTableRowProps) 
             },
           }}
         >
-          <MenuItem onClick={handleClosePopover}>
+          <MenuItem onClick={() => { setOpenEditModal(true); handleClosePopover(); }}>
             <Iconify icon="solar:pen-bold" />
-            Edit
+            Edit HR
           </MenuItem>
 
-          <MenuItem onClick={handleClosePopover} sx={{ color: 'error.main' }}>
+          <MenuItem onClick={() => { setOpenPayModal(true); handleClosePopover(); }}>
+            <Iconify icon="solar:dollar-bold" />
+            Pay Salary
+          </MenuItem>
+
+          {row.userId.status !== 'active' && (
+            <MenuItem onClick={() => handleUpdateStatus('active')}>
+              <Iconify icon="solar:check-circle-bold" />
+              Activate
+            </MenuItem>
+          )}
+
+          {row.userId.status !== 'suspended' && (
+            <MenuItem onClick={() => handleUpdateStatus('suspended')}>
+              <Iconify icon="solar:minus-circle-bold" />
+              Suspend
+            </MenuItem>
+          )}
+
+          <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
             <Iconify icon="solar:trash-bin-trash-bold" />
             Delete
           </MenuItem>
         </MenuList>
       </Popover>
+
+      {/* Edit HR Modal */}
+      <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 400,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3
+        }}>
+          <Typography variant="h6">Edit HR Record</Typography>
+          <TextField
+            fullWidth
+            label="Position"
+            value={editData.position}
+            onChange={(e) => setEditData({ ...editData, position: e.target.value })}
+          />
+          <TextField
+            fullWidth
+            label="Salary"
+            type="number"
+            value={editData.salary}
+            onChange={(e) => setEditData({ ...editData, salary: Number(e.target.value) })}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+            <Button onClick={() => setOpenEditModal(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleEditHR}>Save</Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      {/* Pay Salary Modal */}
+      <Modal open={openPayModal} onClose={() => setOpenPayModal(false)}>
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 400,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3
+        }}>
+          <Typography variant="h6">Pay Salary</Typography>
+          <TextField
+            fullWidth
+            label="Amount"
+            type="number"
+            value={payData.amount}
+            onChange={(e) => setPayData({ ...payData, amount: Number(e.target.value) })}
+          />
+          <FormControl fullWidth>
+            <InputLabel>Payment Method</InputLabel>
+            <Select
+              value={payData.paymentMethod}
+              label="Payment Method"
+              onChange={(e) => setPayData({ ...payData, paymentMethod: e.target.value })}
+            >
+              <MuiMenuItem value="bank_transfer">Bank Transfer</MuiMenuItem>
+              <MuiMenuItem value="cash">Cash</MuiMenuItem>
+              <MuiMenuItem value="mobile_money">Mobile Money</MuiMenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            fullWidth
+            label="Notes"
+            multiline
+            rows={2}
+            value={payData.notes}
+            onChange={(e) => setPayData({ ...payData, notes: e.target.value })}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+            <Button onClick={() => setOpenPayModal(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handlePaySalary} color="primary">Confirm Payment</Button>
+          </Box>
+        </Box>
+      </Modal>
     </>
   );
 }
