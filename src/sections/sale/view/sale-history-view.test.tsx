@@ -1,7 +1,8 @@
+```typescript
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { it, vi, expect, describe, beforeEach } from 'vitest';
-// @ts-ignore
+import '@testing-library/jest-dom'; // Added this import
 import { render, screen, waitFor } from '@testing-library/react';
 
 import { api } from 'src/services/api';
@@ -380,7 +381,7 @@ describe('SaleHistoryView', () => {
 
   it('changes rows per page correctly', async () => {
     const mockSalesLimit5 = {
-      data: Array.from({ length: 5 }, (_, i) => ({ ...mockSales.data[0], _id: `limit5sale${i}` })),
+      data: Array.from({ length: 5 }, (_, i) => ({ ...mockSales.data[0], _id: `limit5sale${ i } ` })),
       pagination: { total: 10, page: 1, limit: 5, totalPages: 2, hasNextPage: true, hasPrevPage: false },
     };
 
