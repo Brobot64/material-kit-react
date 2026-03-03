@@ -168,7 +168,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
           </MenuItem>
 
           <MenuItem onClick={() => { setOpenPayModal(true); handleClosePopover(); }}>
-            <Iconify icon="solar:dollar-bold" />
+            <Iconify icon="solar:cart-3-bold" />
             Pay Salary
           </MenuItem>
 
