@@ -59,7 +59,11 @@ export function TeamsList({ teams, loading }: TeamsListProps) {
                       {team.description}
                     </Typography>
                   )}
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 1, display: 'block' }}
+                  >
                     {team.members.length} members • Created {fDate(team.createdAt)}
                   </Typography>
                 </Box>
@@ -71,4 +75,3 @@ export function TeamsList({ teams, loading }: TeamsListProps) {
     </Box>
   );
 }
-

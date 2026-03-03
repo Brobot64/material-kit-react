@@ -32,4 +32,3 @@ export interface ChatParticipant {
   joinedAt: string;
   lastReadAt?: string;
 }
-

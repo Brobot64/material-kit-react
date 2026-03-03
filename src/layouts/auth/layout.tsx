@@ -93,7 +93,7 @@ export function AuthLayout({
           justifyContent: 'center',
           minHeight: '100vh',
           p: theme.spacing(4, 2, 6, 2),
-          [theme.breakpoints.up(layoutQuery)]: {         
+          [theme.breakpoints.up(layoutQuery)]: {
             p: theme.spacing(8, 0, 8, 0),
           },
         }),

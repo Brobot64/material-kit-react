@@ -27,7 +27,11 @@ export const _users = [...Array(24)].map((_, index) => ({
   company: _company(index),
   isVerified: _boolean(index),
   avatarUrl: `/assets/images/avatar/avatar-${index + 1}.webp`,
-  status: (['active', 'pending', 'banned', 'rejected'][index % 4]) as 'active' | 'pending' | 'banned' | 'rejected',
+  status: ['active', 'pending', 'banned', 'rejected'][index % 4] as
+    | 'active'
+    | 'pending'
+    | 'banned'
+    | 'rejected',
   role:
     [
       'Leader',
@@ -165,14 +169,23 @@ export const _orders = [...Array(20)].map((_, index) => ({
   id: `#${6010 + index}`,
   customer: {
     name: _fullName(index),
-    email: index % 3 === 0 ? 'nannie.abernathy70@yahoo.com' : index % 3 === 1 ? 'ashlynn.ohara62@gmail.com' : 'vergie.block82@hotmail.com',
+    email:
+      index % 3 === 0
+        ? 'nannie.abernathy70@yahoo.com'
+        : index % 3 === 1
+          ? 'ashlynn.ohara62@gmail.com'
+          : 'vergie.block82@hotmail.com',
     avatarUrl: `/assets/images/avatar/avatar-${(index % 24) + 1}.webp`,
   },
   date: `${11 + (index % 2)} Nov 2025`,
-  time: `${3 + index % 2}:${36 + index % 30} ${index % 2 ? 'pm' : 'am'}`,
-  items: index % 5 + 1,
+  time: `${3 + (index % 2)}:${36 + (index % 30)} ${index % 2 ? 'pm' : 'am'}`,
+  items: (index % 5) + 1,
   price: index % 2 === 0 ? 484.15 : index % 3 === 0 ? 83.74 : 400.41,
-  status: (['completed', 'pending', 'cancelled', 'refunded'][index % 4]) as 'completed' | 'pending' | 'cancelled' | 'refunded',
+  status: ['completed', 'pending', 'cancelled', 'refunded'][index % 4] as
+    | 'completed'
+    | 'pending'
+    | 'cancelled'
+    | 'refunded',
   products: [
     { name: 'Urban Explorer Sneakers', sku: '16H9UR0', quantity: 1, price: 83.74 },
     { name: 'Classic Leather Loafers', sku: '16H9UR1', quantity: 2, price: 97.14 },

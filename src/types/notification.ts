@@ -9,4 +9,3 @@ export interface Notification {
   metadata?: Record<string, unknown>;
   createdAt: string;
 }
-

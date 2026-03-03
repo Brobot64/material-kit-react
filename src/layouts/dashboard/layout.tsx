@@ -1,13 +1,15 @@
 import type { Breakpoint } from '@mui/material/styles';
 
+import { useEffect } from 'react';
 import { merge } from 'es-toolkit';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, useColorScheme } from '@mui/material/styles';
 
 import { _langs, _notifications } from 'src/_mock';
+import { useAuth } from 'src/contexts/auth-context';
 
 import { NavMobile, NavDesktop } from './nav';
 import { layoutClasses } from '../core/classes';
@@ -16,17 +18,18 @@ import { dashboardLayoutVars } from './css-vars';
 import { navData } from '../nav-config-dashboard';
 import { MainSection } from '../core/main-section';
 import { Searchbar } from '../components/searchbar';
-import { _workspaces } from '../nav-config-workspace';
 import { MenuButton } from '../components/menu-button';
 import { HeaderSection } from '../core/header-section';
 import { LayoutSection } from '../core/layout-section';
 import { AccountPopover } from '../components/account-popover';
 import { LanguagePopover } from '../components/language-popover';
+import { ThemeModeButton } from '../components/theme-mode-button';
 import { NotificationsPopover } from '../components/notifications-popover';
 
 import type { MainSectionProps } from '../core/main-section';
 import type { HeaderSectionProps } from '../core/header-section';
 import type { LayoutSectionProps } from '../core/layout-section';
+import type { WorkspacesPopoverProps } from '../components/workspaces-popover';
 
 // ----------------------------------------------------------------------
 
@@ -48,6 +51,24 @@ export function DashboardLayout({
   layoutQuery = 'lg',
 }: DashboardLayoutProps) {
   const theme = useTheme();
+
+  const { setMode } = useColorScheme();
+
+  const { user, outlets } = useAuth();
+
+  useEffect(() => {
+    if (user?.themePreference) {
+      setMode(user.themePreference as 'light' | 'dark');
+    }
+  }, [user?.themePreference, setMode]);
+
+  const workspaces: WorkspacesPopoverProps['data'] = outlets.map((outlet) => ({
+    id: outlet._id,
+    name: outlet.name,
+    logo: '/assets/icons/workspaces/logo-1.webp',
+    isMain: !!outlet.isMain,
+    isActive: outlet.isActive,
+  }));
 
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
   const { value: collapsed, onToggle: onToggleCollapsed } = useBoolean();
@@ -72,13 +93,16 @@ export function DashboardLayout({
             onClick={onOpen}
             sx={{ mr: 1, ml: -1, [theme.breakpoints.up(layoutQuery)]: { display: 'none' } }}
           />
-          <NavMobile data={navData} open={open} onClose={onClose} workspaces={_workspaces} />
+          <NavMobile data={navData} open={open} onClose={onClose} workspaces={workspaces} />
         </>
       ),
       rightArea: (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
           {/** @slot Searchbar */}
           <Searchbar />
+
+          {/** @slot Theme mode button */}
+          <ThemeModeButton />
 
           {/** @slot Language popover */}
           <LanguagePopover data={_langs} />
@@ -118,10 +142,10 @@ export function DashboardLayout({
        * @Sidebar
        *************************************** */
       sidebarSection={
-        <NavDesktop 
-          data={navData} 
-          layoutQuery={layoutQuery} 
-          workspaces={_workspaces} 
+        <NavDesktop
+          data={navData}
+          layoutQuery={layoutQuery}
+          workspaces={workspaces}
           collapsed={collapsed}
           onToggleCollapsed={onToggleCollapsed}
         />

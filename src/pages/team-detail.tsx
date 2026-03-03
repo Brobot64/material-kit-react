@@ -7,4 +7,3 @@ const TeamDetailView = lazy(() => import('src/sections/team/view/team-detail-vie
 export default function TeamDetailPage() {
   return <TeamDetailView />;
 }
-

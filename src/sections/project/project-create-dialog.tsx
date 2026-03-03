@@ -31,13 +31,18 @@ type ProjectCreateDialogProps = {
 export function ProjectCreateDialog({ open, onClose, onCreate }: ProjectCreateDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [teamId, setTeamId] = useState('1');
   const [status, setStatus] = useState<Project['status']>('planning');
   const [priority, setPriority] = useState<Project['priority']>('medium');
 
   const handleSubmit = () => {
     if (name.trim()) {
-      onCreate({ name: name.trim(), description: description.trim() || undefined, teamId, status, priority });
+      onCreate({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        teamId: '1',
+        status,
+        priority,
+      });
       setName('');
       setDescription('');
       setStatus('planning');
@@ -68,7 +73,11 @@ export function ProjectCreateDialog({ open, onClose, onCreate }: ProjectCreateDi
           />
           <FormControl fullWidth>
             <InputLabel>Status</InputLabel>
-            <Select value={status} label="Status" onChange={(e) => setStatus(e.target.value as Project['status'])}>
+            <Select
+              value={status}
+              label="Status"
+              onChange={(e) => setStatus(e.target.value as Project['status'])}
+            >
               <MenuItem value="planning">Planning</MenuItem>
               <MenuItem value="active">Active</MenuItem>
               <MenuItem value="on-hold">On Hold</MenuItem>
@@ -77,7 +86,11 @@ export function ProjectCreateDialog({ open, onClose, onCreate }: ProjectCreateDi
           </FormControl>
           <FormControl fullWidth>
             <InputLabel>Priority</InputLabel>
-            <Select value={priority} label="Priority" onChange={(e) => setPriority(e.target.value as Project['priority'])}>
+            <Select
+              value={priority}
+              label="Priority"
+              onChange={(e) => setPriority(e.target.value as Project['priority'])}
+            >
               <MenuItem value="low">Low</MenuItem>
               <MenuItem value="medium">Medium</MenuItem>
               <MenuItem value="high">High</MenuItem>
@@ -95,4 +108,3 @@ export function ProjectCreateDialog({ open, onClose, onCreate }: ProjectCreateDi
     </Dialog>
   );
 }
-

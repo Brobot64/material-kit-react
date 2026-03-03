@@ -15,10 +15,13 @@ import { AuthGuard, GuestGuard } from './components';
 // ----------------------------------------------------------------------
 
 export const DashboardPage = lazy(() => import('src/pages/dashboard'));
+export const FinancialOverviewPage = lazy(() => import('src/pages/financial-overview'));
 export const BlogPage = lazy(() => import('src/pages/blog'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const UserCreatePage = lazy(() => import('src/pages/user-create'));
+export const ProductDetailPage = lazy(() => import('src/pages/product-detail'));
 export const ProductListPage = lazy(() => import('src/pages/product-list'));
+export const CategoriesPage = lazy(() => import('src/pages/categories'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const SignUpPage = lazy(() => import('src/pages/sign-up'));
 export const VerifyOtpPage = lazy(() => import('src/pages/auth/verify-otp'));
@@ -29,6 +32,10 @@ export const ProjectsPage = lazy(() => import('src/pages/projects'));
 export const ProjectDetailPage = lazy(() => import('src/pages/project-detail'));
 export const ChatPage = lazy(() => import('src/pages/chat'));
 export const OrderPage = lazy(() => import('src/pages/order'));
+export const SalesPage = lazy(() => import('src/pages/sales'));
+export const SalesHistoryPage = lazy(() => import('src/pages/sales-history'));
+export const SalesPendingPage = lazy(() => import('src/pages/sales-pending'));
+export const CustomersPage = lazy(() => import('src/pages/customers'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 
 const renderFallback = () => (
@@ -64,6 +71,7 @@ export const routesSection: RouteObject[] = [
     ),
     children: [
       { index: true, element: <DashboardPage /> },
+      { path: 'financial-overview', element: <FinancialOverviewPage /> },
       { path: 'teams', element: <TeamsPage /> },
       { path: 'teams/:id', element: <TeamDetailPage /> },
       { path: 'projects', element: <ProjectsPage /> },
@@ -72,8 +80,14 @@ export const routesSection: RouteObject[] = [
       { path: 'user', element: <UserPage /> },
       { path: 'user/create', element: <UserCreatePage /> },
       { path: 'products', element: <ProductsPage /> },
+      { path: 'products/:id', element: <ProductDetailPage /> },
       { path: 'product-list', element: <ProductListPage /> },
+      { path: 'categories', element: <CategoriesPage /> },
       { path: 'orders', element: <OrderPage /> },
+      { path: 'sales', element: <SalesPage /> },
+      { path: 'sales/history', element: <SalesHistoryPage /> },
+      { path: 'sales/pending', element: <SalesPendingPage /> },
+      { path: 'customers', element: <CustomersPage /> },
       { path: 'blog', element: <BlogPage /> },
     ],
   },

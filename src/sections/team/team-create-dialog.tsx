@@ -60,4 +60,3 @@ export function TeamCreateDialog({ open, onClose, onCreate }: TeamCreateDialogPr
     </Dialog>
   );
 }
-

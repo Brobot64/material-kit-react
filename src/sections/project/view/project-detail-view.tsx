@@ -54,7 +54,7 @@ export default function ProjectDetailView() {
       // TODO: Replace with actual API call
       // const response = await api.getProject(projectId);
       // setProject(response.project);
-      
+
       // Demo data
       setProject({
         id: projectId,
@@ -75,7 +75,10 @@ export default function ProjectDetailView() {
   };
 
   const getStatusColor = (status: Project['status']) => {
-    const colors: Record<Project['status'], 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
+    const colors: Record<
+      Project['status'],
+      'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'
+    > = {
       planning: 'info',
       active: 'success',
       'on-hold': 'warning',
@@ -110,13 +113,18 @@ export default function ProjectDetailView() {
     <Container maxWidth="xl">
       <Box sx={{ py: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Button startIcon={<Iconify icon="eva:arrow-back-fill" />} onClick={() => navigate('/projects')}>
+          <Button
+            startIcon={<Iconify icon="eva:arrow-back-fill" />}
+            onClick={() => navigate('/projects')}
+          >
             Back
           </Button>
         </Box>
 
         <Card sx={{ p: 3, mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
+          <Box
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}
+          >
             <Box>
               <Typography variant="h4" sx={{ mb: 1 }}>
                 {project.name}
@@ -129,7 +137,15 @@ export default function ProjectDetailView() {
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Chip label={project.status} color={getStatusColor(project.status)} />
-              <Label color={project.priority === 'urgent' ? 'error' : project.priority === 'high' ? 'warning' : 'info'}>
+              <Label
+                color={
+                  project.priority === 'urgent'
+                    ? 'error'
+                    : project.priority === 'high'
+                      ? 'warning'
+                      : 'info'
+                }
+              >
                 {project.priority}
               </Label>
             </Box>
@@ -161,4 +177,3 @@ export default function ProjectDetailView() {
     </Container>
   );
 }
-

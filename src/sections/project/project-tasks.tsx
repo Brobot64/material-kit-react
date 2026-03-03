@@ -1,6 +1,6 @@
 import type { Task } from 'src/types';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -24,15 +24,11 @@ type ProjectTasksProps = {
 export function ProjectTasks({ projectId }: ProjectTasksProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  useEffect(() => {
-    loadTasks();
-  }, [projectId]);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     // TODO: Replace with actual API call
     // const response = await api.getTasks(projectId);
     // setTasks(response.tasks);
-    
+
     // Demo data
     setTasks([
       {
@@ -56,10 +52,17 @@ export function ProjectTasks({ projectId }: ProjectTasksProps) {
         updatedAt: new Date().toISOString(),
       },
     ]);
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   const getStatusColor = (status: Task['status']) => {
-    const colors: Record<Task['status'], 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
+    const colors: Record<
+      Task['status'],
+      'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'
+    > = {
       todo: 'default',
       'in-progress': 'info',
       review: 'warning',
@@ -92,7 +95,15 @@ export function ProjectTasks({ projectId }: ProjectTasksProps) {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="subtitle2">{task.title}</Typography>
                       <Chip label={task.status} color={getStatusColor(task.status)} size="small" />
-                      <Label color={task.priority === 'urgent' ? 'error' : task.priority === 'high' ? 'warning' : 'info'}>
+                      <Label
+                        color={
+                          task.priority === 'urgent'
+                            ? 'error'
+                            : task.priority === 'high'
+                              ? 'warning'
+                              : 'info'
+                        }
+                      >
                         {task.priority}
                       </Label>
                     </Box>
@@ -107,4 +118,3 @@ export function ProjectTasks({ projectId }: ProjectTasksProps) {
     </Box>
   );
 }
-

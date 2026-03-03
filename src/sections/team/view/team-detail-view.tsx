@@ -51,7 +51,7 @@ export default function TeamDetailView() {
       // TODO: Replace with actual API call
       // const response = await api.getTeam(teamId);
       // setTeam(response.team);
-      
+
       // Demo data
       setTeam({
         id: teamId,
@@ -94,7 +94,10 @@ export default function TeamDetailView() {
     <Container maxWidth="xl">
       <Box sx={{ py: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Button startIcon={<Iconify icon="eva:arrow-back-fill" />} onClick={() => navigate('/teams')}>
+          <Button
+            startIcon={<Iconify icon="eva:arrow-back-fill" />}
+            onClick={() => navigate('/teams')}
+          >
             Back
           </Button>
         </Box>
@@ -131,4 +134,3 @@ export default function TeamDetailView() {
     </Container>
   );
 }
-

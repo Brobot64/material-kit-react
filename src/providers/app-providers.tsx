@@ -15,7 +15,10 @@ function InnerProviders({ children }: AppProvidersProps) {
 
   return (
     <NotificationProvider userId={user?.id || ''}>
-      <SocketProvider userId={user?.id || ''} serverUrl={import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001'}>
+      <SocketProvider
+        userId={user?.id || ''}
+        serverUrl={import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001'}
+      >
         {children}
       </SocketProvider>
     </NotificationProvider>
@@ -29,4 +32,3 @@ export function AppProviders({ children }: AppProvidersProps) {
     </AuthProvider>
   );
 }
-

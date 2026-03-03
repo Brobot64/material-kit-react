@@ -1,6 +1,6 @@
 import type { ChatMessage } from 'src/types';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -30,6 +30,30 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const loadMessages = useCallback(async () => {
+    // TODO: Replace with actual API call
+    // const response = await api.getChatMessages(`project-${projectId}`);
+    // setMessages(response.messages);
+
+    // Demo data
+    setMessages([
+      {
+        id: '1',
+        chatId: `project-${projectId}`,
+        senderId: '1',
+        content: 'Welcome to the project chat!',
+        type: 'text',
+        createdAt: new Date().toISOString(),
+        readBy: [],
+        sender: {
+          id: '1',
+          name: 'John Doe',
+          email: 'john@example.com',
+        },
+      },
+    ]);
+  }, [projectId]);
+
   useEffect(() => {
     if (isConnected) {
       joinChat(`project-${projectId}`);
@@ -50,35 +74,11 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
         leaveChat(`project-${projectId}`);
       }
     };
-  }, [projectId, isConnected, joinChat, leaveChat, onMessage, offMessage]);
+  }, [projectId, isConnected, joinChat, leaveChat, onMessage, offMessage, loadMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const loadMessages = async () => {
-    // TODO: Replace with actual API call
-    // const response = await api.getChatMessages(`project-${projectId}`);
-    // setMessages(response.messages);
-    
-    // Demo data
-    setMessages([
-      {
-        id: '1',
-        chatId: `project-${projectId}`,
-        senderId: '1',
-        content: 'Welcome to the project chat!',
-        type: 'text',
-        createdAt: new Date().toISOString(),
-        readBy: [],
-        sender: {
-          id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-        },
-      },
-    ]);
-  };
 
   const handleSend = () => {
     if (input.trim() && isConnected) {
@@ -127,7 +127,10 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
                     }}
                   >
                     {!isOwn && (
-                      <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 'fontWeightSemiBold' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ display: 'block', mb: 0.5, fontWeight: 'fontWeightSemiBold' }}
+                      >
                         {message.sender?.name}
                       </Typography>
                     )}
@@ -166,4 +169,3 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
     </Box>
   );
 }
-

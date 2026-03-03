@@ -47,7 +47,7 @@ export default function ProjectsView() {
       // TODO: Replace with actual API call
       // const response = await api.getProjects();
       // setProjects(response.projects);
-      
+
       // Demo data
       setProjects([
         {
@@ -157,8 +157,11 @@ export default function ProjectsView() {
         </Box>
       </Card>
 
-      <ProjectCreateDialog open={openCreate} onClose={() => setOpenCreate(false)} onCreate={handleCreateProject} />
+      <ProjectCreateDialog
+        open={openCreate}
+        onClose={() => setOpenCreate(false)}
+        onCreate={handleCreateProject}
+      />
     </Container>
   );
 }
-

@@ -35,7 +35,7 @@ export function SignInView() {
       setLoading(true);
 
       try {
-        await login({ email, password });
+        await login({ email, password, app: 'shop_master' });
         router.push('/');
       } catch (err: any) {
         console.error(err);
