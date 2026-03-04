@@ -150,6 +150,7 @@ export function SignUpView() {
               value={formData.displayName}
               onChange={handleChange}
               required
+              autoComplete="name"
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <TextField
@@ -160,6 +161,7 @@ export function SignUpView() {
               value={formData.email}
               onChange={handleChange}
               required
+              autoComplete="email"
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <TextField
@@ -169,6 +171,7 @@ export function SignUpView() {
               value={formData.phone}
               onChange={handleChange}
               required
+              autoComplete="tel"
               slotProps={{ inputLabel: { shrink: true } }}
             />
           </>
@@ -184,6 +187,7 @@ export function SignUpView() {
               value={formData.password}
               onChange={handleChange}
               required
+              autoComplete="new-password"
               slotProps={{
                 inputLabel: { shrink: true },
                 input: {
@@ -209,6 +213,7 @@ export function SignUpView() {
               value={formData.confirmPassword}
               onChange={handleChange}
               required
+              autoComplete="new-password"
               slotProps={{
                 inputLabel: { shrink: true },
                 input: {
@@ -239,6 +244,7 @@ export function SignUpView() {
               value={formData.businessName}
               onChange={handleChange}
               required
+              autoComplete="organization"
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <TextField
@@ -248,6 +254,7 @@ export function SignUpView() {
               value={formData.businessMobile}
               onChange={handleChange}
               required
+              autoComplete="tel"
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <TextField
@@ -257,6 +264,7 @@ export function SignUpView() {
               value={formData.street}
               onChange={handleChange}
               required
+              autoComplete="street-address"
               slotProps={{ inputLabel: { shrink: true } }}
             />
           </>
@@ -271,6 +279,7 @@ export function SignUpView() {
               value={formData.city}
               onChange={handleChange}
               required
+              autoComplete="address-level2"
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <TextField
@@ -280,6 +289,7 @@ export function SignUpView() {
               value={formData.state}
               onChange={handleChange}
               required
+              autoComplete="address-level1"
               slotProps={{ inputLabel: { shrink: true } }}
             />
           </>

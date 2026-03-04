@@ -76,6 +76,7 @@ export function SignInView() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
+        autoComplete="email"
         slotProps={{
           inputLabel: { shrink: true },
         }}
@@ -89,6 +90,7 @@ export function SignInView() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
+        autoComplete="current-password"
         slotProps={{
           inputLabel: { shrink: true },
           input: {
