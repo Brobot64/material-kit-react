@@ -119,6 +119,7 @@ export function SignUpView() {
           fullName: formData.displayName,
           email: formData.email,
           password: formData.password,
+          confirmPassword: formData.confirmPassword,
           role: 'user',
           phone: formData.phone,
           businessName: formData.businessName,
