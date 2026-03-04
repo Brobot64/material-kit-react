@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { HelmetProvider } from 'react-helmet-async';
 
 import { SocketProvider } from 'src/contexts/socket-context';
 import { useAuth, AuthProvider } from 'src/contexts/auth-context';
@@ -27,8 +28,10 @@ function InnerProviders({ children }: AppProvidersProps) {
 
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <AuthProvider>
-      <InnerProviders>{children}</InnerProviders>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <InnerProviders>{children}</InnerProviders>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
