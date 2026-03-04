@@ -35,7 +35,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
   register: (data: any) =>
-    request<{ userId: string; message: string }>('/auth/register', {
+    request<{ userId: string; message: string }>('/auth/register/shopmaster', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -48,6 +48,10 @@ export const api = {
     request<{ message: string }>('/auth/resend-otp', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+  toggleTheme: () =>
+    request<{ message: string }>('/auth/toggle-theme', {
+      method: 'POST',
     }),
 
   // Teams

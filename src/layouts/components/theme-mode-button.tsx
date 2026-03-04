@@ -1,15 +1,18 @@
 import IconButton from '@mui/material/IconButton';
 import { useColorScheme } from '@mui/material/styles';
 
+import { useAuth } from 'src/contexts/auth-context';
+
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
 export function ThemeModeButton() {
-  const { mode, setMode } = useColorScheme();
+  const { mode } = useColorScheme();
+  const { toggleTheme } = useAuth();
 
   const onToggleMode = () => {
-    setMode(mode === 'light' ? 'dark' : 'light');
+    toggleTheme();
   };
 
   return (
