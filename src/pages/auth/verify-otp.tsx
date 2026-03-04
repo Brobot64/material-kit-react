@@ -1,5 +1,4 @@
-import { CONFIG } from 'src/config-global';
-
+import { Helmet } from 'src/components/helmet';
 import { JwtVerifyOtpView } from 'src/sections/auth/jwt-verify-otp-view';
 
 // ----------------------------------------------------------------------
@@ -7,7 +6,10 @@ import { JwtVerifyOtpView } from 'src/sections/auth/jwt-verify-otp-view';
 export default function VerifyOtpPage() {
   return (
     <>
-      <title> {`Verify OTP - ${CONFIG.appName}`}</title>
+      <Helmet
+        title="Verify OTP"
+        description="Verify your account to complete registration on Tajarah."
+      />
       <JwtVerifyOtpView />
     </>
   );

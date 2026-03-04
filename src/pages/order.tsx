@@ -1,5 +1,4 @@
-import { CONFIG } from 'src/config-global';
-
+import { Helmet } from 'src/components/helmet';
 import { OrderView } from 'src/sections/order/view';
 
 // ----------------------------------------------------------------------
@@ -7,7 +6,10 @@ import { OrderView } from 'src/sections/order/view';
 export default function Page() {
   return (
     <>
-      <title>{`Orders - ${CONFIG.appName}`}</title>
+      <Helmet
+        title="Orders"
+        description="Track and manage customer orders and fulfillment on Tajarah."
+      />
 
       <OrderView />
     </>

@@ -1,5 +1,4 @@
-import { CONFIG } from 'src/config-global';
-
+import { Helmet } from 'src/components/helmet';
 import { CategoriesView } from 'src/sections/category/view';
 
 // ----------------------------------------------------------------------
@@ -7,7 +6,10 @@ import { CategoriesView } from 'src/sections/category/view';
 export default function Page() {
   return (
     <>
-      <title>{`Categories - ${CONFIG.appName}`}</title>
+      <Helmet
+        title="Categories"
+        description="Organize your products into categories for better inventory management."
+      />
       <CategoriesView />
     </>
   );

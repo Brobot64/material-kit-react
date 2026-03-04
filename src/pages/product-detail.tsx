@@ -1,7 +1,6 @@
 import { useParams } from 'react-router-dom';
 
-import { CONFIG } from 'src/config-global';
-
+import { Helmet } from 'src/components/helmet';
 import { ProductDetailView } from 'src/sections/product/view';
 
 // ----------------------------------------------------------------------
@@ -11,7 +10,10 @@ export default function Page() {
 
   return (
     <>
-      <title>{`Product: ${id} - ${CONFIG.appName}`}</title>
+      <Helmet
+        title={`Product: ${id}`}
+        description={`View details for product ${id} in your Tajarah catalog.`}
+      />
       <ProductDetailView id={id || ''} />
     </>
   );

@@ -18,9 +18,8 @@ export function Helmet({ title, description, keywords, image, url, type = 'websi
     const siteName = CONFIG.appName;
     const defaultDescription = 'Tajarah - The ultimate business management platform for outlets, inventory, and sales.';
     const defaultKeywords = 'business, management, sales, outlet, inventory, tajarah, pos';
-    const protocol = window.location.protocol;
-    const host = window.location.host;
-    const canonicalUrl = url || `${protocol}//${host}${window.location.pathname}`;
+    const siteUrl = CONFIG.siteUrl;
+    const canonicalUrl = url || `${siteUrl}${window.location.pathname}`;
 
     return (
         <ReactHelmet>

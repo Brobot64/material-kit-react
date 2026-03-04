@@ -1,5 +1,4 @@
-import { CONFIG } from 'src/config-global';
-
+import { Helmet } from 'src/components/helmet';
 import { SignUpView } from 'src/sections/auth';
 
 // ----------------------------------------------------------------------
@@ -7,7 +6,10 @@ import { SignUpView } from 'src/sections/auth';
 export default function Page() {
   return (
     <>
-      <title>{`Sign Up - ${CONFIG.appName}`}</title>
+      <Helmet
+        title="Sign Up"
+        description="Join Tajarah today. Create an account to start managing your business outlets, inventory, and sales effectively."
+      />
 
       <SignUpView />
     </>
