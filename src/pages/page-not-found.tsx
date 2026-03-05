@@ -1,4 +1,4 @@
-import { CONFIG } from 'src/config-global';
+import { Helmet } from 'src/components/helmet';
 
 import { NotFoundView } from 'src/sections/error';
 
@@ -7,7 +7,10 @@ import { NotFoundView } from 'src/sections/error';
 export default function Page() {
   return (
     <>
-      <title>{`404 page not found! | Error - ${CONFIG.appName}`}</title>
+      <Helmet
+        title="404 Page Not Found"
+        description="The page you are looking for does not exist on Tajarah."
+      />
 
       <NotFoundView />
     </>

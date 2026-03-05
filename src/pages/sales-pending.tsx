@@ -1,4 +1,4 @@
-import { CONFIG } from 'src/config-global';
+import { Helmet } from 'src/components/helmet';
 
 import { SalePendingView } from 'src/sections/sale/view';
 
@@ -7,7 +7,10 @@ import { SalePendingView } from 'src/sections/sale/view';
 export default function Page() {
     return (
         <>
-            <title>{`Pending Payments - ${CONFIG.appName}`}</title>
+            <Helmet
+                title="Pending Payments"
+                description="Keep track of pending sales payments and credit accounts on Tajarah."
+            />
             <SalePendingView />
         </>
     );

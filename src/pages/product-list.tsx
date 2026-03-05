@@ -1,4 +1,4 @@
-import { CONFIG } from 'src/config-global';
+import { Helmet } from 'src/components/helmet';
 
 import { ProductListView } from 'src/sections/product/view';
 
@@ -7,7 +7,10 @@ import { ProductListView } from 'src/sections/product/view';
 export default function Page() {
   return (
     <>
-      <title>{`Product List - ${CONFIG.appName}`}</title>
+      <Helmet
+        title="Product List"
+        description="View and manage a comprehensive list of all your business products."
+      />
 
       <ProductListView />
     </>

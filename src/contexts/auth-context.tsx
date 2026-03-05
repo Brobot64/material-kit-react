@@ -21,6 +21,7 @@ type AuthContextType = {
   outlets: Outlet[];
   refreshCategories: () => Promise<void>;
   refreshOutlets: () => Promise<void>;
+  toggleTheme: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -149,6 +150,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('appData');
   };
 
+  const toggleTheme = async () => {
+    if (user) {
+      const newTheme = user.themePreference === 'dark' ? 'light' : 'dark';
+
+      // Optimistic update
+      const updatedUser = { ...user, themePreference: newTheme };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      try {
+        await api.toggleTheme();
+      } catch (error) {
+        console.error('Failed to toggle theme on backend:', error);
+        // We probably don't want to revert here since it's just a theme preference,
+        // but if we did, we'd set it back to the old value.
+      }
+    }
+  };
+
   const updateUser = (updates: Partial<User>) => {
     if (user) {
       const updated = { ...user, ...updates };
@@ -174,6 +194,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         outlets,
         refreshCategories,
         refreshOutlets,
+        toggleTheme,
       }}
     >
       {children}

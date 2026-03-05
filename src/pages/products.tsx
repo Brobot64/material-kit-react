@@ -1,4 +1,4 @@
-import { CONFIG } from 'src/config-global';
+import { Helmet } from 'src/components/helmet';
 
 import { ProductsView } from 'src/sections/product/view';
 
@@ -7,7 +7,10 @@ import { ProductsView } from 'src/sections/product/view';
 export default function Page() {
   return (
     <>
-      <title>{`Products - ${CONFIG.appName}`}</title>
+      <Helmet
+        title="Products"
+        description="Browse and manage your business product catalog on Tajarah."
+      />
 
       <ProductsView />
     </>
