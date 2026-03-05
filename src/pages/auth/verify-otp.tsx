@@ -1,4 +1,5 @@
 import { Helmet } from 'src/components/helmet';
+
 import { JwtVerifyOtpView } from 'src/sections/auth/jwt-verify-otp-view';
 
 // ----------------------------------------------------------------------

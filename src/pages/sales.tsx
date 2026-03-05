@@ -1,4 +1,5 @@
 import { Helmet } from 'src/components/helmet';
+
 import { SaleView } from 'src/sections/sale/view';
 
 // ----------------------------------------------------------------------

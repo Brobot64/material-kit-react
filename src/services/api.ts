@@ -347,10 +347,34 @@ export const api = {
     request<any>('/employees/update-password', { method: 'POST', body: JSON.stringify(data) }),
 
   // Salaries
+  getLedgerAccounts: () => request<any[]>('/ledger/accounts'),
+
+  createCredit: (data: { amount: number; description: string; paymentMethod: string; ledgerAccountId?: string }) =>
+    request<any>('/transactions/credit', { method: 'POST', body: JSON.stringify(data) }),
+
+  createDebit: (data: { amount: number; description: string; paymentMethod: string; ledgerAccountId?: string }) =>
+    request<any>('/transactions/debit', { method: 'POST', body: JSON.stringify(data) }),
+
+  getTransactions: (params: { startDate?: string; endDate?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<any>(`/transactions?${query.toString()}`);
+  },
+
   paySalary: (data: {
     employeeId: string;
     amount: number;
     paymentMethod: string;
     notes?: string;
   }) => request<any>('/expenditures/salaries', { method: 'POST', body: JSON.stringify(data) }),
+  createExpenditure: (data: {
+    source: string;
+    amount: number;
+    receivedFrom: string;
+    paymentMethod: string;
+    ledgerAccountId: string;
+    notes?: string;
+  }) => request<any>('/expenditures', { method: 'POST', body: JSON.stringify(data) }),
 };

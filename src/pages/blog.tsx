@@ -1,5 +1,7 @@
-import { Helmet } from 'src/components/helmet';
 import { _posts } from 'src/_mock';
+
+import { Helmet } from 'src/components/helmet';
+
 import { BlogView } from 'src/sections/blog/view';
 
 // ----------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 
 import { Helmet } from 'src/components/helmet';
+
 import { ProductDetailView } from 'src/sections/product/view';
 
 // ----------------------------------------------------------------------

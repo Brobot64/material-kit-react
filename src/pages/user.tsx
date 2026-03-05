@@ -1,4 +1,5 @@
 import { Helmet } from 'src/components/helmet';
+
 import { UserView } from 'src/sections/user/view';
 
 // ----------------------------------------------------------------------

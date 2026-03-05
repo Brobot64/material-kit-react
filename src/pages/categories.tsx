@@ -1,4 +1,5 @@
 import { Helmet } from 'src/components/helmet';
+
 import { CategoriesView } from 'src/sections/category/view';
 
 // ----------------------------------------------------------------------

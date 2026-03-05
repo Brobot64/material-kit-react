@@ -1,4 +1,5 @@
 import { Helmet } from 'src/components/helmet';
+
 import { SaleHistoryView } from 'src/sections/sale/view';
 
 // ----------------------------------------------------------------------

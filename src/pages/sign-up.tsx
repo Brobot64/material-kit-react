@@ -1,4 +1,5 @@
 import { Helmet } from 'src/components/helmet';
+
 import { SignUpView } from 'src/sections/auth';
 
 // ----------------------------------------------------------------------
