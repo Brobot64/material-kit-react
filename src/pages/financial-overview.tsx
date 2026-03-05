@@ -1,4 +1,4 @@
-import { CONFIG } from 'src/config-global';
+import { Helmet } from 'src/components/helmet';
 
 import { FinancialOverviewView } from 'src/sections/financial/view/financial-overview-view';
 
@@ -7,7 +7,10 @@ import { FinancialOverviewView } from 'src/sections/financial/view/financial-ove
 export default function Page() {
   return (
     <>
-      <title>{`Financial Overview - ${CONFIG.appName}`}</title>
+      <Helmet
+        title="Financial Overview"
+        description="Get a detailed overview of your business finances, income, and expenses with Tajarah."
+      />
 
       <FinancialOverviewView />
     </>

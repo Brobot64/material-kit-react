@@ -71,9 +71,9 @@ export function SignUpView() {
         if (formData.password.length < 6) {
           return 'Password must be at least 6 characters long';
         }
-        const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{1,8}$/;
+        const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,25}$/;
         if (!strongPasswordRegex.test(formData.password)) {
-          return 'Password must include letters, numbers, and special characters, and must not exceed 8 characters';
+          return 'Password must include letters, numbers, and special characters, and must not exceed 25 characters';
         }
       }
       if (step === 2) {
@@ -204,7 +204,7 @@ export function SignUpView() {
             />
             <Typography variant="caption" sx={{ color: 'text.secondary', mt: -1 }}>
               Password must contain letters, numbers, and special characters, and must not be more
-              than 8 characters.
+              than 25 characters.
             </Typography>
             <TextField
               fullWidth

@@ -34,6 +34,8 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
   isEmailVerified?: boolean;
+  businessId?: string;
+  phone?: string;
   address?: {
     street: string;
     city: string;
