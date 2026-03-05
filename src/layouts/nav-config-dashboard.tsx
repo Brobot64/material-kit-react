@@ -17,28 +17,28 @@ export const navData = [
   {
     title: 'Dashboard',
     path: '/',
-    icon: icon('ic-analytics'),
+    icon: icon('ic-dashboard'),
   },
   {
     title: 'Financial Overview',
     path: '/financial-overview',
     icon: icon('ic-analytics'),
   },
-  {
-    title: 'Teams',
-    path: '/teams',
-    icon: icon('ic-user'),
-  },
-  {
-    title: 'Projects',
-    path: '/projects',
-    icon: icon('ic-cart'),
-  },
-  {
-    title: 'Chat',
-    path: '/chat',
-    icon: icon('ic-blog'),
-  },
+  // {
+  //   title: 'Teams',
+  //   path: '/teams',
+  //   icon: icon('ic-user'),
+  // },
+  // {
+  //   title: 'Projects',
+  //   path: '/projects',
+  //   icon: icon('ic-cart'),
+  // },
+  // {
+  //   title: 'Chat',
+  //   path: '/chat',
+  //   icon: icon('ic-blog'),
+  // },
   {
     title: 'Employees',
     path: '/user',
@@ -46,25 +46,26 @@ export const navData = [
   },
   {
     title: 'Product',
+    path: '/products',
     icon: icon('ic-cart'),
-    children: [
-      { title: 'Shop', path: '/products', icon: null },
-      { title: 'List', path: '/product-list', icon: null },
-    ],
+    // children: [
+    //   { title: 'Shop', path: '/products', icon: null },
+    //   { title: 'List', path: '/product-list', icon: null },
+    // ],
   },
   {
     title: 'Category',
     path: '/categories',
     icon: icon('ic-blog'), // Using ic-blog as a placeholder icon
   },
-  {
-    title: 'Order',
-    icon: icon('ic-order'),
-    children: [
-      { title: 'List', path: '/orders', icon: null },
-      { title: 'Details', path: '/orders/details', icon: null },
-    ],
-  },
+  // {
+  //   title: 'Order',
+  //   icon: icon('ic-order'),
+  //   children: [
+  //     { title: 'List', path: '/orders', icon: null },
+  //     { title: 'Details', path: '/orders/details', icon: null },
+  //   ],
+  // },
   {
     title: 'Sales',
     icon: icon('ic-cart'),
@@ -77,13 +78,13 @@ export const navData = [
   {
     title: 'Customers',
     path: '/customers',
-    icon: icon('ic-user'),
+    icon: icon('ic-customers'),
   },
 
   // Other sections
-  {
-    title: 'Blog',
-    path: '/blog',
-    icon: icon('ic-blog'),
-  },
+  // {
+  //   title: 'Blog',
+  //   path: '/blog',
+  //   icon: icon('ic-blog'),
+  // },
 ];
