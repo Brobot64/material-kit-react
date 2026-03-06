@@ -355,13 +355,21 @@ export const api = {
   createDebit: (data: { amount: number; description: string; paymentMethod: string; ledgerAccountId?: string }) =>
     request<any>('/transactions/debit', { method: 'POST', body: JSON.stringify(data) }),
 
-  getTransactions: (params: { startDate?: string; endDate?: string; page?: number; limit?: number }) => {
+  getTransactions: (params: {
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+    outletId?: string;
+  }) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) query.append(key, value.toString());
     });
     return request<any>(`/transactions?${query.toString()}`);
   },
+
+  getQuickSummary: () => request<any>('/transactions/quick-summary'),
 
   paySalary: (data: {
     employeeId: string;

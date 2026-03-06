@@ -7,22 +7,32 @@ import {
   Box,
   Card,
   Chip,
+  Table,
   Select,
   Dialog,
+  TableRow,
   MenuItem,
+  TableBody,
+  TableCell,
   TextField,
+  TableHead,
   InputLabel,
   FormControl,
   DialogTitle,
   DialogContent,
   DialogActions,
+  TableContainer,
+  TablePagination,
 } from '@mui/material';
+
+import { fDate } from 'src/utils/format-time';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
+import { Scrollbar } from 'src/components/scrollbar';
 
 import { AnalyticsWidgetSummary } from '../../overview/analytics-widget-summary';
 import { AnalyticsWebsiteVisits } from '../../overview/analytics-website-visits';
@@ -54,15 +64,35 @@ export function FinancialOverviewView() {
   const { user } = useAuth();
 
   const [overview, setOverview] = useState<any>(null);
+  const [quickSummary, setQuickSummary] = useState<any>(null);
   const [incomeExpenseData, setIncomeExpenseData] = useState<any[]>([]);
   const [expenseBreakdown, setExpenseBreakdown] = useState<any[]>([]);
   const [outlets, setOutlets] = useState<any[]>([]);
   const [ledgerAccounts, setLedgerAccounts] = useState<any[]>([]);
   const [selectedOutlet, setSelectedOutlet] = useState('all');
 
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const [openModal, setOpenModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
+
+  const fetchTransactions = useCallback(async () => {
+    try {
+      const response = await api.getTransactions({
+        page: page + 1,
+        limit: rowsPerPage,
+        outletId: selectedOutlet === 'all' ? undefined : selectedOutlet,
+      });
+      setTransactions(response.data || []);
+      setTotalTransactions(response.total || 0);
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+    }
+  }, [page, rowsPerPage, selectedOutlet]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -70,15 +100,17 @@ export function FinancialOverviewView() {
         outletId: selectedOutlet === 'all' ? undefined : selectedOutlet,
       };
 
-      const [overviewData, graphData, breakdownData] = await Promise.all([
+      const [overviewData, graphData, breakdownData, summaryData] = await Promise.all([
         api.getFinancialOverview(params),
         api.getIncomeExpenseGraph(params),
         api.getExpenseBreakdownGraph(params),
+        api.getQuickSummary(),
       ]);
 
       setOverview(overviewData);
       setIncomeExpenseData(graphData);
       setExpenseBreakdown(breakdownData);
+      setQuickSummary(summaryData?.data || null);
     } catch (error: any) {
       console.error('Failed to fetch financial data:', error);
     }
@@ -113,6 +145,10 @@ export function FinancialOverviewView() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
   const handleOpenModal = () => setOpenModal(true);
 
   const handleCloseModal = () => {
@@ -142,6 +178,7 @@ export function FinancialOverviewView() {
       }
 
       fetchData();
+      fetchTransactions();
       handleCloseModal();
     } catch (error: any) {
       console.error('Failed to add transaction:', error);
@@ -149,6 +186,15 @@ export function FinancialOverviewView() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const formatCurrency = (value: number) =>
@@ -168,7 +214,10 @@ export function FinancialOverviewView() {
           <Select
             value={selectedOutlet}
             label="Outlet"
-            onChange={(e) => setSelectedOutlet(e.target.value)}
+            onChange={(e) => {
+              setSelectedOutlet(e.target.value);
+              setPage(0);
+            }}
           >
             <MenuItem value="all">All Outlets</MenuItem>
             {outlets.map((outlet) => (
@@ -270,18 +319,18 @@ export function FinancialOverviewView() {
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Total Receivables
+              Total Credit (Money In)
             </Typography>
-            <Typography variant="h4">{formatCurrency(overview?.totalReceivables || 0)}</Typography>
+            <Typography variant="h4">{formatCurrency(quickSummary?.totalCreditTransactions || 0)}</Typography>
           </Card>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Total Payables
+              Total Debit (Money Out)
             </Typography>
-            <Typography variant="h4">{formatCurrency(overview?.totalPayables || 0)}</Typography>
+            <Typography variant="h4">{formatCurrency(quickSummary?.totalDebitTransactions || 0)}</Typography>
           </Card>
         </Grid>
 
@@ -290,7 +339,72 @@ export function FinancialOverviewView() {
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Inventory Value
             </Typography>
-            <Typography variant="h4">{formatCurrency(overview?.inventoryValue || 0)}</Typography>
+            <Typography variant="h4">{formatCurrency(quickSummary?.inventoryValue || 0)}</Typography>
+          </Card>
+        </Grid>
+
+        {/* Transactions Table */}
+        <Grid size={{ xs: 12 }}>
+          <Card sx={{ mt: 3 }}>
+            <Box sx={{ p: 3, pb: 0 }}>
+              <Typography variant="h6">Recent Transactions & Expenses</Typography>
+            </Box>
+
+            <Scrollbar>
+              <TableContainer sx={{ minWidth: 800, p: 3 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Transaction Description</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell align="right">Amount</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {transactions.map((row, index) => (
+                      <TableRow key={index} hover>
+                        <TableCell>{fDate(row.date)}</TableCell>
+                        <TableCell>{row.transaction}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={row.tag?.toUpperCase()}
+                            color={row.tag === 'credit' ? 'success' : 'error'}
+                            size="small"
+                            variant="filled"
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ color: row.tag === 'credit' ? 'success.main' : 'error.main' }}
+                          >
+                            {row.tag === 'credit' ? '+' : '-'} {formatCurrency(row.amount)}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+
+                    {transactions.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
+                          No transactions found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Scrollbar>
+
+            <TablePagination
+              component="div"
+              count={totalTransactions}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+            />
           </Card>
         </Grid>
       </Grid>
