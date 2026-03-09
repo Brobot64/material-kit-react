@@ -10,7 +10,7 @@ import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgr
 import { AuthLayout } from 'src/layouts/auth';
 import { DashboardLayout } from 'src/layouts/dashboard';
 
-import { AuthGuard, GuestGuard } from './components';
+import { AuthGuard, GuestGuard, SubscriptionGuard } from './components';
 
 // ----------------------------------------------------------------------
 
@@ -25,6 +25,9 @@ export const CategoriesPage = lazy(() => import('src/pages/categories'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const SignUpPage = lazy(() => import('src/pages/sign-up'));
 export const VerifyOtpPage = lazy(() => import('src/pages/auth/verify-otp'));
+export const SubscriptionRenewPage = lazy(() => import('src/pages/subscription/renew'));
+export const SubscriptionSuccessPage = lazy(() => import('src/pages/subscription/success'));
+export const SubscriptionCancelPage = lazy(() => import('src/pages/subscription/cancel'));
 export const ProductsPage = lazy(() => import('src/pages/products'));
 export const TeamsPage = lazy(() => import('src/pages/teams'));
 export const TeamDetailPage = lazy(() => import('src/pages/team-detail'));
@@ -62,11 +65,13 @@ export const routesSection: RouteObject[] = [
   {
     element: (
       <AuthGuard>
-        <DashboardLayout>
-          <Suspense fallback={renderFallback()}>
-            <Outlet />
-          </Suspense>
-        </DashboardLayout>
+        <SubscriptionGuard>
+          <DashboardLayout>
+            <Suspense fallback={renderFallback()}>
+              <Outlet />
+            </Suspense>
+          </DashboardLayout>
+        </SubscriptionGuard>
       </AuthGuard>
     ),
     children: [
@@ -89,6 +94,28 @@ export const routesSection: RouteObject[] = [
       { path: 'sales/pending', element: <SalesPendingPage /> },
       { path: 'customers', element: <CustomersPage /> },
       { path: 'blog', element: <BlogPage /> },
+    ],
+  },
+  {
+    path: 'subscription',
+    element: (
+      // <AuthGuard>
+      //   <DashboardLayout>
+      <GuestGuard>
+        <AuthLayout>
+          <Suspense fallback={renderFallback()}>
+            <Outlet />
+          </Suspense>
+        </AuthLayout>
+      </GuestGuard>
+
+      //  </DashboardLayout>
+      // </AuthGuard>
+    ),
+    children: [
+      { path: 'renew', element: <SubscriptionRenewPage /> },
+      { path: 'success', element: <SubscriptionSuccessPage /> },
+      { path: 'cancel', element: <SubscriptionCancelPage /> },
     ],
   },
   {
