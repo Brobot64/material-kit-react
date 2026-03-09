@@ -18,6 +18,23 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
+    if (response.status === 401 && !url.includes('/auth/login')) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('appData');
+      window.location.href = '/sign-in';
+    }
+
+    if (response.status === 403) {
+      const errorData = await response.json().catch(() => ({}));
+      if (errorData.message?.toLowerCase().includes('subscription') || errorData.message?.toLowerCase().includes('expired')) {
+        const businessId = errorData.data?.businessId || '';
+        const userId = errorData.data?.userId || '';
+        window.location.href = `/subscription/renew?businessId=${businessId}&userId=${userId}`;
+      }
+      throw new Error(errorData.message || `Access Denied: ${response.statusText}`);
+    }
+
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || `API Error: ${response.statusText}`);
   }
@@ -345,6 +362,12 @@ export const api = {
     request<any>('/employees/status', { method: 'PATCH', body: JSON.stringify(data) }),
   updateEmployeePassword: (data: any) =>
     request<any>('/employees/update-password', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Subscription
+  getProfile: () => request<{ user: any; appData: any }>('/auth/profile'),
+  createCheckoutSession: (data: any) => request<{ sessionId: string; url: string }>('/public/checkout-session', { method: 'POST', body: JSON.stringify(data) }),
+  getPublicCheckoutSession: (sessionId: string) => request<any>(`/public/checkout-session/${sessionId}`),
+  renewSubscription: (data: any) => request<any>('/public/renew-subscription', { method: 'POST', body: JSON.stringify(data) }),
 
   // Salaries
   getLedgerAccounts: () => request<any[]>('/ledger/accounts'),

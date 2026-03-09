@@ -15,6 +15,7 @@ import TablePagination from '@mui/material/TablePagination';
 import { Modal, Select, TextField, InputLabel, FormControl, MenuItem as MuiMenuItem } from '@mui/material';
 
 import { api } from 'src/services/api';
+import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
@@ -39,11 +40,11 @@ const STATUS_TABS = [
 
 export function UserView() {
   const table = useTable();
+  const { outlets } = useAuth();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pagination, setPagination] = useState<EmployeePagination | null>(null);
   const [loading, setLoading] = useState(true);
-  const [outlets, setOutlets] = useState<any[]>([]);
   const [selectedOutlet, setSelectedOutlet] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [filterName, setFilterName] = useState('');
@@ -58,6 +59,13 @@ export function UserView() {
     position: '',
     outletId: '',
   });
+
+  // Set default outletId when outlets are loaded
+  useEffect(() => {
+    if (outlets.length > 0 && !newEmployee.outletId) {
+      setNewEmployee((prev) => ({ ...prev, outletId: outlets[0]._id }));
+    }
+  }, [outlets, newEmployee.outletId]);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -76,25 +84,6 @@ export function UserView() {
       setLoading(false);
     }
   }, [table.page, table.rowsPerPage, statusFilter, selectedOutlet]);
-
-  const fetchOutlets = useCallback(async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.businessId) {
-        const data = await api.getOutlets(user.businessId);
-        setOutlets(data);
-        if (data.length > 0) {
-          setNewEmployee((prev) => ({ ...prev, outletId: data[0]._id }));
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch outlets:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchOutlets();
-  }, [fetchOutlets]);
 
   useEffect(() => {
     fetchEmployees();

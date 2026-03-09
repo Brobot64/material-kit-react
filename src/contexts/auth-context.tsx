@@ -21,7 +21,14 @@ type AuthContextType = {
   outlets: Outlet[];
   refreshCategories: () => Promise<void>;
   refreshOutlets: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   toggleTheme: () => Promise<void>;
+  subscriptionStatus: {
+    isExpired: boolean;
+    isExpiringSoon: boolean;
+    daysLeft: number;
+    endDate: string | null;
+  };
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +48,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
 
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const getSubscriptionStatus = useCallback(() => {
+    const endDateStr = appData?.subscriptionEnd;
+    if (!endDateStr) {
+      return { isExpired: false, isExpiringSoon: false, daysLeft: 0, endDate: null };
+    }
+
+    const endDate = new Date(endDateStr);
+    const now = new Date();
+    const diffTime = endDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return {
+      isExpired: diffTime <= 0,
+      isExpiringSoon: diffDays > 0 && diffDays <= 5,
+      daysLeft: Math.max(0, diffDays),
+      endDate: endDateStr,
+    };
+  }, [appData?.subscriptionEnd]);
+
+  const subscriptionStatus = getSubscriptionStatus();
 
   const fetchCategories = useCallback(async () => {
     if (appData?.businessId) {
@@ -63,6 +91,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
   }, [appData?.businessId]);
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      const response = await api.getProfile();
+      const { user: userData, appData: profileAppData } = response;
+      
+      const mappedUser: User = {
+        ...userData,
+        id: userData._id,
+        name: userData.fullName,
+        avatar: user?.avatar || '/assets/images/avatar/avatar-25.webp',
+      };
+
+      setUser(mappedUser);
+      setAppData(profileAppData);
+      localStorage.setItem('user', JSON.stringify(mappedUser));
+      localStorage.setItem('appData', JSON.stringify(profileAppData));
+    } catch (error) {
+      console.error('Failed to refresh profile:', error);
+    }
+  }, [user?.avatar]);
 
   useEffect(() => {
     fetchCategories();
@@ -194,7 +243,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         outlets,
         refreshCategories,
         refreshOutlets,
+        refreshProfile,
         toggleTheme,
+        subscriptionStatus,
       }}
     >
       {children}
