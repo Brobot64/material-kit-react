@@ -19,6 +19,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
+import { NumericInput } from 'src/components/numeric-input';
 
 // ----------------------------------------------------------------------
 
@@ -38,11 +39,12 @@ export function UserCreateView() {
     role: '',
     avatarUrl: '',
     emailVerified: true,
+    budget: 0,
   });
 
   const handleInputChange = useCallback(
     (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         [field]: event.target.value,
       }));
@@ -50,9 +52,19 @@ export function UserCreateView() {
     []
   );
 
+  const handleNumericChange = useCallback(
+    (field: string) => (value: number) => {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value,
+      }));
+    },
+    []
+  );
+
   const handleSelectChange = useCallback(
     (field: string) => (event: any) => {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         [field]: event.target.value,
       }));
@@ -61,7 +73,7 @@ export function UserCreateView() {
   );
 
   const handleSwitchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       emailVerified: event.target.checked,
     }));
@@ -91,12 +103,12 @@ export function UserCreateView() {
           {/* Profile Photo Upload */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
             <Avatar
-              sx={{
-                width: 120,
-                height: 120,
+              sx={{ 
+                width: 120, 
+                height: 120, 
                 bgcolor: 'grey.200',
                 cursor: 'pointer',
-                '&:hover': { bgcolor: 'grey.300' },
+                '&:hover': { bgcolor: 'grey.300' }
               }}
             >
               <Iconify icon="mingcute:add-line" width={40} />
@@ -200,6 +212,17 @@ export function UserCreateView() {
               label="Role"
               value={formData.role}
               onChange={handleInputChange('role')}
+            />
+          </Box>
+
+          {/* Budget Field */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+            <NumericInput
+              fullWidth
+              label="Monthly Budget"
+              value={formData.budget}
+              onChangeValue={handleNumericChange('budget')}
+              helperText="Formatted with commas, no negative values allowed."
             />
           </Box>
 

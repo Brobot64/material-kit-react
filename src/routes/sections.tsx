@@ -40,6 +40,7 @@ export const SalesHistoryPage = lazy(() => import('src/pages/sales-history'));
 export const SalesPendingPage = lazy(() => import('src/pages/sales-pending'));
 export const CustomersPage = lazy(() => import('src/pages/customers'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
+export const HomePage = lazy(() => import('src/pages/home-page'));
 
 const renderFallback = () => (
   <Box
@@ -149,6 +150,16 @@ export const routesSection: RouteObject[] = [
   {
     path: '404',
     element: <Page404 />,
+  },
+  {
+    path: 'home',
+    element: (
+      <GuestGuard>
+        <AuthLayout>
+          <HomePage />
+        </AuthLayout>
+      </GuestGuard>
+    ),
   },
   { path: '*', element: <Page404 /> },
 ];
