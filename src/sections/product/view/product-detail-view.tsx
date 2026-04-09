@@ -60,6 +60,8 @@ export function ProductDetailView({ id }: Props) {
   const [outlets, setOutlets] = useState<any[]>([]);
 
   const [openVariantModal, setOpenVariantModal] = useState(false);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [editProduct, setEditProduct] = useState<any>(null);
   const [newVariant, setNewVariant] = useState({
     name: '',
     outletId: '',
@@ -75,6 +77,7 @@ export function ProductDetailView({ id }: Props) {
   });
 
   const [variantDetails, setVariantDetails] = useState([{ key: '', value: '' }]);
+  const [productDetails, setProductDetails] = useState([{ key: '', value: '' }]);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -95,6 +98,21 @@ export function ProductDetailView({ id }: Props) {
     const updatedDetails = [...variantDetails];
     updatedDetails[index][field] = value;
     setVariantDetails(updatedDetails);
+  };
+
+  const handleAddProductDetail = () => {
+    setProductDetails([...productDetails, { key: '', value: '' }]);
+  };
+
+  const handleRemoveProductDetail = (index: number) => {
+    const updatedDetails = productDetails.filter((_, i) => i !== index);
+    setProductDetails(updatedDetails.length ? updatedDetails : [{ key: '', value: '' }]);
+  };
+
+  const handleProductDetailChange = (index: number, field: 'key' | 'value', value: string) => {
+    const updatedDetails = [...productDetails];
+    updatedDetails[index][field] = value;
+    setProductDetails(updatedDetails);
   };
 
   const fetchData = useCallback(async () => {
@@ -130,10 +148,62 @@ export function ProductDetailView({ id }: Props) {
   }, [fetchData]);
 
   useEffect(() => {
-    if (openVariantModal) {
+    if (openVariantModal || openEditModal) {
       fetchOutlets();
     }
-  }, [openVariantModal, fetchOutlets]);
+  }, [openVariantModal, openEditModal, fetchOutlets]);
+
+  const handleOpenEditModal = () => {
+    setEditProduct({
+      name: product?.name || '',
+      barcode: product?.barcode || '',
+      brand: product?.brand || '',
+      unit: product?.unit || 'unit',
+      taxRate: product?.taxRate || 7.5,
+      categoryId: product?.categoryId || '',
+      description: product?.description || '',
+    });
+    if (product?.details && Object.keys(product.details).length > 0) {
+      setProductDetails(
+        Object.entries(product.details).map(([key, value]) => ({ key, value: String(value) }))
+      );
+    } else {
+      setProductDetails([{ key: '', value: '' }]);
+    }
+    setOpenEditModal(true);
+  };
+
+  const handleCloseEditModal = () => setOpenEditModal(false);
+
+  const handleUpdateProduct = async () => {
+    try {
+      const detailsObject = productDetails.reduce((acc, item) => {
+        if (item.key.trim()) {
+          acc[item.key.trim()] = item.value;
+        }
+        return acc;
+      }, {} as any);
+
+      await api.updateProduct(id, {
+        ...editProduct,
+        details: detailsObject,
+      });
+
+      setSnackbar({
+        open: true,
+        message: 'Product updated successfully!',
+        severity: 'success',
+      });
+      handleCloseEditModal();
+      fetchData();
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Failed to update product',
+        severity: 'error',
+      });
+    }
+  };
 
   const handleOpenVariantModal = () => {
     setNewVariant({
@@ -226,13 +296,23 @@ export function ProductDetailView({ id }: Props) {
 
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 5 }}>
         <Typography variant="h4">{product?.name}</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={handleOpenVariantModal}
-        >
-          Add Variant
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<Iconify icon="solar:pen-bold" />}
+            onClick={handleOpenEditModal}
+          >
+            Edit Product
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={handleOpenVariantModal}
+          >
+            Add Variant
+          </Button>
+        </Stack>
       </Stack>
 
       <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)} sx={{ mb: 3 }}>
@@ -378,6 +458,135 @@ export function ProductDetailView({ id }: Props) {
           </Grid>
         </Grid>
       )}
+
+      {/* Edit Product Modal */}
+      <Dialog open={openEditModal} onClose={handleCloseEditModal} fullWidth maxWidth="md">
+        <DialogTitle>Edit Product Information</DialogTitle>
+        <DialogContent dividers>
+          {editProduct && (
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={3}>
+                  <Typography variant="subtitle1">General Information</Typography>
+                  <TextField
+                    fullWidth
+                    label="Product Name"
+                    value={editProduct.name}
+                    onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Barcode"
+                    value={editProduct.barcode}
+                    onChange={(e) => setEditProduct({ ...editProduct, barcode: e.target.value })}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Brand"
+                    value={editProduct.brand}
+                    onChange={(e) => setEditProduct({ ...editProduct, brand: e.target.value })}
+                  />
+                  <TextField
+                    select
+                    fullWidth
+                    label="Category"
+                    value={editProduct.categoryId}
+                    onChange={(e) => setEditProduct({ ...editProduct, categoryId: e.target.value })}
+                  >
+                    <MenuItem value="">Select Category</MenuItem>
+                    {categories.map((category) => (
+                      <MenuItem key={category._id} value={category._id}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Stack>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={3}>
+                  <Typography variant="subtitle1">Specifications</Typography>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Unit"
+                      value={editProduct.unit}
+                      onChange={(e) => setEditProduct({ ...editProduct, unit: e.target.value })}
+                    />
+                    <NumericInput
+                      fullWidth
+                      label="Tax Rate (%)"
+                      value={editProduct.taxRate}
+                      onChangeValue={(val) => setEditProduct({ ...editProduct, taxRate: val })}
+                    />
+                  </Box>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="Description"
+                    value={editProduct.description}
+                    onChange={(e) => setEditProduct({ ...editProduct, description: e.target.value })}
+                  />
+
+                  <Box>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        mb: 2,
+                      }}
+                    >
+                      <Typography variant="subtitle2">Additional Details</Typography>
+                      <IconButton size="small" onClick={handleAddProductDetail} color="primary">
+                        <Iconify icon="mingcute:add-line" />
+                      </IconButton>
+                    </Box>
+                    <Stack spacing={2}>
+                      {productDetails.map((detail, index) => (
+                        <Box key={index} sx={{ display: 'flex', gap: 1 }}>
+                          <TextField
+                            size="small"
+                            label="Key"
+                            value={detail.key}
+                            onChange={(e) => handleProductDetailChange(index, 'key', e.target.value)}
+                            sx={{ flex: 1 }}
+                          />
+                          <TextField
+                            size="small"
+                            label="Value"
+                            value={detail.value}
+                            onChange={(e) =>
+                              handleProductDetailChange(index, 'value', e.target.value)
+                            }
+                            sx={{ flex: 1 }}
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveProductDetail(index)}
+                            disabled={productDetails.length === 1 && !detail.key && !detail.value}
+                          >
+                            <Iconify icon="solar:trash-bin-trash-bold" />
+                          </IconButton>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                </Stack>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditModal} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleUpdateProduct} variant="contained">
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Add Variant Modal */}
       <Dialog open={openVariantModal} onClose={handleCloseVariantModal} fullWidth maxWidth="md">
