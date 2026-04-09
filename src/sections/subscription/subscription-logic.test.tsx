@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { it, vi, expect, describe, beforeEach } from 'vitest';
 
 // Mock the api
 const mockApi = {
@@ -30,8 +30,6 @@ describe('Subscription Expiration Redirect', () => {
       json: async () => ({ message: 'Business subscription has expired.' })
     };
 
-    const url = 'http://localhost:4000/v1/employees';
-    
     // Simulate the interceptor logic from src/services/api.ts
     if (!mockResponse.ok) {
       if (mockResponse.status === 403) {

@@ -113,6 +113,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
               gap: 2,
               display: 'flex',
               alignItems: 'center',
+              textTransform: "capitalize"
             }}
           >
             <Avatar alt={row.userId.fullName} src="" />
@@ -122,7 +123,14 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
 
         <TableCell>{row.position}</TableCell>
 
-        <TableCell>{row.userId.role ?? '—'}</TableCell>
+        <TableCell>
+          {row.userId.role ? (
+            row.userId.role === 'owner' ? 'Owner' :
+              row.userId.role === 'outlet_admin' ? 'Outlet Admin' :
+                row.userId.role === 'sales_rep' ? 'Sales Representative' :
+                  row.userId.role
+          ) : '—'}
+        </TableCell>
 
         <TableCell>{row.salary.toLocaleString()}</TableCell>
 

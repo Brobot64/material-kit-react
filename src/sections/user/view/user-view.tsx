@@ -40,12 +40,15 @@ const STATUS_TABS = [
 
 export function UserView() {
   const table = useTable();
-  const { outlets } = useAuth();
+  const { outlets, onboardEmployee, appData } = useAuth();
+
+  const isOwner = appData?.role === 'owner';
+  const assignedOutletId = appData?.outletId;
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pagination, setPagination] = useState<EmployeePagination | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedOutlet, setSelectedOutlet] = useState<string>('all');
+  const [selectedOutlet, setSelectedOutlet] = useState<string>(isOwner ? 'all' : (assignedOutletId || 'all'));
   const [statusFilter, setStatusFilter] = useState('all');
   const [filterName, setFilterName] = useState('');
 
@@ -57,15 +60,15 @@ export function UserView() {
     role: 'sales_rep',
     salary: 0,
     position: '',
-    outletId: '',
+    outletId: isOwner ? '' : (assignedOutletId || ''),
   });
 
   // Set default outletId when outlets are loaded
   useEffect(() => {
     if (outlets.length > 0 && !newEmployee.outletId) {
-      setNewEmployee((prev) => ({ ...prev, outletId: outlets[0]._id }));
+      setNewEmployee((prev) => ({ ...prev, outletId: isOwner ? outlets[0].id : (assignedOutletId || outlets[0].id) }));
     }
-  }, [outlets, newEmployee.outletId]);
+  }, [outlets, newEmployee.outletId, isOwner, assignedOutletId]);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -91,7 +94,13 @@ export function UserView() {
 
   const handleCreateEmployee = async () => {
     try {
-      await api.createEmployee(newEmployee);
+      if (!appData?.businessId) {
+        throw new Error('Business ID is missing');
+      }
+      await onboardEmployee({
+        ...newEmployee,
+        businessId: appData.businessId,
+      });
       setOpenCreateModal(false);
       fetchEmployees();
       setNewEmployee({
@@ -101,7 +110,7 @@ export function UserView() {
         role: 'sales_rep',
         salary: 0,
         position: '',
-        outletId: outlets[0]?._id || '',
+        outletId: isOwner ? (outlets[0]?.id || '') : (assignedOutletId || ''),
       });
     } catch (error) {
       console.error('Failed to create employee:', error);
@@ -119,10 +128,12 @@ export function UserView() {
 
   const handleFilterOutlet = useCallback(
     (event: any) => {
-      setSelectedOutlet(event.target.value);
-      table.onResetPage();
+      if (isOwner) {
+        setSelectedOutlet(event.target.value);
+        table.onResetPage();
+      }
     },
-    [table]
+    [table, isOwner]
   );
 
   const notFound = !loading && !employees.length;
@@ -182,10 +193,11 @@ export function UserView() {
               value={selectedOutlet}
               label="Outlet"
               onChange={handleFilterOutlet}
+              disabled={!isOwner}
             >
-              <MuiMenuItem value="all">All Outlets</MuiMenuItem>
+              {isOwner && <MuiMenuItem value="all">All Outlets</MuiMenuItem>}
               {outlets.map((outlet) => (
-                <MuiMenuItem key={outlet._id} value={outlet._id}>
+                <MuiMenuItem key={outlet.id} value={outlet.id}>
                   {outlet.name}
                 </MuiMenuItem>
               ))}
@@ -308,9 +320,9 @@ export function UserView() {
               label="Role"
               onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
             >
+              <MuiMenuItem value="owner">Owner</MuiMenuItem>
+              <MuiMenuItem value="outlet_admin">Outlet Admin</MuiMenuItem>
               <MuiMenuItem value="sales_rep">Sales Representative</MuiMenuItem>
-              <MuiMenuItem value="store_manager">Store Manager</MuiMenuItem>
-              <MuiMenuItem value="admin">Admin</MuiMenuItem>
             </Select>
           </FormControl>
 
@@ -335,9 +347,10 @@ export function UserView() {
               value={newEmployee.outletId}
               label="Outlet"
               onChange={(e) => setNewEmployee({ ...newEmployee, outletId: e.target.value })}
+              disabled={!isOwner}
             >
               {outlets.map((outlet) => (
-                <MuiMenuItem key={outlet._id} value={outlet._id}>
+                <MuiMenuItem key={outlet.id} value={outlet.id}>
                   {outlet.name}
                 </MuiMenuItem>
               ))}

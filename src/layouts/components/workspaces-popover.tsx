@@ -4,10 +4,18 @@ import { varAlpha } from 'minimal-shared/utils';
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Modal from '@mui/material/Modal';
+import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
+import Divider from '@mui/material/Divider';
 import MenuList from '@mui/material/MenuList';
+import TextField from '@mui/material/TextField';
 import ButtonBase from '@mui/material/ButtonBase';
+import Typography from '@mui/material/Typography';
 import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
+
+import { api } from 'src/services/api';
+import { useAuth } from 'src/contexts/auth-context';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -25,19 +33,44 @@ export type WorkspacesPopoverProps = ButtonBaseProps & {
 };
 
 export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopoverProps) {
-  const [workspace, setWorkspace] = useState(data[0]);
+  const { appData, refreshOutlets } = useAuth();
+  
+  const isOwner = appData?.role === 'owner';
+  
+  const [workspace, setWorkspace] = useState(data.find(d => d.id === appData?.outletId) || data[0]);
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
+  
+  const [openModal, setOpenModal] = useState(false);
 
+  const [newOutlet, setNewOutlet] = useState({
+    name: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      country: 'Nigeria',
+    },
+    phone: '',
+    isMain: false,
+  });
+  
   useEffect(() => {
-    if (data.length > 0 && !workspace) {
-      setWorkspace(data[0]);
+    if (data.length > 0) {
+      const assignedOutlet = data.find(d => d.id === appData?.outletId);
+      if (assignedOutlet) {
+        setWorkspace(assignedOutlet);
+      } else if (!workspace) {
+        setWorkspace(data[0]);
+      }
     }
-  }, [data, workspace]);
+  }, [data, appData?.outletId, workspace]);
 
   const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setOpenPopover(event.currentTarget);
-  }, []);
+    if (isOwner) {
+      setOpenPopover(event.currentTarget);
+    }
+  }, [isOwner]);
 
   const handleClosePopover = useCallback(() => {
     setOpenPopover(null);
@@ -50,6 +83,30 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
     },
     [handleClosePopover]
   );
+
+  const handleCreateOutlet = async () => {
+    try {
+      if (!appData?.businessId) throw new Error('Business ID not found');
+      
+      await api.createOutlet({
+        ...newOutlet,
+        businessId: appData.businessId,
+      });
+      
+      await refreshOutlets();
+      setOpenModal(false);
+      setNewOutlet({ 
+        name: '', 
+        address: { street: '', city: '', state: '', country: 'Nigeria' }, 
+        phone: '', 
+        isMain: false 
+      });
+      handleClosePopover();
+    } catch (error) {
+      console.error('Failed to create outlet:', error);
+      alert(error instanceof Error ? error.message : 'Failed to create outlet');
+    }
+  };
 
   const renderAvatar = (alt: string, src: string, isActive: boolean) => (
     <Box sx={{ position: 'relative', display: 'inline-flex' }}>
@@ -149,8 +206,105 @@ export function WorkspacesPopover({ data = [], sx, ...other }: WorkspacesPopover
               {renderLabel(option.isMain)}
             </MenuItem>
           ))}
+
+          <Divider sx={{ borderStyle: 'dashed' }} />
+
+          <MenuItem
+            onClick={() => {
+              setOpenModal(true);
+            }}
+            sx={{
+              color: 'primary.main',
+              fontWeight: 'fontWeightSemiBold',
+              justifyContent: 'center',
+            }}
+          >
+            <Iconify icon="mingcute:add-line" />
+            Add New Outlet
+          </MenuItem>
         </MenuList>
       </Popover>
+
+      {/* Add New Outlet Modal */}
+      <Modal open={openModal} onClose={() => setOpenModal(false)}>
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 500,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          <Typography variant="h6">Add New Outlet</Typography>
+          
+          <TextField
+            fullWidth
+            label="Outlet Name"
+            value={newOutlet.name}
+            onChange={(e) => setNewOutlet({ ...newOutlet, name: e.target.value })}
+          />
+          
+          <TextField
+            fullWidth
+            label="Street Address"
+            value={newOutlet.address.street}
+            onChange={(e) => setNewOutlet({ ...newOutlet, address: { ...newOutlet.address, street: e.target.value } })}
+          />
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="City"
+              value={newOutlet.address.city}
+              onChange={(e) => setNewOutlet({ ...newOutlet, address: { ...newOutlet.address, city: e.target.value } })}
+            />
+            <TextField
+              fullWidth
+              label="State"
+              value={newOutlet.address.state}
+              onChange={(e) => setNewOutlet({ ...newOutlet, address: { ...newOutlet.address, state: e.target.value } })}
+            />
+          </Box>
+
+          <TextField
+            fullWidth
+            label="Country"
+            value={newOutlet.address.country}
+            onChange={(e) => setNewOutlet({ ...newOutlet, address: { ...newOutlet.address, country: e.target.value } })}
+          />
+          
+          <TextField
+            fullWidth
+            label="Phone"
+            value={newOutlet.phone}
+            onChange={(e) => setNewOutlet({ ...newOutlet, phone: e.target.value })}
+          />
+
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="isMain"
+              checked={newOutlet.isMain}
+              onChange={(e) => setNewOutlet({ ...newOutlet, isMain: e.target.checked })}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="isMain">Is Main Outlet?</label>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 1 }}>
+            <Button onClick={() => setOpenModal(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleCreateOutlet} color="primary">Create</Button>
+          </Box>
+        </Box>
+      </Modal>
     </>
   );
 }
