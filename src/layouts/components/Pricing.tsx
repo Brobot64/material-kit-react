@@ -84,7 +84,7 @@ export default function Pricing() {
                 <p className={`text-sm mb-4 ${tier.isHighlighted ? 'text-blue-100' : 'text-gray-600'}`}>
                   {tier.subtitle}
                 </p>
-                <div className="h-px bg-gray-300 mb-4"></div>
+                <div className="h-px bg-gray-300 mb-4" />
               </div>
 
               {/* Card Content */}

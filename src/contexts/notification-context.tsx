@@ -2,14 +2,19 @@ import type { Notification } from 'src/types';
 
 import { useState, useEffect, useContext, useCallback, createContext, type ReactNode } from 'react';
 
+import { api } from 'src/services/api';
+
+import { useAuth } from './auth-context';
+import { useSocket } from './socket-context';
+
 // ----------------------------------------------------------------------
 
 type NotificationContextType = {
   notifications: Notification[];
   unreadCount: number;
   addNotification: (notification: Notification) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
   removeNotification: (id: string) => void;
   clearAll: () => void;
   requestPermission: () => Promise<boolean>;
@@ -21,50 +26,87 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 type NotificationProviderProps = {
   children: ReactNode;
-  userId: string;
 };
 
-export function NotificationProvider({ children, userId }: NotificationProviderProps) {
+export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { isAuthenticated } = useAuth();
+  const { socket } = useSocket();
 
-  useEffect(() => {
-    // Load notifications from localStorage or API
-    const stored = localStorage.getItem(`notifications_${userId}`);
-    if (stored) {
-      try {
-        setNotifications(JSON.parse(stored));
-      } catch {
-        // Ignore parse errors
-      }
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await api.getNotifications();
+      // Ensure we map backend 'read' state correctly if needed
+      // and handle potential different field names (e.g., _id vs id)
+      const mapped = response.notifications.map((n: any) => ({
+        ...n,
+        id: n.id || n._id,
+        read: n.read ?? false,
+      }));
+      setNotifications(mapped);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
-    // Save notifications to localStorage
-    localStorage.setItem(`notifications_${userId}`, JSON.stringify(notifications));
-  }, [notifications, userId]);
+    if (isAuthenticated) {
+      fetchNotifications();
+    } else {
+      setNotifications([]);
+    }
+  }, [isAuthenticated, fetchNotifications]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('notification', (newNotif: any) => {
+        const notification: Notification = {
+          ...newNotif,
+          id: newNotif.id || newNotif._id,
+          read: false, // New notifications are unread by default
+        };
+
+        setNotifications((prev) => [notification, ...prev]);
+
+        // Show browser notification if permission granted
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new window.Notification(notification.title, {
+            body: notification.message,
+            icon: '/favicon.ico',
+            tag: notification.id,
+          });
+        }
+      });
+
+      return () => {
+        socket.off('notification');
+      };
+    }
+    return undefined;
+  }, [socket]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const addNotification = useCallback((notification: Notification) => {
     setNotifications((prev) => [notification, ...prev]);
+  }, []);
 
-    // Show browser notification if permission granted
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(notification.title, {
-        body: notification.message,
-        icon: '/favicon.ico',
-        tag: notification.id,
-      });
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      await api.markNotificationAsRead(id);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
     }
   }, []);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
-
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await api.markAllNotificationsAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   }, []);
 
   const removeNotification = useCallback((id: string) => {

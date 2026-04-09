@@ -41,13 +41,16 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
+import { NumericInput } from 'src/components/numeric-input';
 
 // ----------------------------------------------------------------------
 
 export function ProductsView() {
   const router = useRouter();
-  const { appData, categories } = useAuth();
+  const { appData, categories, outlets: contextOutlets } = useAuth();
   const businessId = appData?.businessId;
+  const isOwner = appData?.role === 'owner';
+  const assignedOutletId = appData?.outletId;
 
   const [products, setProducts] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>({ page: 1, limit: 10, total: 0 });
@@ -74,7 +77,7 @@ export function ProductsView() {
     taxRate: 7.5,
     categoryId: '',
     description: '',
-    outletId: '',
+    outletId: isOwner ? '' : (assignedOutletId || ''),
     sellingPrice: 0,
     costPrice: 0,
     minStock: 0,
@@ -120,12 +123,17 @@ export function ProductsView() {
   const fetchOutlets = useCallback(async () => {
     if (!businessId) return;
     try {
-      const data = await api.getOutlets(businessId);
-      setOutlets(data);
+      // Use outlets from context or fetch
+      if (contextOutlets.length > 0) {
+        setOutlets(contextOutlets);
+      } else {
+        const data = await api.getOutlets(businessId);
+        setOutlets(data.map((o: any) => ({ ...o, id: o._id })));
+      }
     } catch (error) {
       console.error('Failed to fetch outlets:', error);
     }
-  }, [businessId]);
+  }, [businessId, contextOutlets]);
 
   useEffect(() => {
     fetchProducts();
@@ -156,7 +164,7 @@ export function ProductsView() {
       taxRate: 7.5,
       categoryId: '',
       description: '',
-      outletId: '',
+      outletId: isOwner ? '' : (assignedOutletId || ''),
       sellingPrice: 0,
       costPrice: 0,
       minStock: 0,
@@ -489,13 +497,12 @@ export function ProductsView() {
                     value={newProduct.unit}
                     onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
                   />
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Tax Rate (%)"
                     value={newProduct.taxRate}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, taxRate: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewProduct({ ...newProduct, taxRate: val })
                     }
                   />
                 </Box>
@@ -563,54 +570,51 @@ export function ProductsView() {
                   label="Select Outlet"
                   value={newProduct.outletId}
                   onChange={(e) => setNewProduct({ ...newProduct, outletId: e.target.value })}
+                  disabled={!isOwner}
                 >
-                  <MenuItem value="">None</MenuItem>
+                  {isOwner && <MenuItem value="">None</MenuItem>}
                   {outlets.map((outlet) => (
-                    <MenuItem key={outlet._id} value={outlet._id}>
+                    <MenuItem key={outlet.id} value={outlet.id}>
                       {outlet.name}
                     </MenuItem>
                   ))}
                 </TextField>
 
-                <TextField
+                <NumericInput
                   fullWidth
-                  type="number"
                   label="Selling Price"
                   disabled={!newProduct.outletId}
                   value={newProduct.sellingPrice}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, sellingPrice: parseFloat(e.target.value) })
+                  onChangeValue={(val) =>
+                    setNewProduct({ ...newProduct, sellingPrice: val })
                   }
                 />
-                <TextField
+                <NumericInput
                   fullWidth
-                  type="number"
                   label="Cost Price"
                   disabled={!newProduct.outletId}
                   value={newProduct.costPrice}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, costPrice: parseFloat(e.target.value) })
+                  onChangeValue={(val) =>
+                    setNewProduct({ ...newProduct, costPrice: val })
                   }
                 />
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Quantity"
                     disabled={!newProduct.outletId}
                     value={newProduct.quantity}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, quantity: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewProduct({ ...newProduct, quantity: val })
                     }
                   />
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Min Stock"
                     disabled={!newProduct.outletId}
                     value={newProduct.minStock}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, minStock: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewProduct({ ...newProduct, minStock: val })
                     }
                   />
                 </Box>

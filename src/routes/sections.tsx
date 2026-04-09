@@ -19,11 +19,15 @@ export const FinancialOverviewPage = lazy(() => import('src/pages/financial-over
 export const BlogPage = lazy(() => import('src/pages/blog'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const UserCreatePage = lazy(() => import('src/pages/user-create'));
+export const ProfilePage = lazy(() => import('src/pages/profile'));
 export const ProductDetailPage = lazy(() => import('src/pages/product-detail'));
 export const ProductListPage = lazy(() => import('src/pages/product-list'));
 export const CategoriesPage = lazy(() => import('src/pages/categories'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const SignUpPage = lazy(() => import('src/pages/sign-up'));
+export const ForgotPasswordPage = lazy(() => import('src/pages/auth/forgot-password'));
+export const ResetPasswordPage = lazy(() => import('src/pages/auth/reset-password'));
+export const ChangePasswordPage = lazy(() => import('src/pages/auth/change-password'));
 export const VerifyOtpPage = lazy(() => import('src/pages/auth/verify-otp'));
 export const SubscriptionRenewPage = lazy(() => import('src/pages/subscription/renew'));
 export const SubscriptionSuccessPage = lazy(() => import('src/pages/subscription/success'));
@@ -85,6 +89,7 @@ export const routesSection: RouteObject[] = [
       { path: 'chat', element: <ChatPage /> },
       { path: 'user', element: <UserPage /> },
       { path: 'user/create', element: <UserCreatePage /> },
+      { path: 'profile', element: <ProfilePage /> },
       { path: 'products', element: <ProductsPage /> },
       { path: 'products/:id', element: <ProductDetailPage /> },
       { path: 'product-list', element: <ProductListPage /> },
@@ -137,6 +142,34 @@ export const routesSection: RouteObject[] = [
           <SignUpPage />
         </AuthLayout>
       </GuestGuard>
+    ),
+  },
+  {
+    path: 'forgot-password',
+    element: (
+      <GuestGuard>
+        <AuthLayout>
+          <ForgotPasswordPage />
+        </AuthLayout>
+      </GuestGuard>
+    ),
+  },
+  {
+    path: 'reset-password',
+    element: (
+      <GuestGuard>
+        <AuthLayout>
+          <ResetPasswordPage />
+        </AuthLayout>
+      </GuestGuard>
+    ),
+  },
+  {
+    path: 'change-password',
+    element: (
+      <AuthLayout>
+        <ChangePasswordPage />
+      </AuthLayout>
     ),
   },
   {

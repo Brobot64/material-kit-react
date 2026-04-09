@@ -66,6 +66,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  forgotPassword: (data: { email: string }) =>
+    request<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  resetPassword: (data: { email: string; otp: string; newPassword: any }) =>
+    request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  changePassword: (data: any) =>
+    request<{ message: string }>('/auth/password', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   toggleTheme: () =>
     request<{ message: string }>('/auth/toggle-theme', {
       method: 'POST',
@@ -128,11 +143,23 @@ export const api = {
 
   // Notifications
   getNotifications: () => request<{ notifications: any[] }>('/notifications'),
-  markNotificationAsRead: (id: string) => request(`/notifications/${id}/read`, { method: 'PUT' }),
-  markAllNotificationsAsRead: () => request('/notifications/read-all', { method: 'PUT' }),
+  markNotificationAsRead: (id: string) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsAsRead: () => request('/notifications/read-all', { method: 'PATCH' }),
 
   // Outlets
   getOutlets: (businessId: string) => request<any[]>(`/outlets?businessId=${businessId}`),
+  createOutlet: (data: {
+    name: string;
+    address?: {
+      street: string;
+      city: string;
+      state: string;
+      country: string;
+    };
+    phone?: string;
+    businessId: string;
+    isMain?: boolean;
+  }) => request<any>('/outlets', { method: 'POST', body: JSON.stringify(data) }),
 
   // Reporting
   getSalesAnalytics: () => request<any>('/reporting/dashboard/sales'),
@@ -346,13 +373,14 @@ export const api = {
     return request<{ data: any[]; pagination: any }>(`/employees?${query.toString()}`);
   },
   getEmployee: (id: string) => request<any>(`/employees/${id}`),
-  createEmployee: (data: {
+  onboardEmployee: (data: {
     fullName: string;
     email: string;
     phone: string;
     role: string;
     salary: number;
     position: string;
+    businessId: string;
     outletId: string;
   }) => request<any>('/employees', { method: 'POST', body: JSON.stringify(data) }),
   updateEmployee: (id: string, data: { salary?: number; position?: string }) =>
@@ -364,7 +392,9 @@ export const api = {
     request<any>('/employees/update-password', { method: 'POST', body: JSON.stringify(data) }),
 
   // Subscription
-  getProfile: () => request<{ user: any; appData: any }>('/auth/profile'),
+  getProfile: () => request<{ user: any; settings: any; appData?: any }>('/auth/profile'),
+  updateProfile: (data: any) =>
+    request<any>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   createCheckoutSession: (data: any) => request<{ sessionId: string; url: string }>('/public/checkout-session', { method: 'POST', body: JSON.stringify(data) }),
   getPublicCheckoutSession: (sessionId: string) => request<any>(`/public/checkout-session/${sessionId}`),
   renewSubscription: (data: any) => request<any>('/public/renew-subscription', { method: 'POST', body: JSON.stringify(data) }),

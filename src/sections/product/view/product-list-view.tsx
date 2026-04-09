@@ -41,6 +41,7 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
+import { NumericInput } from 'src/components/numeric-input';
 
 // ----------------------------------------------------------------------
 
@@ -574,45 +575,41 @@ export function ProductListView() {
                   ))}
                 </TextField>
 
-                <TextField
+                <NumericInput
                   fullWidth
-                  type="number"
                   label="Selling Price"
                   disabled={!newProduct.outletId}
                   value={newProduct.sellingPrice}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, sellingPrice: parseFloat(e.target.value) })
+                  onChangeValue={(val) =>
+                    setNewProduct({ ...newProduct, sellingPrice: val })
                   }
                 />
-                <TextField
+                <NumericInput
                   fullWidth
-                  type="number"
                   label="Cost Price"
                   disabled={!newProduct.outletId}
                   value={newProduct.costPrice}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, costPrice: parseFloat(e.target.value) })
+                  onChangeValue={(val) =>
+                    setNewProduct({ ...newProduct, costPrice: val })
                   }
                 />
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Quantity"
                     disabled={!newProduct.outletId}
                     value={newProduct.quantity}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, quantity: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewProduct({ ...newProduct, quantity: val })
                     }
                   />
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Min Stock"
                     disabled={!newProduct.outletId}
                     value={newProduct.minStock}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, minStock: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewProduct({ ...newProduct, minStock: val })
                     }
                   />
                 </Box>

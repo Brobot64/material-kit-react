@@ -1,5 +1,6 @@
 export type Outlet = {
     _id: string;
+    id: string;
     name: string;
     address?: string;
     phone?: string;

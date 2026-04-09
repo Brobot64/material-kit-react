@@ -35,8 +35,13 @@ export function SignInView() {
       setLoading(true);
 
       try {
-        await login({ email, password, app: 'shop_master' });
-        router.push('/');
+        const userData = await login({ email, password, app: 'shop_master' });
+
+        if (userData.mustChangePassword) {
+          router.push('/change-password');
+        } else {
+          router.push('/');
+        }
       } catch (err: any) {
         console.error(err);
         if (err.message && err.message.toLowerCase() === 'account not verified') {
@@ -112,7 +117,12 @@ export function SignInView() {
           justifyContent: 'space-between',
         }}
       >
-        <Link variant="body2" color="inherit">
+        <Link
+          variant="body2"
+          color="inherit"
+          sx={{ cursor: 'pointer' }}
+          onClick={() => router.push('/forgot-password')}
+        >
           Forgot password?
         </Link>
       </Box>

@@ -1,3 +1,5 @@
+export type EmployeeRole = 'owner' | 'outlet_admin' | 'sales_rep';
+
 export type EmployeeUserId = {
   _id: string;
   fullName: string;
@@ -5,7 +7,7 @@ export type EmployeeUserId = {
   isActive: boolean;
   status: string;
   mustChangePassword: boolean;
-  role?: string;
+  role?: EmployeeRole | string;
 };
 
 export type EmployeeOutletId = {

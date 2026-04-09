@@ -1,10 +1,10 @@
+import type { TextFieldProps } from '@mui/material/TextField';
+
 import { useState, useEffect } from 'react';
 
 import TextField from '@mui/material/TextField';
 
 import { fNumber } from 'src/utils/format-number';
-
-import type { TextFieldProps } from '@mui/material/TextField';
 
 // ----------------------------------------------------------------------
 
@@ -44,10 +44,11 @@ export function NumericInput({ value, onChangeValue, onFocus, onBlur, ...other }
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value.replace(/,/g, '');
     
-    // Only allow non-negative integers
-    if (/^\d*$/.test(rawValue)) {
-      const numericValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
+    // Allow non-negative numbers (including decimals)
+    if (rawValue === '' || /^\d*\.?\d*$/.test(rawValue)) {
       setInputValue(rawValue);
+      
+      const numericValue = rawValue === '' || rawValue === '.' ? 0 : parseFloat(rawValue);
       if (onChangeValue) {
         onChangeValue(numericValue);
       }
