@@ -62,6 +62,18 @@ export function ProductDetailView({ id }: Props) {
   const [openVariantModal, setOpenVariantModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [editProduct, setEditProduct] = useState<any>(null);
+  const [productOutlets, setProductOutlets] = useState<any[]>([]);
+  const [selectedOutletId, setSelectedOutletId] = useState('');
+  const [outletForm, setOutletForm] = useState({
+    sellingPrice: 0,
+    currentCost: 0,
+    quantity: 0,
+    minStock: 0,
+    maxStock: 0,
+    costPriceMethod: 'FIFO',
+    isActive: true,
+  });
+
   const [newVariant, setNewVariant] = useState({
     name: '',
     outletId: '',
@@ -126,6 +138,10 @@ export function ProductDetailView({ id }: Props) {
       setProduct(productData);
       setVariants(variantsData);
       setAuditLogs(logsData.data);
+      
+      if (productData.productOutlets) {
+        setProductOutlets(productData.productOutlets);
+      }
     } catch (error) {
       console.error('Failed to fetch product details:', error);
     } finally {
@@ -163,6 +179,7 @@ export function ProductDetailView({ id }: Props) {
       categoryId: product?.categoryId || '',
       description: product?.description || '',
     });
+    
     if (product?.details && Object.keys(product.details).length > 0) {
       setProductDetails(
         Object.entries(product.details).map(([key, value]) => ({ key, value: String(value) }))
@@ -170,10 +187,46 @@ export function ProductDetailView({ id }: Props) {
     } else {
       setProductDetails([{ key: '', value: '' }]);
     }
+
+    if (product?.productOutlets && product.productOutlets.length > 0) {
+      const firstOutlet = product.productOutlets[0];
+      setSelectedOutletId(firstOutlet.outletId);
+      setOutletForm({
+        sellingPrice: firstOutlet.sellingPrice || 0,
+        currentCost: firstOutlet.costPrice || firstOutlet.currentCost || 0,
+        quantity: firstOutlet.quantity || 0,
+        minStock: firstOutlet.minStock || 0,
+        maxStock: firstOutlet.maxStock || 0,
+        costPriceMethod: firstOutlet.costPriceMethod || 'FIFO',
+        isActive: firstOutlet.isActive !== undefined ? firstOutlet.isActive : true,
+      });
+    }
+
     setOpenEditModal(true);
   };
 
-  const handleCloseEditModal = () => setOpenEditModal(false);
+  const handleCloseEditModal = () => {
+    setOpenEditModal(false);
+    setSelectedOutletId('');
+  };
+
+  const handleOutletChange = (event: any) => {
+    const outletId = event.target.value;
+    setSelectedOutletId(outletId);
+    
+    const outletData = product.productOutlets.find((o: any) => o.outletId === outletId);
+    if (outletData) {
+      setOutletForm({
+        sellingPrice: outletData.sellingPrice || 0,
+        currentCost: outletData.costPrice || outletData.currentCost || 0,
+        quantity: outletData.quantity || 0,
+        minStock: outletData.minStock || 0,
+        maxStock: outletData.maxStock || 0,
+        costPriceMethod: outletData.costPriceMethod || 'FIFO',
+        isActive: outletData.isActive !== undefined ? outletData.isActive : true,
+      });
+    }
+  };
 
   const handleUpdateProduct = async () => {
     try {
@@ -184,10 +237,16 @@ export function ProductDetailView({ id }: Props) {
         return acc;
       }, {} as any);
 
+      // Update general product info
       await api.updateProduct(id, {
         ...editProduct,
         details: detailsObject,
       });
+
+      // Update outlet-specific info if selected
+      if (selectedOutletId) {
+        await api.updateProductOutlet(id, selectedOutletId, outletForm);
+      }
 
       setSnackbar({
         open: true,
@@ -500,34 +559,6 @@ export function ProductDetailView({ id }: Props) {
                       </MenuItem>
                     ))}
                   </TextField>
-                </Stack>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Stack spacing={3}>
-                  <Typography variant="subtitle1">Specifications</Typography>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <TextField
-                      fullWidth
-                      label="Unit"
-                      value={editProduct.unit}
-                      onChange={(e) => setEditProduct({ ...editProduct, unit: e.target.value })}
-                    />
-                    <NumericInput
-                      fullWidth
-                      label="Tax Rate (%)"
-                      value={editProduct.taxRate}
-                      onChangeValue={(val) => setEditProduct({ ...editProduct, taxRate: val })}
-                    />
-                  </Box>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="Description"
-                    value={editProduct.description}
-                    onChange={(e) => setEditProduct({ ...editProduct, description: e.target.value })}
-                  />
-
                   <Box>
                     <Box
                       sx={{
@@ -573,6 +604,81 @@ export function ProductDetailView({ id }: Props) {
                       ))}
                     </Stack>
                   </Box>
+                </Stack>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={3}>
+                  <Typography variant="subtitle1">Outlet Specific Data</Typography>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Outlet Assignment"
+                    value={selectedOutletId}
+                    onChange={handleOutletChange}
+                    helperText={product?.productOutlets?.length > 1 ? "Select an outlet to edit its specific details" : ""}
+                  >
+                    {product?.productOutlets?.map((po: any) => (
+                      <MenuItem key={po.outletId} value={po.outletId}>
+                        {outlets.find(o => (o._id === po.outletId || o.id === po.outletId))?.name || po.outletId}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <NumericInput
+                    fullWidth
+                    label="Selling Price"
+                    value={outletForm.sellingPrice}
+                    onChangeValue={(val) => setOutletForm({ ...outletForm, sellingPrice: val })}
+                  />
+                  <NumericInput
+                    fullWidth
+                    label="Current Cost"
+                    value={outletForm.currentCost}
+                    onChangeValue={(val) => setOutletForm({ ...outletForm, currentCost: val })}
+                  />
+                  
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <NumericInput
+                      fullWidth
+                      label="Quantity"
+                      value={outletForm.quantity}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, quantity: val })}
+                    />
+                    <NumericInput
+                      fullWidth
+                      label="Min Stock"
+                      value={outletForm.minStock}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, minStock: val })}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <NumericInput
+                      fullWidth
+                      label="Max Stock"
+                      value={outletForm.maxStock}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, maxStock: val })}
+                    />
+                    <TextField
+                      select
+                      fullWidth
+                      label="Cost Method"
+                      value={outletForm.costPriceMethod}
+                      onChange={(e) => setOutletForm({ ...outletForm, costPriceMethod: e.target.value })}
+                    >
+                      <MenuItem value="FIFO">FIFO</MenuItem>
+                      <MenuItem value="WA">Weighted Average</MenuItem>
+                    </TextField>
+                  </Box>
+
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={2}
+                    label="Description"
+                    value={editProduct.description}
+                    onChange={(e) => setEditProduct({ ...editProduct, description: e.target.value })}
+                  />
                 </Stack>
               </Grid>
             </Grid>

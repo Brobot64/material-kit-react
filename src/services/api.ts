@@ -290,6 +290,11 @@ export const api = {
     minStock: number;
     quantity: number;
   }) => request<any>('/product-outlets/assign', { method: 'POST', body: JSON.stringify(data) }),
+  updateProductOutlet: (productId: string, outletId: string, data: any) =>
+    request<any>(`/product-outlets/${productId}/${outletId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 
   // Sales
   getProductOutlets: (params: { outletId: string; page?: number; limit?: number; search?: string }) => {
