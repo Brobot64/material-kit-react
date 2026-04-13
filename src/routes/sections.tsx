@@ -84,7 +84,8 @@ export const routesSection: RouteObject[] = [
       { path: 'financial-overview', element: <FinancialOverviewPage /> },
       { path: 'teams', element: <TeamsPage /> },
       { path: 'teams/:id', element: <TeamDetailPage /> },
-      { path: 'projects', element: <ProjectsPage /> },
+      // { path: 'projects', element: <ProjectsPage /> },
+      { path: 'projects', element: <ProductListPage /> },
       { path: 'projects/:id', element: <ProjectDetailPage /> },
       { path: 'chat', element: <ChatPage /> },
       { path: 'user', element: <UserPage /> },
@@ -186,13 +187,14 @@ export const routesSection: RouteObject[] = [
   },
   {
     path: 'home',
-    element: (
-      <GuestGuard>
-        <AuthLayout>
-          <HomePage />
-        </AuthLayout>
-      </GuestGuard>
-    ),
+    element: <HomePage />
+    // (
+    //   <GuestGuard>
+    //     <AuthLayout>
+    //       <HomePage />
+    //     </AuthLayout>
+    //   </GuestGuard>
+    // ),
   },
   { path: '*', element: <Page404 /> },
 ];
