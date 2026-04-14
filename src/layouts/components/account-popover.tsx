@@ -91,7 +91,7 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
         }}
       >
         <Box sx={{ p: 2, pb: 1.5 }}>
-          <Typography variant="subtitle2" noWrap>
+          <Typography variant="subtitle2" noWrap style={{ textTransform: 'capitalize' }}>
             {user?.name || user?.fullName}
           </Typography>
 

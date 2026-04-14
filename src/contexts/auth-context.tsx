@@ -8,12 +8,17 @@ import { api } from 'src/services/api';
 
 type AuthContextType = {
   user: User | null;
+  accessToken: string | null;
   isAuthenticated: boolean;
   isInitialized: boolean;
-  login: (data: any) => Promise<void>;
+  login: (data: any) => Promise<User>;
   register: (data: any) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
   resendOtp: (email: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, otp: string, newPassword: any) => Promise<void>;
+  changePassword: (data: { currentPassword: string; newPassword: string }) => Promise<void>;
+  onboardEmployee: (data: any) => Promise<void>;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   appData: any;
@@ -21,7 +26,14 @@ type AuthContextType = {
   outlets: Outlet[];
   refreshCategories: () => Promise<void>;
   refreshOutlets: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   toggleTheme: () => Promise<void>;
+  subscriptionStatus: {
+    isExpired: boolean;
+    isExpiringSoon: boolean;
+    daysLeft: number;
+    endDate: string | null;
+  };
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +46,7 @@ type AuthProviderProps = {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   // const [workspaces, setWorkspaces] = useState<WorkspacesPopoverProps['data']>([]);
 
   const [appData, setAppData] = useState<any>(null);
@@ -41,6 +54,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
 
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const getSubscriptionStatus = useCallback(() => {
+    const endDateStr = appData?.subscriptionEnd;
+    if (!endDateStr) {
+      return { isExpired: false, isExpiringSoon: false, daysLeft: 0, endDate: null };
+    }
+
+    const endDate = new Date(endDateStr);
+    const now = new Date();
+    const diffTime = endDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return {
+      isExpired: diffTime <= 0,
+      isExpiringSoon: diffDays > 0 && diffDays <= 5,
+      daysLeft: Math.max(0, diffDays),
+      endDate: endDateStr,
+    };
+  }, [appData?.subscriptionEnd]);
+
+  const subscriptionStatus = getSubscriptionStatus();
 
   const fetchCategories = useCallback(async () => {
     if (appData?.businessId) {
@@ -57,12 +91,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (appData?.businessId) {
       try {
         const data = await api.getOutlets(appData.businessId);
-        setOutlets(data);
+        setOutlets(data.map((o: any) => ({ ...o, id: o._id })));
       } catch (error) {
         console.error('Failed to fetch outlets:', error);
       }
     }
   }, [appData?.businessId]);
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      const response = await api.getProfile();
+      const { user: userData, settings, appData: profileAppData } = response;
+      
+      const mappedUser: User = {
+        ...userData,
+        id: userData._id,
+        name: userData.fullName,
+        avatar: user?.avatar || '/assets/images/avatar/avatar-25.webp',
+      };
+
+      setUser(mappedUser);
+      
+      // Merge new data with existing appData to ensure we don't lose businessId etc.
+      const finalAppData = {
+        ...appData,
+        ...(settings || {}),
+        ...(profileAppData || {}),
+      };
+      
+      setAppData(finalAppData);
+      localStorage.setItem('user', JSON.stringify(mappedUser));
+      localStorage.setItem('appData', JSON.stringify(finalAppData));
+    } catch (error) {
+      console.error('Failed to refresh profile:', error);
+    }
+  }, [user?.avatar, appData]);
 
   useEffect(() => {
     fetchCategories();
@@ -85,10 +148,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const storedUser = localStorage.getItem('user');
         const storedAppData = localStorage.getItem('appData');
-        const accessToken = localStorage.getItem('accessToken');
+        const storedAccessToken = localStorage.getItem('accessToken');
 
-        if (accessToken && storedUser) {
+        if (storedAccessToken && storedUser) {
           setUser(JSON.parse(storedUser));
+          setAccessToken(storedAccessToken);
         }
         if (storedAppData) {
           setAppData(JSON.parse(storedAppData));
@@ -105,7 +169,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (data: any) => {
     const response = await api.login(data);
-    const { user: userData, accessToken, appData: loginAppData } = response;
+    const { user: userData, accessToken: token, appData: loginAppData } = response;
 
     // Map API user to internal User type if needed
     const mappedUser: User = {
@@ -117,10 +181,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     setUser(mappedUser);
+    setAccessToken(token);
     setAppData(loginAppData);
-    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('accessToken', token);
     localStorage.setItem('user', JSON.stringify(mappedUser));
     localStorage.setItem('appData', JSON.stringify(loginAppData));
+
+    return mappedUser;
   };
 
   const register = async (data: any) => {
@@ -142,8 +209,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await api.resendOtp({ email });
   };
 
+  const forgotPassword = async (email: string) => {
+    await api.forgotPassword({ email });
+  };
+
+  const resetPassword = async (email: string, otp: string, newPassword: any) => {
+    await api.resetPassword({ email, otp, newPassword });
+  };
+
+  const changePassword = async (data: { currentPassword: string; newPassword: string }) => {
+    await api.changePassword(data);
+    if (user) {
+      const updatedUser = { ...user, mustChangePassword: false };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
+  const onboardEmployee = async (data: any) => {
+    await api.onboardEmployee(data);
+  };
+
   const logout = () => {
     setUser(null);
+    setAccessToken(null);
     setAppData(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
@@ -181,12 +270,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     <AuthContext.Provider
       value={{
         user,
+        accessToken,
         isAuthenticated: !!user,
         isInitialized,
         login,
         register,
         verifyOtp,
         resendOtp,
+        forgotPassword,
+        resetPassword,
+        changePassword,
+        onboardEmployee,
         logout,
         updateUser,
         appData,
@@ -194,7 +288,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         outlets,
         refreshCategories,
         refreshOutlets,
+        refreshProfile,
         toggleTheme,
+        subscriptionStatus,
       }}
     >
       {children}

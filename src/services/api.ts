@@ -8,16 +8,40 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = localStorage.getItem('accessToken');
 
+  const isFormData = options?.body instanceof FormData;
+
+  const headers: HeadersInit = {
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options?.headers,
+  };
+
+  if (!isFormData && !headers['Content-Type' as keyof HeadersInit]) {
+    (headers as any)['Content-Type'] = 'application/json';
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options?.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
+    if (response.status === 401 && !url.includes('/auth/login')) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('appData');
+      window.location.href = '/sign-in';
+    }
+
+    if (response.status === 403) {
+      const errorData = await response.json().catch(() => ({}));
+      if (errorData.message?.toLowerCase().includes('subscription') || errorData.message?.toLowerCase().includes('expired')) {
+        const businessId = errorData.data?.businessId || '';
+        const userId = errorData.data?.userId || '';
+        window.location.href = `/subscription/renew?businessId=${businessId}&userId=${userId}`;
+      }
+      throw new Error(errorData.message || `Access Denied: ${response.statusText}`);
+    }
+
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || `API Error: ${response.statusText}`);
   }
@@ -47,6 +71,21 @@ export const api = {
   resendOtp: (data: any) =>
     request<{ message: string }>('/auth/resend-otp', {
       method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  forgotPassword: (data: { email: string }) =>
+    request<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  resetPassword: (data: { email: string; otp: string; newPassword: any }) =>
+    request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  changePassword: (data: any) =>
+    request<{ message: string }>('/auth/password', {
+      method: 'PATCH',
       body: JSON.stringify(data),
     }),
   toggleTheme: () =>
@@ -111,11 +150,23 @@ export const api = {
 
   // Notifications
   getNotifications: () => request<{ notifications: any[] }>('/notifications'),
-  markNotificationAsRead: (id: string) => request(`/notifications/${id}/read`, { method: 'PUT' }),
-  markAllNotificationsAsRead: () => request('/notifications/read-all', { method: 'PUT' }),
+  markNotificationAsRead: (id: string) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsAsRead: () => request('/notifications/read-all', { method: 'PATCH' }),
 
   // Outlets
   getOutlets: (businessId: string) => request<any[]>(`/outlets?businessId=${businessId}`),
+  createOutlet: (data: {
+    name: string;
+    address?: {
+      street: string;
+      city: string;
+      state: string;
+      country: string;
+    };
+    phone?: string;
+    businessId: string;
+    isMain?: boolean;
+  }) => request<any>('/outlets', { method: 'POST', body: JSON.stringify(data) }),
 
   // Reporting
   getSalesAnalytics: () => request<any>('/reporting/dashboard/sales'),
@@ -246,6 +297,37 @@ export const api = {
     minStock: number;
     quantity: number;
   }) => request<any>('/product-outlets/assign', { method: 'POST', body: JSON.stringify(data) }),
+  updateProductOutlet: (productId: string, outletId: string, data: any) =>
+    request<any>(`/product-outlets/${productId}/${outletId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // Product Upload
+  getProductUploadHeaders: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<string[]>('/products/upload/headers', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+  executeProductUpload: (data: {
+    businessId: string;
+    outletId: string;
+    mapping: any;
+    file: File;
+  }) => {
+    const formData = new FormData();
+    formData.append('businessId', data.businessId);
+    formData.append('outletId', data.outletId);
+    formData.append('mapping', JSON.stringify(data.mapping));
+    formData.append('file', data.file);
+    return request<{ imported: number; errors: any[] }>('/products/upload/execute', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 
   // Sales
   getProductOutlets: (params: { outletId: string; page?: number; limit?: number; search?: string }) => {
@@ -329,13 +411,14 @@ export const api = {
     return request<{ data: any[]; pagination: any }>(`/employees?${query.toString()}`);
   },
   getEmployee: (id: string) => request<any>(`/employees/${id}`),
-  createEmployee: (data: {
+  onboardEmployee: (data: {
     fullName: string;
     email: string;
     phone: string;
     role: string;
     salary: number;
     position: string;
+    businessId: string;
     outletId: string;
   }) => request<any>('/employees', { method: 'POST', body: JSON.stringify(data) }),
   updateEmployee: (id: string, data: { salary?: number; position?: string }) =>
@@ -345,6 +428,14 @@ export const api = {
     request<any>('/employees/status', { method: 'PATCH', body: JSON.stringify(data) }),
   updateEmployeePassword: (data: any) =>
     request<any>('/employees/update-password', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Subscription
+  getProfile: () => request<{ user: any; settings: any; appData?: any }>('/auth/profile'),
+  updateProfile: (data: any) =>
+    request<any>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+  createCheckoutSession: (data: any) => request<{ sessionId: string; url: string }>('/public/checkout-session', { method: 'POST', body: JSON.stringify(data) }),
+  getPublicCheckoutSession: (sessionId: string) => request<any>(`/public/checkout-session/${sessionId}`),
+  renewSubscription: (data: any) => request<any>('/public/renew-subscription', { method: 'POST', body: JSON.stringify(data) }),
 
   // Salaries
   getLedgerAccounts: () => request<any[]>('/ledger/accounts'),

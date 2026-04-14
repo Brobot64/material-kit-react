@@ -8,8 +8,9 @@ import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import { useTheme, useColorScheme } from '@mui/material/styles';
 
-import { _langs, _notifications } from 'src/_mock';
 import { useAuth } from 'src/contexts/auth-context';
+
+import { SubscriptionBanner } from 'src/components/subscription/subscription-banner';
 
 import { NavMobile, NavDesktop } from './nav';
 import { layoutClasses } from '../core/classes';
@@ -22,7 +23,6 @@ import { MenuButton } from '../components/menu-button';
 import { HeaderSection } from '../core/header-section';
 import { LayoutSection } from '../core/layout-section';
 import { AccountPopover } from '../components/account-popover';
-import { LanguagePopover } from '../components/language-popover';
 import { ThemeModeButton } from '../components/theme-mode-button';
 import { NotificationsPopover } from '../components/notifications-popover';
 
@@ -105,10 +105,10 @@ export function DashboardLayout({
           <ThemeModeButton />
 
           {/** @slot Language popover */}
-          <LanguagePopover data={_langs} />
+          {/* <LanguagePopover data={_langs} /> */}
 
           {/** @slot Notifications popover */}
-          <NotificationsPopover data={_notifications} />
+          <NotificationsPopover />
 
           {/** @slot Account drawer */}
           <AccountPopover data={_account} />
@@ -130,7 +130,12 @@ export function DashboardLayout({
 
   const renderFooter = () => null;
 
-  const renderMain = () => <MainSection {...slotProps?.main}>{children}</MainSection>;
+  const renderMain = () => (
+    <MainSection {...slotProps?.main}>
+      <SubscriptionBanner />
+      {children}
+    </MainSection>
+  );
 
   return (
     <LayoutSection

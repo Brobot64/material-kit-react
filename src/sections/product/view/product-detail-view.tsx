@@ -37,6 +37,7 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
+import { NumericInput } from 'src/components/numeric-input';
 
 import { AnalyticsOrderTimeline } from '../../overview/analytics-order-timeline';
 
@@ -59,6 +60,20 @@ export function ProductDetailView({ id }: Props) {
   const [outlets, setOutlets] = useState<any[]>([]);
 
   const [openVariantModal, setOpenVariantModal] = useState(false);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [editProduct, setEditProduct] = useState<any>(null);
+  const [productOutlets, setProductOutlets] = useState<any[]>([]);
+  const [selectedOutletId, setSelectedOutletId] = useState('');
+  const [outletForm, setOutletForm] = useState({
+    sellingPrice: 0,
+    currentCost: 0,
+    quantity: 0,
+    minStock: 0,
+    maxStock: 0,
+    costPriceMethod: 'FIFO',
+    isActive: true,
+  });
+
   const [newVariant, setNewVariant] = useState({
     name: '',
     outletId: '',
@@ -74,6 +89,7 @@ export function ProductDetailView({ id }: Props) {
   });
 
   const [variantDetails, setVariantDetails] = useState([{ key: '', value: '' }]);
+  const [productDetails, setProductDetails] = useState([{ key: '', value: '' }]);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -96,6 +112,21 @@ export function ProductDetailView({ id }: Props) {
     setVariantDetails(updatedDetails);
   };
 
+  const handleAddProductDetail = () => {
+    setProductDetails([...productDetails, { key: '', value: '' }]);
+  };
+
+  const handleRemoveProductDetail = (index: number) => {
+    const updatedDetails = productDetails.filter((_, i) => i !== index);
+    setProductDetails(updatedDetails.length ? updatedDetails : [{ key: '', value: '' }]);
+  };
+
+  const handleProductDetailChange = (index: number, field: 'key' | 'value', value: string) => {
+    const updatedDetails = [...productDetails];
+    updatedDetails[index][field] = value;
+    setProductDetails(updatedDetails);
+  };
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -107,6 +138,10 @@ export function ProductDetailView({ id }: Props) {
       setProduct(productData);
       setVariants(variantsData);
       setAuditLogs(logsData.data);
+      
+      if (productData.productOutlets) {
+        setProductOutlets(productData.productOutlets);
+      }
     } catch (error) {
       console.error('Failed to fetch product details:', error);
     } finally {
@@ -129,10 +164,105 @@ export function ProductDetailView({ id }: Props) {
   }, [fetchData]);
 
   useEffect(() => {
-    if (openVariantModal) {
+    if (openVariantModal || openEditModal) {
       fetchOutlets();
     }
-  }, [openVariantModal, fetchOutlets]);
+  }, [openVariantModal, openEditModal, fetchOutlets]);
+
+  const handleOpenEditModal = () => {
+    setEditProduct({
+      name: product?.name || '',
+      barcode: product?.barcode || '',
+      brand: product?.brand || '',
+      unit: product?.unit || 'unit',
+      taxRate: product?.taxRate || 7.5,
+      categoryId: product?.categoryId || '',
+      description: product?.description || '',
+    });
+    
+    if (product?.details && Object.keys(product.details).length > 0) {
+      setProductDetails(
+        Object.entries(product.details).map(([key, value]) => ({ key, value: String(value) }))
+      );
+    } else {
+      setProductDetails([{ key: '', value: '' }]);
+    }
+
+    if (product?.productOutlets && product.productOutlets.length > 0) {
+      const firstOutlet = product.productOutlets[0];
+      setSelectedOutletId(firstOutlet.outletId);
+      setOutletForm({
+        sellingPrice: firstOutlet.sellingPrice || 0,
+        currentCost: firstOutlet.costPrice || firstOutlet.currentCost || 0,
+        quantity: firstOutlet.quantity || 0,
+        minStock: firstOutlet.minStock || 0,
+        maxStock: firstOutlet.maxStock || 0,
+        costPriceMethod: firstOutlet.costPriceMethod || 'FIFO',
+        isActive: firstOutlet.isActive !== undefined ? firstOutlet.isActive : true,
+      });
+    }
+
+    setOpenEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setOpenEditModal(false);
+    setSelectedOutletId('');
+  };
+
+  const handleOutletChange = (event: any) => {
+    const outletId = event.target.value;
+    setSelectedOutletId(outletId);
+    
+    const outletData = product.productOutlets.find((o: any) => o.outletId === outletId);
+    if (outletData) {
+      setOutletForm({
+        sellingPrice: outletData.sellingPrice || 0,
+        currentCost: outletData.costPrice || outletData.currentCost || 0,
+        quantity: outletData.quantity || 0,
+        minStock: outletData.minStock || 0,
+        maxStock: outletData.maxStock || 0,
+        costPriceMethod: outletData.costPriceMethod || 'FIFO',
+        isActive: outletData.isActive !== undefined ? outletData.isActive : true,
+      });
+    }
+  };
+
+  const handleUpdateProduct = async () => {
+    try {
+      const detailsObject = productDetails.reduce((acc, item) => {
+        if (item.key.trim()) {
+          acc[item.key.trim()] = item.value;
+        }
+        return acc;
+      }, {} as any);
+
+      // Update general product info
+      await api.updateProduct(id, {
+        ...editProduct,
+        details: detailsObject,
+      });
+
+      // Update outlet-specific info if selected
+      if (selectedOutletId) {
+        await api.updateProductOutlet(id, selectedOutletId, outletForm);
+      }
+
+      setSnackbar({
+        open: true,
+        message: 'Product updated successfully!',
+        severity: 'success',
+      });
+      handleCloseEditModal();
+      fetchData();
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Failed to update product',
+        severity: 'error',
+      });
+    }
+  };
 
   const handleOpenVariantModal = () => {
     setNewVariant({
@@ -225,13 +355,23 @@ export function ProductDetailView({ id }: Props) {
 
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 5 }}>
         <Typography variant="h4">{product?.name}</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={handleOpenVariantModal}
-        >
-          Add Variant
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<Iconify icon="solar:pen-bold" />}
+            onClick={handleOpenEditModal}
+          >
+            Edit Product
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={handleOpenVariantModal}
+          >
+            Add Variant
+          </Button>
+        </Stack>
       </Stack>
 
       <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)} sx={{ mb: 3 }}>
@@ -378,6 +518,182 @@ export function ProductDetailView({ id }: Props) {
         </Grid>
       )}
 
+      {/* Edit Product Modal */}
+      <Dialog open={openEditModal} onClose={handleCloseEditModal} fullWidth maxWidth="md">
+        <DialogTitle>Edit Product Information</DialogTitle>
+        <DialogContent dividers>
+          {editProduct && (
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={3}>
+                  <Typography variant="subtitle1">General Information</Typography>
+                  <TextField
+                    fullWidth
+                    label="Product Name"
+                    value={editProduct.name}
+                    onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Barcode"
+                    value={editProduct.barcode}
+                    onChange={(e) => setEditProduct({ ...editProduct, barcode: e.target.value })}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Brand"
+                    value={editProduct.brand}
+                    onChange={(e) => setEditProduct({ ...editProduct, brand: e.target.value })}
+                  />
+                  <TextField
+                    select
+                    fullWidth
+                    label="Category"
+                    value={editProduct.categoryId}
+                    onChange={(e) => setEditProduct({ ...editProduct, categoryId: e.target.value })}
+                  >
+                    <MenuItem value="">Select Category</MenuItem>
+                    {categories.map((category) => (
+                      <MenuItem key={category._id} value={category._id}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Box>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        mb: 2,
+                      }}
+                    >
+                      <Typography variant="subtitle2">Additional Details</Typography>
+                      <IconButton size="small" onClick={handleAddProductDetail} color="primary">
+                        <Iconify icon="mingcute:add-line" />
+                      </IconButton>
+                    </Box>
+                    <Stack spacing={2}>
+                      {productDetails.map((detail, index) => (
+                        <Box key={index} sx={{ display: 'flex', gap: 1 }}>
+                          <TextField
+                            size="small"
+                            label="Key"
+                            value={detail.key}
+                            onChange={(e) => handleProductDetailChange(index, 'key', e.target.value)}
+                            sx={{ flex: 1 }}
+                          />
+                          <TextField
+                            size="small"
+                            label="Value"
+                            value={detail.value}
+                            onChange={(e) =>
+                              handleProductDetailChange(index, 'value', e.target.value)
+                            }
+                            sx={{ flex: 1 }}
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveProductDetail(index)}
+                            disabled={productDetails.length === 1 && !detail.key && !detail.value}
+                          >
+                            <Iconify icon="solar:trash-bin-trash-bold" />
+                          </IconButton>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                </Stack>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={3}>
+                  <Typography variant="subtitle1">Outlet Specific Data</Typography>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Outlet Assignment"
+                    value={selectedOutletId}
+                    onChange={handleOutletChange}
+                    helperText={product?.productOutlets?.length > 1 ? "Select an outlet to edit its specific details" : ""}
+                  >
+                    {product?.productOutlets?.map((po: any) => (
+                      <MenuItem key={po.outletId} value={po.outletId}>
+                        {outlets.find(o => (o._id === po.outletId || o.id === po.outletId))?.name || po.outletId}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <NumericInput
+                    fullWidth
+                    label="Selling Price"
+                    value={outletForm.sellingPrice}
+                    onChangeValue={(val) => setOutletForm({ ...outletForm, sellingPrice: val })}
+                  />
+                  <NumericInput
+                    fullWidth
+                    label="Current Cost"
+                    value={outletForm.currentCost}
+                    onChangeValue={(val) => setOutletForm({ ...outletForm, currentCost: val })}
+                  />
+                  
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <NumericInput
+                      fullWidth
+                      label="Quantity"
+                      value={outletForm.quantity}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, quantity: val })}
+                    />
+                    <NumericInput
+                      fullWidth
+                      label="Min Stock"
+                      value={outletForm.minStock}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, minStock: val })}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <NumericInput
+                      fullWidth
+                      label="Max Stock"
+                      value={outletForm.maxStock}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, maxStock: val })}
+                    />
+                    <TextField
+                      select
+                      fullWidth
+                      label="Cost Method"
+                      value={outletForm.costPriceMethod}
+                      onChange={(e) => setOutletForm({ ...outletForm, costPriceMethod: e.target.value })}
+                    >
+                      <MenuItem value="FIFO">FIFO</MenuItem>
+                      <MenuItem value="WA">Weighted Average</MenuItem>
+                    </TextField>
+                  </Box>
+
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={2}
+                    label="Description"
+                    value={editProduct.description}
+                    onChange={(e) => setEditProduct({ ...editProduct, description: e.target.value })}
+                  />
+                </Stack>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditModal} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleUpdateProduct} variant="contained">
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Add Variant Modal */}
       <Dialog open={openVariantModal} onClose={handleCloseVariantModal} fullWidth maxWidth="md">
         <DialogTitle>Add Product Variant</DialogTitle>
@@ -481,42 +797,38 @@ export function ProductDetailView({ id }: Props) {
                   ))}
                 </TextField>
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Selling Price"
                     value={newVariant.sellingPrice}
-                    onChange={(e) =>
-                      setNewVariant({ ...newVariant, sellingPrice: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewVariant({ ...newVariant, sellingPrice: val })
                     }
                   />
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Cost Price"
                     value={newVariant.costPrice}
-                    onChange={(e) =>
-                      setNewVariant({ ...newVariant, costPrice: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewVariant({ ...newVariant, costPrice: val })
                     }
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Quantity"
                     value={newVariant.quantity}
-                    onChange={(e) =>
-                      setNewVariant({ ...newVariant, quantity: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewVariant({ ...newVariant, quantity: val })
                     }
                   />
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Min Stock"
                     value={newVariant.minStock}
-                    onChange={(e) =>
-                      setNewVariant({ ...newVariant, minStock: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewVariant({ ...newVariant, minStock: val })
                     }
                   />
                 </Box>

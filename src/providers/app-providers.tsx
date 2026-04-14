@@ -12,17 +12,16 @@ type AppProvidersProps = {
 };
 
 function InnerProviders({ children }: AppProvidersProps) {
-  const { user } = useAuth();
+  const { accessToken } = useAuth();
 
   return (
-    <NotificationProvider userId={user?.id || ''}>
-      <SocketProvider
-        userId={user?.id || ''}
-        serverUrl={import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001'}
-      >
+    <SocketProvider
+      token={accessToken}
+    >
+      <NotificationProvider>
         {children}
-      </SocketProvider>
-    </NotificationProvider>
+      </NotificationProvider>
+    </SocketProvider>
   );
 }
 

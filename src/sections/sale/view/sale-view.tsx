@@ -34,6 +34,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { NumericInput } from 'src/components/numeric-input';
 
 // ----------------------------------------------------------------------
 
@@ -48,15 +49,17 @@ interface CartItem {
 }
 
 export function SaleView() {
-    const { outlets } = useAuth();
+    const { outlets, appData } = useAuth();
+    const isOwner = appData?.role === 'owner';
+    const assignedOutletId = appData?.outletId;
 
-    const [selectedOutletId, setSelectedOutletId] = useState<string>(outlets[0]?._id || '');
+    const [selectedOutletId, setSelectedOutletId] = useState<string>(isOwner ? (outlets[0]?.id || '') : (assignedOutletId || ''));
 
     useEffect(() => {
         if (outlets.length > 0 && !selectedOutletId) {
-            setSelectedOutletId(outlets[0]._id);
+            setSelectedOutletId(isOwner ? outlets[0].id : (assignedOutletId || outlets[0].id));
         }
-    }, [outlets, selectedOutletId]);
+    }, [outlets, selectedOutletId, isOwner, assignedOutletId]);
 
     const [products, setProducts] = useState<any[]>([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
@@ -244,9 +247,10 @@ export function SaleView() {
                         value={selectedOutletId}
                         label="Outlet"
                         onChange={(e) => setSelectedOutletId(e.target.value)}
+                        disabled={!isOwner}
                     >
                         {outlets.map((outlet: any) => (
-                            <MenuItem key={outlet._id} value={outlet._id}>
+                            <MenuItem key={outlet.id} value={outlet.id}>
                                 {outlet.name}
                             </MenuItem>
                         ))}
@@ -431,12 +435,11 @@ export function SaleView() {
                                 </Select>
                             </FormControl>
 
-                            <TextField
+                            <NumericInput
                                 fullWidth
-                                type="number"
                                 label="Amount Paid"
                                 value={amountPaid}
-                                onChange={(e) => setAmountPaid(Number(e.target.value))}
+                                onChangeValue={(val) => setAmountPaid(val)}
                                 InputProps={{
                                     startAdornment: <InputAdornment position="start">$</InputAdornment>,
                                 }}

@@ -316,7 +316,7 @@ export function FinancialOverviewView() {
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Total Credit (Money In)
@@ -325,7 +325,7 @@ export function FinancialOverviewView() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Total Debit (Money Out)
@@ -334,12 +334,21 @@ export function FinancialOverviewView() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Inventory Value
             </Typography>
             <Typography variant="h4">{formatCurrency(quickSummary?.inventoryValue || 0)}</Typography>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Card sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Total Receivables
+            </Typography>
+            <Typography variant="h4">{formatCurrency(quickSummary?.totalReceivables || 0)}</Typography>
           </Card>
         </Grid>
 

@@ -46,7 +46,6 @@ export type NotificationsPopoverProps = IconButtonProps & {
 };
 
 export function NotificationsPopover({
-  data = [],
   sx,
   onViewAll,
   onMarkAllAsRead,
@@ -55,9 +54,7 @@ export function NotificationsPopover({
 }: NotificationsPopoverProps) {
   const router = useRouter();
 
-  const [notifications, setNotifications] = useState(data);
-
-  const totalUnRead = notifications.filter((item) => item.isUnRead === true).length;
+  const { notifications: globalNotifications, markAllAsRead, unreadCount } = useNotifications();
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
 
@@ -70,14 +67,8 @@ export function NotificationsPopover({
   }, []);
 
   const handleMarkAllAsRead = useCallback(async () => {
-    const updatedNotifications = notifications.map((notification) => ({
-      ...notification,
-      isUnRead: false,
-    }));
-
-    setNotifications(updatedNotifications);
-    await onMarkAllAsRead?.(updatedNotifications);
-  }, [notifications, onMarkAllAsRead]);
+    await markAllAsRead();
+  }, [markAllAsRead]);
 
   const handleViewAll = useCallback(
     (viewAllHandler?: NotificationsPopoverProps['onViewAll']) => {
@@ -91,11 +82,21 @@ export function NotificationsPopover({
     [handleClosePopover, router]
   );
 
+  const mappedNotifications: NotificationItemProps[] = globalNotifications.map((notification) => ({
+    id: notification.id,
+    title: notification.title,
+    description: notification.message,
+    isUnRead: !notification.read,
+    type: notification.type,
+    avatarUrl: (notification.metadata?.avatarUrl as string) || null,
+    postedAt: notification.createdAt,
+  }));
+
   const sections: { label: string; items: NotificationItemProps[] }[] = groupBy?.(
-    notifications
+    mappedNotifications
   ) ?? [
-    { label: 'New', items: notifications.slice(0, 2) },
-    { label: 'Before that', items: notifications.slice(2, 5) },
+    { label: 'New', items: mappedNotifications.filter((n) => n.isUnRead) },
+    { label: 'Before that', items: mappedNotifications.filter((n) => !n.isUnRead) },
   ];
 
   return (
@@ -106,7 +107,7 @@ export function NotificationsPopover({
         sx={sx}
         {...other}
       >
-        <Badge color="error" badgeContent={totalUnRead} invisible={totalUnRead === 0}>
+        <Badge color="error" badgeContent={unreadCount} invisible={unreadCount === 0}>
           <Iconify width={24} icon="solar:bell-bing-bold-duotone" />
         </Badge>
       </IconButton>
@@ -141,7 +142,7 @@ export function NotificationsPopover({
             <Typography variant="subtitle1">Notifications</Typography>
           </Box>
 
-          {totalUnRead > 0 && (
+          {unreadCount > 0 && (
             <Tooltip title=" Mark all as read">
               <IconButton color="primary" onClick={handleMarkAllAsRead}>
                 <Iconify icon="eva:done-all-fill" />

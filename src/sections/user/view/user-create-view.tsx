@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Switch from '@mui/material/Switch';
 import Avatar from '@mui/material/Avatar';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -11,40 +11,50 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
-import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
+import { NumericInput } from 'src/components/numeric-input';
 
 // ----------------------------------------------------------------------
 
 export function UserCreateView() {
   const router = useRouter();
+  const { onboardEmployee, appData, outlets } = useAuth();
 
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    phoneNumber: '',
-    country: '',
-    state: '',
-    city: '',
-    address: '',
-    zipCode: '',
-    company: '',
-    role: '',
-    avatarUrl: '',
-    emailVerified: true,
+    phone: '',
+    role: 'sales_rep',
+    salary: 0,
+    position: '',
+    outletId: appData?.outletId || (outlets.length > 0 ? outlets[0].id : ''),
   });
+
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = useCallback(
     (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({
         ...prev,
         [field]: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handleNumericChange = useCallback(
+    (field: string) => (value: number) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
       }));
     },
     []
@@ -60,17 +70,28 @@ export function UserCreateView() {
     []
   );
 
-  const handleSwitchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      emailVerified: event.target.checked,
-    }));
-  }, []);
+  const handleSubmit = useCallback(async () => {
+    setError('');
+    setLoading(true);
 
-  const handleSubmit = useCallback(() => {
-    console.log('Form data:', formData);
-    router.push('/user');
-  }, [formData, router]);
+    try {
+      if (!appData?.businessId) {
+        throw new Error('Business ID is missing. Please try logging in again.');
+      }
+
+      await onboardEmployee({
+        ...formData,
+        businessId: appData.businessId,
+      });
+
+      router.push('/user');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Failed to onboard employee');
+    } finally {
+      setLoading(false);
+    }
+  }, [formData, onboardEmployee, appData?.businessId, router]);
 
   return (
     <DashboardContent>
@@ -83,8 +104,14 @@ export function UserCreateView() {
       />
 
       <Typography variant="h4" sx={{ mb: 5 }}>
-        Create a new user
+        Onboard new employee
       </Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
 
       <Card sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -120,6 +147,7 @@ export function UserCreateView() {
               label="Full name"
               value={formData.fullName}
               onChange={handleInputChange('fullName')}
+              required
             />
             <TextField
               fullWidth
@@ -127,101 +155,66 @@ export function UserCreateView() {
               type="email"
               value={formData.email}
               onChange={handleInputChange('email')}
+              required
             />
           </Box>
 
-          {/* Phone and Country */}
+          {/* Phone and Role */}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
             <TextField
               fullWidth
               label="Phone number"
               placeholder="Enter phone number"
-              value={formData.phoneNumber}
-              onChange={handleInputChange('phoneNumber')}
+              value={formData.phone}
+              onChange={handleInputChange('phone')}
+              required
             />
             <FormControl fullWidth>
-              <InputLabel>Country</InputLabel>
-              <Select
-                value={formData.country}
-                label="Country"
-                onChange={handleSelectChange('country')}
-              >
-                <MenuItem value="US">United States</MenuItem>
-                <MenuItem value="CA">Canada</MenuItem>
-                <MenuItem value="UK">United Kingdom</MenuItem>
-                <MenuItem value="DE">Germany</MenuItem>
-                <MenuItem value="FR">France</MenuItem>
+              <InputLabel>Role</InputLabel>
+              <Select value={formData.role} label="Role" onChange={handleSelectChange('role')}>
+                <MenuItem value="owner">Owner</MenuItem>
+                <MenuItem value="outlet_admin">Outlet Admin</MenuItem>
+                <MenuItem value="sales_rep">Sales Representative</MenuItem>
               </Select>
             </FormControl>
           </Box>
 
-          {/* State and City */}
+          {/* Position and Outlet */}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
             <TextField
               fullWidth
-              label="State/region"
-              value={formData.state}
-              onChange={handleInputChange('state')}
+              label="Position"
+              placeholder="e.g. Cashier, Store Keeper"
+              value={formData.position}
+              onChange={handleInputChange('position')}
+              required
             />
-            <TextField
-              fullWidth
-              label="City"
-              value={formData.city}
-              onChange={handleInputChange('city')}
-            />
+            <FormControl fullWidth>
+              <InputLabel>Outlet</InputLabel>
+              <Select
+                value={formData.outletId}
+                label="Outlet"
+                onChange={handleSelectChange('outletId')}
+                required
+              >
+                {outlets.map((outlet) => (
+                  <MenuItem key={outlet.id} value={outlet.id}>
+                    {outlet.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
 
-          {/* Address and Zip */}
+          {/* Salary Field */}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-            <TextField
+            <NumericInput
               fullWidth
-              label="Address"
-              value={formData.address}
-              onChange={handleInputChange('address')}
-            />
-            <TextField
-              fullWidth
-              label="Zip/code"
-              value={formData.zipCode}
-              onChange={handleInputChange('zipCode')}
-            />
-          </Box>
-
-          {/* Company and Role */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-            <TextField
-              fullWidth
-              label="Company"
-              value={formData.company}
-              onChange={handleInputChange('company')}
-            />
-            <TextField
-              fullWidth
-              label="Role"
-              value={formData.role}
-              onChange={handleInputChange('role')}
-            />
-          </Box>
-
-          {/* Email Verified Switch */}
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mt: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" gutterBottom>
-                Email verified
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Disabling this will automatically send the user a verification email
-              </Typography>
-            </Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.emailVerified}
-                  onChange={handleSwitchChange}
-                  color="primary"
-                />
-              }
-              label=""
+              label="Monthly Salary"
+              value={formData.salary}
+              onChangeValue={handleNumericChange('salary')}
+              helperText="Formatted with commas, no negative values allowed."
+              required
             />
           </Box>
         </Box>
@@ -234,8 +227,9 @@ export function UserCreateView() {
             size="large"
             onClick={handleSubmit}
             sx={{ minWidth: 120 }}
+            disabled={loading}
           >
-            Create user
+            Onboard employee
           </Button>
         </Box>
       </Card>

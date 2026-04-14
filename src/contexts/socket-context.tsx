@@ -23,30 +23,34 @@ const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 type SocketProviderProps = {
   children: ReactNode;
-  userId: string;
+  token: string | null;
   serverUrl?: string;
 };
 
 export function SocketProvider({
   children,
-  userId,
-  serverUrl = 'http://localhost:3001',
+  token,
+  serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000',
 }: SocketProviderProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const messageCallbacksRef = useRef<Set<(message: ChatMessage) => void>>(new Set());
 
   useEffect(() => {
-    if (!userId) return undefined;
+    if (!token) return undefined;
 
     const newSocket = io(serverUrl, {
-      auth: { userId },
-      transports: ['websocket', 'polling'],
+      auth: { token: `Bearer ${token}` },
+      transports: ['websocket'],
     });
 
     newSocket.on('connect', () => {
       setIsConnected(true);
       console.log('Socket connected');
+    });
+
+    newSocket.on('connected', (data) => {
+      console.log('Successfully connected to real-time service', data);
     });
 
     newSocket.on('disconnect', () => {
@@ -63,7 +67,7 @@ export function SocketProvider({
     return () => {
       newSocket.close();
     };
-  }, [userId, serverUrl]);
+  }, [token, serverUrl]);
 
   const sendMessage = (
     chatId: string,

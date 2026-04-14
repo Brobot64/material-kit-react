@@ -38,11 +38,13 @@ import { Breadcrumbs } from 'src/components/breadcrumbs';
 // ----------------------------------------------------------------------
 
 export function SaleHistoryView() {
-    const { outlets } = useAuth();
+    const { outlets, appData } = useAuth();
+    const isOwner = appData?.role === 'owner';
+    const assignedOutletId = appData?.outletId;
 
     const [sales, setSales] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [selectedOutletId, setSelectedOutletId] = useState(outlets[0]?._id || '');
+    const [selectedOutletId, setSelectedOutletId] = useState(isOwner ? (outlets[0]?.id || '') : (assignedOutletId || ''));
 
     // Pagination states
     const [page, setPage] = useState(0);
@@ -65,16 +67,22 @@ export function SaleHistoryView() {
         severity: 'success' as 'success' | 'error',
     });
 
+    useEffect(() => {
+        if (outlets.length > 0 && !selectedOutletId) {
+            setSelectedOutletId(isOwner ? outlets[0].id : (assignedOutletId || outlets[0].id));
+        }
+    }, [outlets, selectedOutletId, isOwner, assignedOutletId]);
+
     const fetchSales = useCallback(async () => {
         setLoading(true);
         try {
             const response = await api.getSalesHistory({
-                outletId: selectedOutletId,
-                page: page + 1, // API is 1-indexed, Material-UI TablePagination is 0-indexed
+                outletId: selectedOutletId || undefined,
+                page: page + 1,
                 limit: rowsPerPage,
             });
             setSales(response.data || []);
-            setTotalElements(response.pagination.total);
+            setTotalElements(response.pagination?.total || 0);
         } catch (error) {
             console.error('Failed to fetch sales history:', error);
             setSnackbar({ open: true, message: 'Failed to fetch sales history', severity: 'error' });
@@ -135,14 +143,14 @@ export function SaleHistoryView() {
 
     const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0); // Reset page to 0 when rows per page changes
+        setPage(0);
     }, []);
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'completed': return 'success';
             case 'partially_paid': return 'warning';
-            case 'not_paid': return 'error'; // New status
+            case 'not_paid': return 'error';
             case 'pending': return 'error';
             case 'overdue': return 'error';
             default: return 'default';
@@ -163,9 +171,10 @@ export function SaleHistoryView() {
                         value={selectedOutletId}
                         onChange={(e) => setSelectedOutletId(e.target.value)}
                         sx={{ minWidth: 150 }}
+                        disabled={!isOwner}
                     >
                         {outlets.map((o: any) => (
-                            <MenuItem key={o._id} value={o._id}>{o.name}</MenuItem>
+                            <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
                         ))}
                     </TextField>
                     <Button
@@ -263,7 +272,7 @@ export function SaleHistoryView() {
                 onRowsPerPageChange={handleChangeRowsPerPage}
             />
 
-            {/* Payment modal (reused from pending view) */}
+            {/* Payment modal */}
             <Dialog open={openPaymentModal} onClose={handleClosePaymentModal} fullWidth maxWidth="xs">
                 <DialogTitle>Record Payment</DialogTitle>
                 <DialogContent dividers>
@@ -393,8 +402,8 @@ export function SaleHistoryView() {
                         <Button
                             variant="contained"
                             onClick={() => {
-                                handleCloseDetailsModal(); // Close details modal
-                                handleOpenPaymentModal(selectedSaleDetails); // Open payment modal for this sale
+                                handleCloseDetailsModal();
+                                handleOpenPaymentModal(selectedSaleDetails);
                             }}
                         >
                             Complete Payment
@@ -409,7 +418,7 @@ export function SaleHistoryView() {
                 onClose={() => setSnackbar({ ...snackbar, open: false })}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >
-                <Alert severity={snackbar.severity} sx={{ width: '100%' }}>
+                <Alert severity={snackbar.severity} sx={{ width: '100%' }} onClose={() => setSnackbar({ ...snackbar, open: false })}>
                     {snackbar.message}
                 </Alert>
             </Snackbar>

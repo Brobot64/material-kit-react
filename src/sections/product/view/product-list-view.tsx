@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
-import { Stack } from '@mui/material';
+import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -41,6 +41,9 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
+import { NumericInput } from 'src/components/numeric-input';
+
+import { ProductUploadDialog } from '../product-upload-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -55,10 +58,28 @@ export function ProductListView() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [openModal, setOpenModal] = useState(false);
+  const [openUploadDialog, setOpenUploadDialog] = useState(false);
   const [outlets, setOutlets] = useState<any[]>([]);
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
+  // Edit modal state
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [editProduct, setEditProduct] = useState<any>(null);
+  const [editProductData, setEditProductData] = useState<any>(null); // full product with productOutlets
+  const [selectedOutletId, setSelectedOutletId] = useState('');
+  const [outletForm, setOutletForm] = useState({
+    sellingPrice: 0,
+    currentCost: 0,
+    quantity: 0,
+    minStock: 0,
+    maxStock: 0,
+    costPriceMethod: 'FIFO',
+    isActive: true,
+  });
+  const [editProductDetails, setEditProductDetails] = useState([{ key: '', value: '' }]);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -67,9 +88,10 @@ export function ProductListView() {
   });
 
   const handleOpenPopover = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>, id: string) => {
+    (event: React.MouseEvent<HTMLButtonElement>, product: any) => {
       setOpenPopover(event.currentTarget);
-      setSelectedProductId(id);
+      setSelectedProductId(product._id);
+      setSelectedProduct(product);
     },
     []
   );
@@ -77,6 +99,7 @@ export function ProductListView() {
   const handleClosePopover = useCallback(() => {
     setOpenPopover(null);
     setSelectedProductId(null);
+    setSelectedProduct(null);
   }, []);
 
   const handleViewProduct = () => {
@@ -84,6 +107,129 @@ export function ProductListView() {
       router.push(`/products/${selectedProductId}`);
     }
     handleClosePopover();
+  };
+
+  const handleEditProduct = async () => {
+    if (!selectedProduct) return;
+    handleClosePopover();
+
+    // Use the product data already available from the list (no extra API call needed)
+    // The list API returns outlets under the 'outlets' key
+    const productData = selectedProduct;
+    const outletsList: any[] = productData.outlets || productData.productOutlets || [];
+
+    // Normalise outlets so the edit modal can reference them as productOutlets
+    const normalised = { ...productData, productOutlets: outletsList.map((o) => ({ ...o, outletId: o.outletId || o._id })) };
+    setEditProductData(normalised);
+
+    setEditProduct({
+      name: productData.name || '',
+      barcode: productData.barcode || '',
+      brand: productData.brand || '',
+      unit: productData.unit || 'unit',
+      taxRate: productData.taxRate || 7.5,
+      categoryId: productData.categoryId || '',
+      description: productData.description || '',
+    });
+
+    if (productData.details && Object.keys(productData.details).length > 0) {
+      setEditProductDetails(
+        Object.entries(productData.details).map(([key, value]) => ({ key, value: String(value) }))
+      );
+    } else {
+      setEditProductDetails([{ key: '', value: '' }]);
+    }
+
+    if (outletsList.length > 0) {
+      const firstOutlet = outletsList[0];
+      setSelectedOutletId(firstOutlet.outletId || firstOutlet._id);
+      setOutletForm({
+        sellingPrice: firstOutlet.sellingPrice || 0,
+        currentCost: firstOutlet.costPrice || firstOutlet.currentCost || 0,
+        quantity: firstOutlet.quantity || 0,
+        minStock: firstOutlet.minStock || 0,
+        maxStock: firstOutlet.maxStock || 0,
+        costPriceMethod: firstOutlet.costPriceMethod || 'FIFO',
+        isActive: firstOutlet.isActive !== undefined ? firstOutlet.isActive : true,
+      });
+    }
+
+    await fetchOutlets();
+    setOpenEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setOpenEditModal(false);
+    setEditProduct(null);
+    setEditProductData(null);
+    setSelectedOutletId('');
+  };
+
+  const handleEditOutletChange = (event: any) => {
+    const outletId = event.target.value;
+    setSelectedOutletId(outletId);
+    const outletData = editProductData?.productOutlets?.find((o: any) => o.outletId === outletId);
+    if (outletData) {
+      setOutletForm({
+        sellingPrice: outletData.sellingPrice || 0,
+        currentCost: outletData.costPrice || outletData.currentCost || 0,
+        quantity: outletData.quantity || 0,
+        minStock: outletData.minStock || 0,
+        maxStock: outletData.maxStock || 0,
+        costPriceMethod: outletData.costPriceMethod || 'FIFO',
+        isActive: outletData.isActive !== undefined ? outletData.isActive : true,
+      });
+    }
+  };
+
+  const handleAddEditProductDetail = () => {
+    setEditProductDetails([...editProductDetails, { key: '', value: '' }]);
+  };
+
+  const handleRemoveEditProductDetail = (index: number) => {
+    const updated = editProductDetails.filter((_, i) => i !== index);
+    setEditProductDetails(updated.length ? updated : [{ key: '', value: '' }]);
+  };
+
+  const handleEditProductDetailChange = (index: number, field: 'key' | 'value', value: string) => {
+    const updated = [...editProductDetails];
+    updated[index][field] = value;
+    setEditProductDetails(updated);
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!editProductData?._id) return;
+    try {
+      const detailsObject = editProductDetails.reduce((acc, item) => {
+        if (item.key.trim()) {
+          acc[item.key.trim()] = item.value;
+        }
+        return acc;
+      }, {} as any);
+
+      await api.updateProduct(editProductData._id, {
+        ...editProduct,
+        details: detailsObject,
+      });
+
+      if (selectedOutletId) {
+        await api.updateProductOutlet(editProductData._id, selectedOutletId, outletForm);
+      }
+
+      setSnackbar({
+        open: true,
+        message: 'Product updated successfully!',
+        severity: 'success',
+      });
+      handleCloseEditModal();
+      fetchProducts();
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.message || 'Failed to update product',
+        severity: 'error',
+      });
+    }
   };
 
   const handleDeleteProduct = async () => {
@@ -176,6 +322,8 @@ export function ProductListView() {
       fetchOutlets();
     }
   }, [openModal, fetchOutlets]);
+
+  // fetchOutlets is also called imperatively in handleEditProduct
 
   const handlePageChange = (event: unknown, newPage: number) => {
     setPagination({ ...pagination, page: newPage + 1 });
@@ -274,15 +422,31 @@ export function ProductListView() {
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
         <Typography variant="h4">Product List</Typography>
-        <Button
-          variant="contained"
-          color="inherit"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={handleOpenModal}
-        >
-          New Product
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+            onClick={() => setOpenUploadDialog(true)}
+          >
+            Import CSV
+          </Button>
+          <Button
+            variant="contained"
+            color="inherit"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={handleOpenModal}
+          >
+            New Product
+          </Button>
+        </Stack>
       </Box>
+
+      <ProductUploadDialog
+        open={openUploadDialog}
+        onClose={() => setOpenUploadDialog(false)}
+        onSuccess={fetchProducts}
+      />
 
       <Card>
         <Box sx={{ p: 2.5, pb: 0 }}>
@@ -372,7 +536,7 @@ export function ProductListView() {
                       </TableCell>
 
                       <TableCell align="right">
-                        <IconButton onClick={(e) => handleOpenPopover(e, product._id)}>
+                        <IconButton onClick={(e) => handleOpenPopover(e, product)}>
                           <Iconify icon="eva:more-vertical-fill" />
                         </IconButton>
                       </TableCell>
@@ -432,7 +596,7 @@ export function ProductListView() {
             View
           </MenuItem>
 
-          <MenuItem onClick={handleViewProduct}>
+          <MenuItem onClick={handleEditProduct}>
             <Iconify icon="solar:pen-bold" />
             Edit
           </MenuItem>
@@ -443,6 +607,195 @@ export function ProductListView() {
           </MenuItem>
         </MenuList>
       </Popover>
+
+      {/* Edit Product Modal */}
+      <Dialog open={openEditModal} onClose={handleCloseEditModal} fullWidth maxWidth="md">
+        <DialogTitle>Edit Product Information</DialogTitle>
+        <DialogContent dividers>
+          {editProduct && (
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={3}>
+                  <Typography variant="subtitle1">General Information</Typography>
+                  <TextField
+                    fullWidth
+                    label="Product Name"
+                    value={editProduct.name}
+                    onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Barcode"
+                    value={editProduct.barcode}
+                    onChange={(e) => setEditProduct({ ...editProduct, barcode: e.target.value })}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Brand"
+                    value={editProduct.brand}
+                    onChange={(e) => setEditProduct({ ...editProduct, brand: e.target.value })}
+                  />
+                  <TextField
+                    select
+                    fullWidth
+                    label="Category"
+                    value={editProduct.categoryId}
+                    onChange={(e) => setEditProduct({ ...editProduct, categoryId: e.target.value })}
+                  >
+                    <MenuItem value="">Select Category</MenuItem>
+                    {categories.map((category) => (
+                      <MenuItem key={category._id} value={category._id}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Box>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        mb: 2,
+                      }}
+                    >
+                      <Typography variant="subtitle2">Additional Details</Typography>
+                      <IconButton size="small" onClick={handleAddEditProductDetail} color="primary">
+                        <Iconify icon="mingcute:add-line" />
+                      </IconButton>
+                    </Box>
+                    <Stack spacing={2}>
+                      {editProductDetails.map((detail, index) => (
+                        <Box key={index} sx={{ display: 'flex', gap: 1 }}>
+                          <TextField
+                            size="small"
+                            label="Key"
+                            value={detail.key}
+                            onChange={(e) =>
+                              handleEditProductDetailChange(index, 'key', e.target.value)
+                            }
+                            sx={{ flex: 1 }}
+                          />
+                          <TextField
+                            size="small"
+                            label="Value"
+                            value={detail.value}
+                            onChange={(e) =>
+                              handleEditProductDetailChange(index, 'value', e.target.value)
+                            }
+                            sx={{ flex: 1 }}
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveEditProductDetail(index)}
+                            disabled={
+                              editProductDetails.length === 1 && !detail.key && !detail.value
+                            }
+                          >
+                            <Iconify icon="solar:trash-bin-trash-bold" />
+                          </IconButton>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                </Stack>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={3}>
+                  <Typography variant="subtitle1">Outlet Specific Data</Typography>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Outlet Assignment"
+                    value={selectedOutletId}
+                    onChange={handleEditOutletChange}
+                    helperText={
+                      editProductData?.productOutlets?.length > 1
+                        ? 'Select an outlet to edit its specific details'
+                        : ''
+                    }
+                  >
+                    {editProductData?.productOutlets?.map((po: any) => (
+                      <MenuItem key={po.outletId} value={po.outletId}>
+                        {outlets.find((o) => o._id === po.outletId || o.id === po.outletId)
+                          ?.name || po.outletId}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <NumericInput
+                    fullWidth
+                    label="Selling Price"
+                    value={outletForm.sellingPrice}
+                    onChangeValue={(val) => setOutletForm({ ...outletForm, sellingPrice: val })}
+                  />
+                  <NumericInput
+                    fullWidth
+                    label="Current Cost"
+                    value={outletForm.currentCost}
+                    onChangeValue={(val) => setOutletForm({ ...outletForm, currentCost: val })}
+                  />
+
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <NumericInput
+                      fullWidth
+                      label="Quantity"
+                      value={outletForm.quantity}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, quantity: val })}
+                    />
+                    <NumericInput
+                      fullWidth
+                      label="Min Stock"
+                      value={outletForm.minStock}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, minStock: val })}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <NumericInput
+                      fullWidth
+                      label="Max Stock"
+                      value={outletForm.maxStock}
+                      onChangeValue={(val) => setOutletForm({ ...outletForm, maxStock: val })}
+                    />
+                    <TextField
+                      select
+                      fullWidth
+                      label="Cost Method"
+                      value={outletForm.costPriceMethod}
+                      onChange={(e) =>
+                        setOutletForm({ ...outletForm, costPriceMethod: e.target.value })
+                      }
+                    >
+                      <MenuItem value="FIFO">FIFO</MenuItem>
+                      <MenuItem value="WA">Weighted Average</MenuItem>
+                    </TextField>
+                  </Box>
+
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={2}
+                    label="Description"
+                    value={editProduct.description}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, description: e.target.value })
+                    }
+                  />
+                </Stack>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditModal} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleUpdateProduct} variant="contained">
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* New Product Modal */}
       <Dialog open={openModal} onClose={handleCloseModal} fullWidth maxWidth="md">
@@ -574,45 +927,41 @@ export function ProductListView() {
                   ))}
                 </TextField>
 
-                <TextField
+                <NumericInput
                   fullWidth
-                  type="number"
                   label="Selling Price"
                   disabled={!newProduct.outletId}
                   value={newProduct.sellingPrice}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, sellingPrice: parseFloat(e.target.value) })
+                  onChangeValue={(val) =>
+                    setNewProduct({ ...newProduct, sellingPrice: val })
                   }
                 />
-                <TextField
+                <NumericInput
                   fullWidth
-                  type="number"
                   label="Cost Price"
                   disabled={!newProduct.outletId}
                   value={newProduct.costPrice}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, costPrice: parseFloat(e.target.value) })
+                  onChangeValue={(val) =>
+                    setNewProduct({ ...newProduct, costPrice: val })
                   }
                 />
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Quantity"
                     disabled={!newProduct.outletId}
                     value={newProduct.quantity}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, quantity: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewProduct({ ...newProduct, quantity: val })
                     }
                   />
-                  <TextField
+                  <NumericInput
                     fullWidth
-                    type="number"
                     label="Min Stock"
                     disabled={!newProduct.outletId}
                     value={newProduct.minStock}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, minStock: parseFloat(e.target.value) })
+                    onChangeValue={(val) =>
+                      setNewProduct({ ...newProduct, minStock: val })
                     }
                   />
                 </Box>
