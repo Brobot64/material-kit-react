@@ -188,6 +188,10 @@ export const routesSection: RouteObject[] = [
   {
     path: 'home',
     element: <HomePage />
+
+
+
+
     // (
     //   <GuestGuard>
     //     <AuthLayout>
