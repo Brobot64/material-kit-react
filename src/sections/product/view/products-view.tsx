@@ -43,6 +43,8 @@ import { Scrollbar } from 'src/components/scrollbar';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 import { NumericInput } from 'src/components/numeric-input';
 
+import { ProductUploadDialog } from '../product-upload-dialog';
+
 // ----------------------------------------------------------------------
 
 export function ProductsView() {
@@ -58,6 +60,7 @@ export function ProductsView() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [openModal, setOpenModal] = useState(false);
+  const [openUploadDialog, setOpenUploadDialog] = useState(false);
   const [outlets, setOutlets] = useState<any[]>([]);
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
@@ -280,15 +283,31 @@ export function ProductsView() {
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
         <Typography variant="h4">Product List</Typography>
-        <Button
-          variant="contained"
-          color="inherit"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={handleOpenModal}
-        >
-          New Product
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+            onClick={() => setOpenUploadDialog(true)}
+          >
+            Import CSV
+          </Button>
+          <Button
+            variant="contained"
+            color="inherit"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={handleOpenModal}
+          >
+            New Product
+          </Button>
+        </Stack>
       </Box>
+
+      <ProductUploadDialog
+        open={openUploadDialog}
+        onClose={() => setOpenUploadDialog(false)}
+        onSuccess={fetchProducts}
+      />
 
       <Card>
         <Box sx={{ p: 2.5, pb: 0 }}>

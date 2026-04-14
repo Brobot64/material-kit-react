@@ -8,13 +8,20 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = localStorage.getItem('accessToken');
 
+  const isFormData = options?.body instanceof FormData;
+
+  const headers: HeadersInit = {
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options?.headers,
+  };
+
+  if (!isFormData && !headers['Content-Type' as keyof HeadersInit]) {
+    (headers as any)['Content-Type'] = 'application/json';
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options?.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -295,6 +302,32 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  // Product Upload
+  getProductUploadHeaders: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<string[]>('/products/upload/headers', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+  executeProductUpload: (data: {
+    businessId: string;
+    outletId: string;
+    mapping: any;
+    file: File;
+  }) => {
+    const formData = new FormData();
+    formData.append('businessId', data.businessId);
+    formData.append('outletId', data.outletId);
+    formData.append('mapping', JSON.stringify(data.mapping));
+    formData.append('file', data.file);
+    return request<{ imported: number; errors: any[] }>('/products/upload/execute', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 
   // Sales
   getProductOutlets: (params: { outletId: string; page?: number; limit?: number; search?: string }) => {
