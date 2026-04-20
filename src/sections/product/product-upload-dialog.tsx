@@ -42,6 +42,7 @@ const PRODUCT_FIELDS = [
   { key: 'unit', label: 'Unit' },
   { key: 'sellingPrice', label: 'Selling Price' },
   { key: 'currentCost', label: 'Cost Price' },
+  { key: 'quantity', label: 'Quantity' },
   { key: 'category', label: 'Category' },
   { key: 'description', label: 'Description' },
 ];
@@ -86,7 +87,12 @@ export function ProductUploadDialog({ open, onClose, onSuccess }: Props) {
       }
       try {
         setLoading(true);
-        const fetchedHeaders = await api.getProductUploadHeaders(file);
+        const res: any = await api.getProductUploadHeaders(file);
+        const fetchedHeaders = Array.isArray(res)
+          ? res
+          : (Array.isArray(res?.headers)
+              ? res.headers
+              : (Array.isArray(res?.data) ? res.data : []));
         setHeaders(fetchedHeaders);
         setActiveStep(1);
         setError(null);
@@ -258,6 +264,24 @@ export function ProductUploadDialog({ open, onClose, onSuccess }: Props) {
     </Box>
   );
 
+  // Build a reverse map: CSV column name -> system field label
+  const csvColumnToLabel = Object.entries(mapping).reduce<Record<string, string>>((acc, [fieldKey, csvColumn]) => {
+    const field = PRODUCT_FIELDS.find((f) => f.key === fieldKey);
+    if (field && csvColumn) {
+      acc[csvColumn] = field.label;
+    }
+    return acc;
+  }, {});
+
+  // Replaces any raw CSV column names in the error message with their mapped labels
+  const humanizeErrorMessage = (message: any) => {
+    if (typeof message !== 'string') return String(message || '');
+    return Object.entries(csvColumnToLabel).reduce(
+      (msg, [csvCol, label]) => msg.replaceAll(csvCol, label),
+      message
+    );
+  };
+
   const renderStep2 = (
     <Box sx={{ py: 3, textAlign: 'center' }}>
       {result && (
@@ -271,7 +295,7 @@ export function ProductUploadDialog({ open, onClose, onSuccess }: Props) {
           <Typography variant="body1" sx={{ mt: 1, color: 'text.secondary' }}>
             Successfully imported <strong>{result.imported}</strong> products.
           </Typography>
-          {result.errors.length > 0 && (
+          {result.errors && result.errors.length > 0 && (
             <Box sx={{ mt: 3, textAlign: 'left' }}>
               <Typography variant="subtitle2" color="error" gutterBottom>
                 Errors ({result.errors.length}):
@@ -287,7 +311,7 @@ export function ProductUploadDialog({ open, onClose, onSuccess }: Props) {
               >
                 {result.errors.map((err, idx) => (
                   <Typography key={idx} variant="caption" display="block" color="error.darker">
-                    Row {err.row}: {err.message}
+                    Row {err.row}: {humanizeErrorMessage(err.message)}
                   </Typography>
                 ))}
               </Box>
