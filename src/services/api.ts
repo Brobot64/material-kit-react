@@ -352,6 +352,8 @@ export const api = {
     customerId?: string;
     paymentDeadline?: string;
     notes?: string;
+    businessId?: string;
+    outletId?: string;
   }) => request<any>('/sales', { method: 'POST', body: JSON.stringify(data) }),
   addSalePayment: (saleId: string, data: { amount: number; paymentMethod: string; notes?: string }) =>
     request<any>(`/sales/${saleId}/payments`, { method: 'POST', body: JSON.stringify(data) }),
