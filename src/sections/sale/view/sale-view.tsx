@@ -223,6 +223,7 @@ export function SaleView() {
                 amountPaid,
                 customerId: selectedCustomer?._id || undefined,
                 notes,
+                outletId: selectedOutletId || "",
             });
             setSnackbar({ open: true, message: 'Sale processed successfully', severity: 'success' });
             setCart([]);
