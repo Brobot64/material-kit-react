@@ -161,7 +161,8 @@ export function SaleView() {
                     productId: product._id,
                     name: product.name,
                     quantity: 1,
-                    price: product.price || product.sellingPrice,
+                    // price: product.price || product.sellingPrice,
+                    price: product.cost || product.productId?.costPrice || '',
                     tax: 0, // Default tax or from product
                     discount: 0,
                     stock: product.quantity,
@@ -309,9 +310,14 @@ export function SaleView() {
                                                             Stock: {p.quantity} {p.unit || p.productId?.unit || ''}
                                                         </Typography>
                                                     </Box>
-                                                    <Typography variant="subtitle1" color="primary.main" sx={{ fontWeight: 700 }}>
-                                                        {fCurrency(p.price || p.sellingPrice)}
-                                                    </Typography>
+                                                    <Box>
+                                                        <Typography variant="subtitle1" color="primary.main" sx={{ fontWeight: 700 }}>
+                                                            {fCurrency(p.price || p.sellingPrice)}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Cost: {fCurrency(p.cost || p.productId?.costPrice || '')}
+                                                        </Typography>
+                                                    </Box>
                                                 </Stack>
                                                 {p.quantity <= 0 && (
                                                     <Box sx={{

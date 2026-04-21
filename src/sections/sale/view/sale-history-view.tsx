@@ -214,13 +214,13 @@ export function SaleHistoryView() {
                                             <TableCell>{sale.customerId?.name || 'Walk-in'}</TableCell>
                                             <TableCell>{fCurrency(sale.total)}</TableCell>
                                             <TableCell>{fCurrency(sale.amountPaid)}</TableCell>
-                                            <TableCell>{fCurrency(sale.total - sale.amountPaid)}</TableCell>
+                                            <TableCell>{fCurrency(sale.amountPending)}</TableCell>
                                             <TableCell>
                                                 {(() => {
                                                     let displayStatus = sale.status;
                                                     const balance = sale.total - sale.amountPaid;
 
-                                                    if (balance === 0) {
+                                                    if (balance === 0 || balance < 0) {
                                                         displayStatus = 'completed';
                                                     } else if (sale.amountPaid === 0) {
                                                         displayStatus = 'not_paid';
