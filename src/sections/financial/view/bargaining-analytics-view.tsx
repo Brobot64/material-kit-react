@@ -19,12 +19,13 @@ import CardContent from '@mui/material/CardContent';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { fCurrency, fPercent } from 'src/utils/format-number';
+import { fPercent, fCurrency } from 'src/utils/format-number';
+
 import { api } from 'src/services/api';
-import { Chart, useChart } from 'src/components/chart';
-import { Iconify } from 'src/components/iconify';
-import { useAuth } from 'src/contexts/auth-context';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
+
+import { Iconify } from 'src/components/iconify';
+import { Chart, useChart } from 'src/components/chart';
 
 // ----------------------------------------------------------------------
 

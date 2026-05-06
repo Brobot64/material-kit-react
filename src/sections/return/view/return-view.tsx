@@ -1,49 +1,50 @@
-import type { ProductReturn, ReturnStatus, ReturnTimelineEntry, WarrantyStatus } from 'src/types/return';
 import type { IconifyName } from 'src/components/iconify/register-icons';
+import type { ReturnStatus, ProductReturn, WarrantyStatus, ReturnTimelineEntry } from 'src/types/return';
 
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
-import Alert from '@mui/material/Alert';
+import Timeline from '@mui/lab/Timeline';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Drawer from '@mui/material/Drawer';
-import Divider from '@mui/material/Divider';
 import Select from '@mui/material/Select';
+import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
-import TextField from '@mui/material/TextField';
+import TimelineDot from '@mui/lab/TimelineDot';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import FormControl from '@mui/material/FormControl';
-import DialogTitle from '@mui/material/DialogTitle';
-import InputAdornment from '@mui/material/InputAdornment';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import TableContainer from '@mui/material/TableContainer';
-import CircularProgress from '@mui/material/CircularProgress';
-import InputLabel from '@mui/material/InputLabel';
-import Timeline from '@mui/lab/Timeline';
+import TextField from '@mui/material/TextField';
 import TimelineItem from '@mui/lab/TimelineItem';
-import TimelineDot from '@mui/lab/TimelineDot';
+import IconButton from '@mui/material/IconButton';
+import InputLabel from '@mui/material/InputLabel';
+import Typography from '@mui/material/Typography';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormControl from '@mui/material/FormControl';
 import TimelineContent from '@mui/lab/TimelineContent';
-import TimelineSeparator from '@mui/lab/TimelineSeparator';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import InputAdornment from '@mui/material/InputAdornment';
+import TableContainer from '@mui/material/TableContainer';
 import TimelineConnector from '@mui/lab/TimelineConnector';
-import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent';
+import TimelineSeparator from '@mui/lab/TimelineSeparator';
+import CircularProgress from '@mui/material/CircularProgress';
 
-import { fDate, fDateTime } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
+import { fDate, fDateTime } from 'src/utils/format-time';
+
 import { api } from 'src/services/api';
-import { Iconify } from 'src/components/iconify';
 import { useAuth } from 'src/contexts/auth-context';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
+
+import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -268,7 +269,6 @@ function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose:
 type ActionDialogProps = { open: boolean; onClose: () => void; onDone: (updated: ProductReturn) => void; returnId: string };
 
 function SendToDistributorDialog({ open, onClose, onDone, returnId }: ActionDialogProps) {
-  const { appData } = useAuth();
   const { showError } = useAppSnackbar();
   const [form, setForm] = useState({ distributorName: '', distributorContact: '', distributorReferenceNo: '', note: '' });
   const [loading, setLoading] = useState(false);
@@ -647,7 +647,9 @@ function ReturnDetailDrawer({
               try {
                 const res = await api.cancelReturn(ret._id, {});
                 done(res.data);
-              } catch (err: any) { }
+              } catch {
+                // dismiss — error already shown by service
+              }
             }}>Yes, Cancel</Button>
           </DialogActions>
         </Dialog>
@@ -670,7 +672,6 @@ const STATUS_FILTERS: Array<{ value: ReturnStatus | ''; label: string }> = [
 ];
 
 export function ReturnView() {
-  const { appData } = useAuth();
   const { showError } = useAppSnackbar();
   const [returns, setReturns] = useState<ProductReturn[]>([]);
   const [loading, setLoading] = useState(true);

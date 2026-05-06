@@ -1,8 +1,8 @@
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
+import Slide from '@mui/material/Slide';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Slide from '@mui/material/Slide';
 
 import { useNotifications } from 'src/contexts/notification-context';
 

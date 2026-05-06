@@ -11,6 +11,7 @@ import { useTheme, useColorScheme } from '@mui/material/styles';
 import { useAuth } from 'src/contexts/auth-context';
 
 import { SubscriptionBanner } from 'src/components/subscription/subscription-banner';
+import { NotificationToastStack } from 'src/components/notifications/notification-toast-stack';
 
 import { NavMobile, NavDesktop } from './nav';
 import { layoutClasses } from '../core/classes';
@@ -25,7 +26,6 @@ import { getNavForRole } from '../nav-config-dashboard';
 import { AccountPopover } from '../components/account-popover';
 import { ThemeModeButton } from '../components/theme-mode-button';
 import { NotificationsPopover } from '../components/notifications-popover';
-import { NotificationToastStack } from 'src/components/notifications/notification-toast-stack';
 
 import type { MainSectionProps } from '../core/main-section';
 import type { HeaderSectionProps } from '../core/header-section';

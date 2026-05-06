@@ -10,11 +10,12 @@ import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import CardContent from '@mui/material/CardContent';
-import CircularProgress from '@mui/material/CircularProgress';
 
 import { fToNow } from 'src/utils/format-time';
-import { Iconify } from 'src/components/iconify';
+
 import { useNotifications } from 'src/contexts/notification-context';
+
+import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 

@@ -1,10 +1,43 @@
 import 'src/global.css';
 
-import { useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 
 import { usePathname } from 'src/routes/hooks';
 
-import { ThemeProvider } from 'src/theme/theme-provider';
+import { useBusinessSettings } from 'src/hooks/useBusinessSettings';
+
+import { SnackbarProvider } from 'src/contexts/snackbar-context';
+import { BusinessThemeProvider } from 'src/theme/business-theme-provider';
+
+// ----------------------------------------------------------------------
+
+function TitleEnhancer() {
+  const { settings } = useBusinessSettings();
+  const businessName = settings?.displayName;
+  const modifying = useRef(false);
+
+  useEffect(() => {
+    if (!businessName) return undefined;
+
+    const apply = () => {
+      if (modifying.current) return;
+      const t = document.title;
+      if (t && !t.endsWith(` | ${businessName}`)) {
+        modifying.current = true;
+        document.title = `${t} | ${businessName}`;
+        modifying.current = false;
+      }
+    };
+
+    apply();
+
+    const observer = new MutationObserver(apply);
+    observer.observe(document.head, { subtree: true, characterData: true, childList: true });
+    return () => observer.disconnect();
+  }, [businessName]);
+
+  return null;
+}
 
 // ----------------------------------------------------------------------
 
@@ -16,9 +49,12 @@ export default function App({ children }: AppProps) {
   useScrollToTop();
 
   return (
-    <ThemeProvider>
-      {children}
-    </ThemeProvider>
+    <BusinessThemeProvider>
+      <SnackbarProvider>
+        <TitleEnhancer />
+        {children}
+      </SnackbarProvider>
+    </BusinessThemeProvider>
   );
 }
 

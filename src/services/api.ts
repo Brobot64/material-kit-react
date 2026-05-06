@@ -2,7 +2,7 @@ import type { Category } from 'src/types';
 import type { Sale, CreateSalePayload } from 'src/types/sale';
 import type { AssignProductToOutletPayload } from 'src/types/product';
 import type { Swap, SwapStatus, CreateSwapPayload } from 'src/types/swap';
-import type { ProductReturn, ReturnStatus, CreateReturnPayload } from 'src/types/return';
+import type { ReturnStatus, ProductReturn, CreateReturnPayload } from 'src/types/return';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
 

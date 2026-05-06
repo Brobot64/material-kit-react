@@ -1,4 +1,4 @@
-import type { Swap, SwapStatus, CreateSwapPayload, TradeInCondition } from 'src/types/swap';
+import type { Swap, SwapStatus, TradeInCondition } from 'src/types/swap';
 
 import { useState, useEffect, useCallback } from 'react';
 
@@ -12,26 +12,28 @@ import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
-import TextField from '@mui/material/TextField';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
+import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
-import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import InputAdornment from '@mui/material/InputAdornment';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
-import InputAdornment from '@mui/material/InputAdornment';
 
-import { fCurrency } from 'src/utils/format-number';
 import { fDate } from 'src/utils/format-time';
+import { fCurrency } from 'src/utils/format-number';
+
 import { api } from 'src/services/api';
-import { Iconify } from 'src/components/iconify';
 import { useAuth } from 'src/contexts/auth-context';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
+
+import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -102,11 +104,6 @@ function CreateSwapDialog({ open, onClose, onCreated }: CreateSwapDialogProps) {
   useEffect(() => {
     if (open) fetchProducts();
   }, [open, fetchProducts]);
-
-  const selectedProduct = productOutlets.find((p) => {
-    const pid = typeof p.productId === 'object' ? p.productId._id : p.productId;
-    return pid === form.newProductId;
-  });
 
   const productValue = form.newProductQty * form.newProductUnitPrice;
   const cashDelta = productValue - form.tradeInAcceptedValue;
