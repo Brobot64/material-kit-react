@@ -10,6 +10,8 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { formatError } from 'src/utils/format-error';
+
 import { useAuth } from 'src/contexts/auth-context';
 
 import { Iconify } from 'src/components/iconify';
@@ -41,9 +43,9 @@ export function ChangePasswordView() {
 
       try {
         await changePassword({ currentPassword, newPassword });
-        router.push('/');
+        router.push('/app');
       } catch (err: any) {
-        setError(err.message || 'Something went wrong');
+        setError(formatError(err));
       } finally {
         setLoading(false);
       }

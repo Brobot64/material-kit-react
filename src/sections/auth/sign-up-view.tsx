@@ -15,6 +15,8 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { formatError } from 'src/utils/format-error';
+
 import { useAuth } from 'src/contexts/auth-context';
 
 import { Iconify } from 'src/components/iconify';
@@ -133,7 +135,7 @@ export function SignUpView() {
 
         router.push(`/verify-otp?email=${formData.email}`);
       } catch (err: any) {
-        setError(err.message || 'Registration failed');
+        setError(formatError(err));
       }
     },
     [formData, activeStep, router, register, validateStep]

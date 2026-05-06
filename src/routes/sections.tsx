@@ -1,8 +1,8 @@
 import type { RouteObject } from 'react-router';
 
 import { lazy, Suspense } from 'react';
-import { Outlet } from 'react-router-dom';
 import { varAlpha } from 'minimal-shared/utils';
+import { Outlet, Navigate } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
 import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -16,7 +16,6 @@ import { AuthGuard, GuestGuard, SubscriptionGuard } from './components';
 
 export const DashboardPage = lazy(() => import('src/pages/dashboard'));
 export const FinancialOverviewPage = lazy(() => import('src/pages/financial-overview'));
-export const BlogPage = lazy(() => import('src/pages/blog'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const UserCreatePage = lazy(() => import('src/pages/user-create'));
 export const ProfilePage = lazy(() => import('src/pages/profile'));
@@ -33,18 +32,21 @@ export const SubscriptionRenewPage = lazy(() => import('src/pages/subscription/r
 export const SubscriptionSuccessPage = lazy(() => import('src/pages/subscription/success'));
 export const SubscriptionCancelPage = lazy(() => import('src/pages/subscription/cancel'));
 export const ProductsPage = lazy(() => import('src/pages/products'));
-export const TeamsPage = lazy(() => import('src/pages/teams'));
-export const TeamDetailPage = lazy(() => import('src/pages/team-detail'));
-export const ProjectsPage = lazy(() => import('src/pages/projects'));
-export const ProjectDetailPage = lazy(() => import('src/pages/project-detail'));
-export const ChatPage = lazy(() => import('src/pages/chat'));
-export const OrderPage = lazy(() => import('src/pages/order'));
 export const SalesPage = lazy(() => import('src/pages/sales'));
 export const SalesHistoryPage = lazy(() => import('src/pages/sales-history'));
 export const SalesPendingPage = lazy(() => import('src/pages/sales-pending'));
+export const SwapsPage = lazy(() => import('src/pages/swaps'));
+export const ReturnsPage = lazy(() => import('src/pages/returns'));
 export const CustomersPage = lazy(() => import('src/pages/customers'));
+export const OutletsPage = lazy(() => import('src/pages/outlets'));
+export const InventoryPage = lazy(() => import('src/pages/inventory'));
+export const ReceivablesPage = lazy(() => import('src/pages/receivables'));
+export const StocktakePage = lazy(() => import('src/pages/stocktake'));
+export const ReceiptTemplatePage = lazy(() => import('src/pages/receipt-template'));
+export const BusinessSettingsPage = lazy(() => import('src/pages/business-settings'));
+export const NotificationsPage = lazy(() => import('src/pages/notifications'));
+export const BargainingAnalyticsPage = lazy(() => import('src/pages/bargaining-analytics'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
-export const HomePage = lazy(() => import('src/pages/home-page'));
 
 const renderFallback = () => (
   <Box
@@ -68,6 +70,11 @@ const renderFallback = () => (
 
 export const routesSection: RouteObject[] = [
   {
+    index: true,
+    element: <Navigate to="/app" replace />,
+  },
+  {
+    path: 'app',
     element: (
       <AuthGuard>
         <SubscriptionGuard>
@@ -82,12 +89,7 @@ export const routesSection: RouteObject[] = [
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'financial-overview', element: <FinancialOverviewPage /> },
-      { path: 'teams', element: <TeamsPage /> },
-      { path: 'teams/:id', element: <TeamDetailPage /> },
-      // { path: 'projects', element: <ProjectsPage /> },
-      { path: 'projects', element: <ProjectsPage /> },
-      { path: 'projects/:id', element: <ProjectDetailPage /> },
-      { path: 'chat', element: <ChatPage /> },
+      { path: 'bargaining-analytics', element: <BargainingAnalyticsPage /> },
       { path: 'user', element: <UserPage /> },
       { path: 'user/create', element: <UserCreatePage /> },
       { path: 'profile', element: <ProfilePage /> },
@@ -95,19 +97,24 @@ export const routesSection: RouteObject[] = [
       { path: 'products/:id', element: <ProductDetailPage /> },
       { path: 'product-list', element: <ProductListPage /> },
       { path: 'categories', element: <CategoriesPage /> },
-      { path: 'orders', element: <OrderPage /> },
       { path: 'sales', element: <SalesPage /> },
       { path: 'sales/history', element: <SalesHistoryPage /> },
       { path: 'sales/pending', element: <SalesPendingPage /> },
+      { path: 'swaps', element: <SwapsPage /> },
+      { path: 'returns', element: <ReturnsPage /> },
       { path: 'customers', element: <CustomersPage /> },
-      { path: 'blog', element: <BlogPage /> },
+      { path: 'outlets', element: <OutletsPage /> },
+      { path: 'inventory', element: <InventoryPage /> },
+      { path: 'receivables', element: <ReceivablesPage /> },
+      { path: 'stocktake', element: <StocktakePage /> },
+      { path: 'receipt-template', element: <ReceiptTemplatePage /> },
+      { path: 'settings', element: <BusinessSettingsPage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
     ],
   },
   {
     path: 'subscription',
     element: (
-      // <AuthGuard>
-      //   <DashboardLayout>
       <GuestGuard>
         <AuthLayout>
           <Suspense fallback={renderFallback()}>
@@ -115,9 +122,6 @@ export const routesSection: RouteObject[] = [
           </Suspense>
         </AuthLayout>
       </GuestGuard>
-
-      //  </DashboardLayout>
-      // </AuthGuard>
     ),
     children: [
       { path: 'renew', element: <SubscriptionRenewPage /> },
@@ -184,21 +188,6 @@ export const routesSection: RouteObject[] = [
   {
     path: '404',
     element: <Page404 />,
-  },
-  {
-    path: 'home',
-    element: <HomePage />
-
-
-
-
-    // (
-    //   <GuestGuard>
-    //     <AuthLayout>
-    //       <HomePage />
-    //     </AuthLayout>
-    //   </GuestGuard>
-    // ),
   },
   { path: '*', element: <Page404 /> },
 ];

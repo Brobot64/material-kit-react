@@ -8,6 +8,8 @@ import Typography from '@mui/material/Typography';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { formatError } from 'src/utils/format-error';
+
 import { useAuth } from 'src/contexts/auth-context';
 
 import { Iconify } from 'src/components/iconify';
@@ -32,7 +34,7 @@ export function ForgotPasswordView() {
         await forgotPassword(email);
         router.push(`/reset-password?email=${email}`);
       } catch (err: any) {
-        setError(err.message || 'Something went wrong');
+        setError(formatError(err));
       } finally {
         setLoading(false);
       }

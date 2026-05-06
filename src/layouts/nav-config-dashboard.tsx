@@ -10,81 +10,100 @@ export type NavItem = {
   icon?: React.ReactNode;
   info?: React.ReactNode;
   children?: NavItem[];
+  roles?: string[];
 };
 
-export const navData = [
-  // Overview Section
+export const navData: NavItem[] = [
   {
     title: 'Dashboard',
-    path: '/',
+    path: '/app',
     icon: icon('ic-dashboard'),
   },
   {
     title: 'Financial Overview',
-    path: '/financial-overview',
+    path: '/app/financial-overview',
     icon: icon('ic-analytics'),
+    roles: ['owner', 'system_admin'],
   },
-  // {
-  //   title: 'Teams',
-  //   path: '/teams',
-  //   icon: icon('ic-user'),
-  // },
-  // {
-  //   title: 'Projects',
-  //   path: '/projects',
-  //   icon: icon('ic-cart'),
-  // },
-  // {
-  //   title: 'Chat',
-  //   path: '/chat',
-  //   icon: icon('ic-blog'),
-  // },
+  {
+    title: 'Bargaining Analytics',
+    path: '/app/bargaining-analytics',
+    icon: icon('ic-analytics'),
+    roles: ['owner', 'outlet_admin', 'system_admin'],
+  },
+  {
+    title: 'Outlets',
+    path: '/app/outlets',
+    icon: icon('ic-analytics'),
+    roles: ['owner', 'system_admin'],
+  },
   {
     title: 'Employees',
-    path: '/user',
+    path: '/app/user',
     icon: icon('ic-user'),
+    roles: ['owner', 'outlet_admin', 'store_executive', 'system_admin'],
   },
   {
-    title: 'Product',
-    path: '/products',
+    title: 'Products',
+    path: '/app/products',
     icon: icon('ic-cart'),
-    // children: [
-    //   { title: 'Shop', path: '/products', icon: null },
-    //   { title: 'List', path: '/product-list', icon: null },
-    // ],
+    roles: ['owner', 'outlet_admin', 'store_executive', 'system_admin'],
   },
   {
-    title: 'Category',
-    path: '/categories',
-    icon: icon('ic-blog'), // Using ic-blog as a placeholder icon
+    title: 'Inventory',
+    path: '/app/inventory',
+    icon: icon('ic-order'),
+    roles: ['owner', 'outlet_admin', 'store_executive'],
   },
-  // {
-  //   title: 'Order',
-  //   icon: icon('ic-order'),
-  //   children: [
-  //     { title: 'List', path: '/orders', icon: null },
-  //     { title: 'Details', path: '/orders/details', icon: null },
-  //   ],
-  // },
+  {
+    title: 'Categories',
+    path: '/app/categories',
+    icon: icon('ic-blog'),
+    roles: ['owner', 'system_admin'],
+  },
   {
     title: 'Sales',
     icon: icon('ic-cart'),
     children: [
-      { title: 'New Sale', path: '/sales', icon: null },
-      { title: 'History', path: '/sales/history', icon: null },
-      { title: 'Pending', path: '/sales/pending', icon: null },
+      { title: 'New Sale', path: '/app/sales' },
+      { title: 'History', path: '/app/sales/history' },
+      { title: 'Pending', path: '/app/sales/pending' },
+      { title: 'Swaps', path: '/app/swaps' },
+      { title: 'Returns & Warranty', path: '/app/returns' },
     ],
   },
   {
+    title: 'Receivables',
+    path: '/app/receivables',
+    icon: icon('ic-analytics'),
+    roles: ['owner', 'outlet_admin', 'store_executive', 'system_admin'],
+  },
+  {
     title: 'Customers',
-    path: '/customers',
+    path: '/app/customers',
     icon: icon('ic-customers'),
   },
-
-  // Other sections
-  // {
-  //   title: 'Blog',
-  //   path: '/blog',
-  //   icon: icon('ic-blog'),
-  // },
+  {
+    title: 'Stocktake',
+    path: '/app/stocktake',
+    icon: icon('ic-order'),
+    roles: ['owner', 'outlet_admin', 'store_executive'],
+  },
+  {
+    title: 'Receipt Template',
+    path: '/app/receipt-template',
+    icon: icon('ic-blog'),
+    roles: ['owner', 'system_admin'],
+  },
+  {
+    title: 'Business Settings',
+    path: '/app/settings',
+    icon: icon('ic-analytics'),
+    roles: ['owner', 'system_admin'],
+  },
 ];
+
+export function getNavForRole(role: string | undefined): NavItem[] {
+  if (!role) return navData.filter((item) => !item.roles);
+  return navData.filter((item) => !item.roles || item.roles.includes(role));
+}

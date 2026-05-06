@@ -8,6 +8,8 @@ import LoadingButton from '@mui/lab/LoadingButton';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { formatError } from 'src/utils/format-error';
+
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -45,7 +47,7 @@ export function SubscriptionRenewView() {
       }
     } catch (err) {
       console.error('Renewal error:', err);
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(formatError(err));
     } finally {
       setLoading(false);
     }

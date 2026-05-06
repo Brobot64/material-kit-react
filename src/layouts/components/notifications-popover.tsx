@@ -244,48 +244,23 @@ function renderContent(notification: NotificationItemProps) {
     </Typography>
   );
 
-  if (notification.type === 'order-placed') {
-    return {
-      avatarUrl: (
-        <img
-          alt={notification.title}
-          src="/assets/icons/notification/ic-notification-package.svg"
-        />
-      ),
-      title,
-    };
-  }
-  if (notification.type === 'order-shipped') {
-    return {
-      avatarUrl: (
-        <img
-          alt={notification.title}
-          src="/assets/icons/notification/ic-notification-shipping.svg"
-        />
-      ),
-      title,
-    };
-  }
-  if (notification.type === 'mail') {
-    return {
-      avatarUrl: (
-        <img alt={notification.title} src="/assets/icons/notification/ic-notification-mail.svg" />
-      ),
-      title,
-    };
-  }
-  if (notification.type === 'chat-message') {
-    return {
-      avatarUrl: (
-        <img alt={notification.title} src="/assets/icons/notification/ic-notification-chat.svg" />
-      ),
-      title,
-    };
-  }
+  const iconMap: Record<string, 'eva:checkmark-circle-2-fill' | 'eva:close-circle-fill' | 'eva:flash-fill' | 'eva:info-fill' | 'solar:bell-bing-bold-duotone'> = {
+    success: 'eva:checkmark-circle-2-fill',
+    error: 'eva:close-circle-fill',
+    warning: 'eva:flash-fill',
+    info: 'eva:info-fill',
+  };
+  const colorMap: Record<string, string> = {
+    success: 'success.main',
+    error: 'error.main',
+    warning: 'warning.main',
+    info: 'info.main',
+  };
+  const iconName = iconMap[notification.type] ?? 'solar:bell-bing-bold-duotone';
+  const iconColor = colorMap[notification.type] ?? 'primary.main';
+
   return {
-    avatarUrl: notification.avatarUrl ? (
-      <img alt={notification.title} src={notification.avatarUrl} />
-    ) : null,
+    avatarUrl: <Iconify icon={iconName} width={22} sx={{ color: iconColor }} />,
     title,
   };
 }
