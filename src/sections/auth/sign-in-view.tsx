@@ -12,6 +12,8 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { formatError } from 'src/utils/format-error';
+
 import { useAuth } from 'src/contexts/auth-context';
 
 import { Iconify } from 'src/components/iconify';
@@ -40,7 +42,7 @@ export function SignInView() {
         if (userData.mustChangePassword) {
           router.push('/change-password');
         } else {
-          router.push('/');
+          router.push('/app');
         }
       } catch (err: any) {
         console.error(err);
@@ -48,7 +50,7 @@ export function SignInView() {
           router.push(`/verify-otp?email=${email}`);
           return;
         }
-        setError(err.message || 'Login failed');
+        setError(formatError(err));
       } finally {
         setLoading(false);
       }

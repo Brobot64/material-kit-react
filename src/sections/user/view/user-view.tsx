@@ -14,9 +14,12 @@ import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import { Modal, Select, TextField, InputLabel, FormControl, MenuItem as MuiMenuItem } from '@mui/material';
 
+import { formatError } from 'src/utils/format-error';
+
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -41,6 +44,7 @@ const STATUS_TABS = [
 export function UserView() {
   const table = useTable();
   const { outlets, onboardEmployee, appData } = useAuth();
+  const { showError, showSuccess } = useAppSnackbar();
 
   const isOwner = appData?.role === 'owner';
   const assignedOutletId = appData?.outletId;
@@ -82,7 +86,7 @@ export function UserView() {
       setEmployees(response.data);
       setPagination(response.pagination);
     } catch (error) {
-      console.error('Failed to fetch employees:', error);
+      showError(formatError(error));
     } finally {
       setLoading(false);
     }
@@ -102,6 +106,7 @@ export function UserView() {
         businessId: appData.businessId,
       });
       setOpenCreateModal(false);
+      showSuccess('Employee created successfully.');
       fetchEmployees();
       setNewEmployee({
         fullName: '',
@@ -113,8 +118,7 @@ export function UserView() {
         outletId: isOwner ? (outlets[0]?.id || '') : (assignedOutletId || ''),
       });
     } catch (error) {
-      console.error('Failed to create employee:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create employee');
+      showError(formatError(error));
     }
   };
 
@@ -142,8 +146,8 @@ export function UserView() {
     <DashboardContent>
       <Breadcrumbs
         links={[
-          { name: 'Dashboard', href: '/' },
-          { name: 'User', href: '/user' },
+          { name: 'Dashboard', href: '/app' },
+          { name: 'User', href: '/app/user' },
           { name: 'List' },
         ]}
       />

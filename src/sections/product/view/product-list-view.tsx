@@ -32,6 +32,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import { fDateTime } from 'src/utils/format-time';
 import { fNumber } from 'src/utils/format-number';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
@@ -226,7 +227,7 @@ export function ProductListView() {
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to update product',
+        message: formatError(error),
         severity: 'error',
       });
     }
@@ -245,7 +246,7 @@ export function ProductListView() {
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to delete product',
+        message: formatError(error),
         severity: 'error',
       });
     }
@@ -404,7 +405,7 @@ export function ProductListView() {
       console.error('Failed to create product:', error);
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to create product',
+        message: formatError(error),
         severity: 'error',
       });
     }
@@ -414,8 +415,8 @@ export function ProductListView() {
     <DashboardContent>
       <Breadcrumbs
         links={[
-          { name: 'Dashboard', href: '/' },
-          { name: 'Product', href: '/products' },
+          { name: 'Dashboard', href: '/app' },
+          { name: 'Product', href: '/app/products' },
           { name: 'List' },
         ]}
       />

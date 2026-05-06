@@ -26,10 +26,12 @@ import {
 } from '@mui/material';
 
 import { fDate } from 'src/utils/format-time';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -62,6 +64,7 @@ const emptyForm = {
 
 export function FinancialOverviewView() {
   const { user } = useAuth();
+  const { showError, showWarning } = useAppSnackbar();
 
   const [overview, setOverview] = useState<any>(null);
   const [quickSummary, setQuickSummary] = useState<any>(null);
@@ -158,7 +161,7 @@ export function FinancialOverviewView() {
 
   const handleSubmit = async () => {
     if (!formData.amount || !formData.description || !formData.paymentMethod) {
-      alert('Please fill in all required fields');
+      showWarning('Please fill in all required fields.');
       return;
     }
 
@@ -181,8 +184,7 @@ export function FinancialOverviewView() {
       fetchTransactions();
       handleCloseModal();
     } catch (error: any) {
-      console.error('Failed to add transaction:', error);
-      alert(error?.message || 'Failed to add transaction');
+      showError(formatError(error));
     } finally {
       setLoading(false);
     }

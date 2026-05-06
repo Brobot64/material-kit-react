@@ -29,6 +29,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { formatError } from 'src/utils/format-error';
+
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -258,7 +260,7 @@ export function ProductDetailView({ id }: Props) {
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to update product',
+        message: formatError(error),
         severity: 'error',
       });
     }
@@ -326,7 +328,7 @@ export function ProductDetailView({ id }: Props) {
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to add variant',
+        message: formatError(error),
         severity: 'error',
       });
     }
@@ -346,8 +348,8 @@ export function ProductDetailView({ id }: Props) {
     <DashboardContent>
       <Breadcrumbs
         links={[
-          { name: 'Dashboard', href: '/' },
-          { name: 'Products', href: '/products' },
+          { name: 'Dashboard', href: '/app' },
+          { name: 'Products', href: '/app/products' },
           { name: product?.name || 'Product Details' },
         ]}
         sx={{ mb: 3 }}

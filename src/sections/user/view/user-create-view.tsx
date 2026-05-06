@@ -14,6 +14,8 @@ import FormControl from '@mui/material/FormControl';
 
 import { useRouter } from 'src/routes/hooks';
 
+import { formatError } from 'src/utils/format-error';
+
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -87,7 +89,7 @@ export function UserCreateView() {
       router.push('/user');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to onboard employee');
+      setError(formatError(err));
     } finally {
       setLoading(false);
     }
@@ -97,8 +99,8 @@ export function UserCreateView() {
     <DashboardContent>
       <Breadcrumbs
         links={[
-          { name: 'Dashboard', href: '/' },
-          { name: 'User', href: '/user' },
+          { name: 'Dashboard', href: '/app' },
+          { name: 'User', href: '/app/user' },
           { name: 'Create' },
         ]}
       />

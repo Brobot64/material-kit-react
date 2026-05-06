@@ -23,6 +23,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { fDateTime } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
@@ -96,7 +97,7 @@ export function SalePendingView() {
             handleClosePaymentModal();
             fetchPendingSales();
         } catch (error: any) {
-            setSnackbar({ open: true, message: error.message || 'Failed to record payment', severity: 'error' });
+            setSnackbar({ open: true, message: formatError(error), severity: 'error' });
         } finally {
             setIsSubmittingPayment(false);
         }
@@ -104,7 +105,7 @@ export function SalePendingView() {
 
     return (
         <DashboardContent>
-            <Breadcrumbs links={[{ name: 'Dashboard', href: '/' }, { name: 'Sales', href: '/sales' }, { name: 'Pending Payments' }]} sx={{ mb: 5 }} />
+            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Sales', href: '/app/sales' }, { name: 'Pending Payments' }]} sx={{ mb: 5 }} />
 
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
                 <Typography variant="h4">Pending Payments</Typography>

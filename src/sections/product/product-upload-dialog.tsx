@@ -27,6 +27,8 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { formatError } from 'src/utils/format-error';
+
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 
@@ -97,7 +99,7 @@ export function ProductUploadDialog({ open, onClose, onSuccess }: Props) {
         setActiveStep(1);
         setError(null);
       } catch (err: any) {
-        setError(err.message || 'Failed to extract headers from CSV.');
+        setError(formatError(err));
       } finally {
         setLoading(false);
       }
@@ -124,7 +126,7 @@ export function ProductUploadDialog({ open, onClose, onSuccess }: Props) {
           onSuccess();
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to execute upload.');
+        setError(formatError(err));
       } finally {
         setLoading(false);
       }

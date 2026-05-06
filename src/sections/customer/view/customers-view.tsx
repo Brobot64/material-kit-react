@@ -27,6 +27,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import TablePagination from '@mui/material/TablePagination';
 
 import { fCurrency } from 'src/utils/format-number';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -168,7 +169,7 @@ export function CustomersView() {
             fetchCustomers();
             handleCloseModal();
         } catch (error: any) {
-            setSnackbar({ open: true, message: error.message || 'Failed to save customer', severity: 'error' });
+            setSnackbar({ open: true, message: formatError(error), severity: 'error' });
         } finally {
             setIsSubmitting(false);
         }
@@ -181,7 +182,7 @@ export function CustomersView() {
             setSnackbar({ open: true, message: 'Customer deactivated', severity: 'success' });
             fetchCustomers();
         } catch (error: any) {
-            setSnackbar({ open: true, message: error.message || 'Failed to deactivate customer', severity: 'error' });
+            setSnackbar({ open: true, message: formatError(error), severity: 'error' });
         }
     };
 
@@ -205,7 +206,7 @@ export function CustomersView() {
 
     return (
         <DashboardContent>
-            <Breadcrumbs links={[{ name: 'Dashboard', href: '/' }, { name: 'Customers' }]} sx={{ mb: 5 }} />
+            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Customers' }]} sx={{ mb: 5 }} />
 
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
                 <Typography variant="h4">Customers</Typography>

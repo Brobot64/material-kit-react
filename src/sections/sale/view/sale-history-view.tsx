@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
@@ -25,6 +25,7 @@ import TablePagination from '@mui/material/TablePagination';
 
 import { fDateTime } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
@@ -34,6 +35,7 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
+import { ReceiptPreviewModal } from 'src/components/receipt-preview/ReceiptPreviewModal';
 
 // ----------------------------------------------------------------------
 
@@ -41,6 +43,7 @@ export function SaleHistoryView() {
     const { outlets, appData } = useAuth();
     const isOwner = appData?.role === 'owner';
     const assignedOutletId = appData?.outletId;
+    const businessId = appData?.businessId;
 
     const [sales, setSales] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -66,6 +69,8 @@ export function SaleHistoryView() {
         message: '',
         severity: 'success' as 'success' | 'error',
     });
+
+    const [receiptModal, setReceiptModal] = useState({ open: false, saleId: '' });
 
     useEffect(() => {
         if (outlets.length > 0 && !selectedOutletId) {
@@ -131,7 +136,7 @@ export function SaleHistoryView() {
             handleClosePaymentModal();
             fetchSales();
         } catch (error: any) {
-            setSnackbar({ open: true, message: error.message || 'Failed to record payment', severity: 'error' });
+            setSnackbar({ open: true, message: formatError(error), severity: 'error' });
         } finally {
             setIsSubmittingPayment(false);
         }
@@ -159,7 +164,7 @@ export function SaleHistoryView() {
 
     return (
         <DashboardContent>
-            <Breadcrumbs links={[{ name: 'Dashboard', href: '/' }, { name: 'Sales', href: '/sales' }, { name: 'History' }]} sx={{ mb: 5 }} />
+            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Sales', href: '/app/sales' }, { name: 'History' }]} sx={{ mb: 5 }} />
 
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
                 <Typography variant="h4">Sales History</Typography>
@@ -180,7 +185,7 @@ export function SaleHistoryView() {
                     <Button
                         variant="contained"
                         startIcon={<Iconify icon="mingcute:add-line" />}
-                        href="/sales"
+                        href="/app/sales"
                     >
                         New Sale
                     </Button>
@@ -210,8 +215,8 @@ export function SaleHistoryView() {
                                     sales.map((sale) => (
                                         <TableRow key={sale._id}>
                                             <TableCell>{fDateTime(sale.createdAt)}</TableCell>
-                                            <TableCell>{sale._id.slice(-6).toUpperCase()}</TableCell>
-                                            <TableCell>{sale.customerId?.name || 'Walk-in'}</TableCell>
+                                            <TableCell>{sale.saleNumber || sale._id.slice(-6).toUpperCase()}</TableCell>
+                                            <TableCell>{sale.customerId?.fullName || sale.customerId?.name || 'Walk-in'}</TableCell>
                                             <TableCell>{fCurrency(sale.total)}</TableCell>
                                             <TableCell>{fCurrency(sale.amountPaid)}</TableCell>
                                             <TableCell>{fCurrency(sale.amountPending)}</TableCell>
@@ -236,13 +241,21 @@ export function SaleHistoryView() {
                                                 })()}
                                             </TableCell>
                                             <TableCell align="right">
-                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                                                     {sale.total - sale.amountPaid > 0 && (
                                                         <Button size="small" variant="outlined" onClick={() => handleOpenPaymentModal(sale)}>
                                                             Pay
                                                         </Button>
                                                     )}
                                                     <IconButton size="small" aria-label="view details" onClick={() => handleOpenDetailsModal(sale)}>
+                                                        <Iconify icon="solar:eye-bold" />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        aria-label="view receipt"
+                                                        title="Preview Receipt"
+                                                        onClick={() => setReceiptModal({ open: true, saleId: sale._id })}
+                                                    >
                                                         <Iconify icon="solar:eye-bold" />
                                                     </IconButton>
                                                 </Stack>
@@ -278,7 +291,7 @@ export function SaleHistoryView() {
                 <DialogContent dividers>
                     <Stack spacing={3} sx={{ py: 1 }}>
                         <Typography variant="body2" color="text.secondary">
-                            Recording payment for Sale #{selectedSale?._id.slice(-6).toUpperCase()}
+                            Recording payment for Sale #{selectedSale?.saleNumber || selectedSale?._id.slice(-6).toUpperCase()}
                         </Typography>
                         <TextField
                             fullWidth
@@ -286,7 +299,7 @@ export function SaleHistoryView() {
                             label="Amount"
                             value={paymentAmount}
                             onChange={(e) => setPaymentAmount(Number(e.target.value))}
-                            InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+                            InputProps={{ startAdornment: <InputAdornment position="start">â‚¦</InputAdornment> }}
                         />
                         <TextField
                             select
@@ -323,7 +336,7 @@ export function SaleHistoryView() {
             </Dialog>
 
             <Dialog open={openDetailsModal} onClose={handleCloseDetailsModal} fullWidth maxWidth="md">
-                <DialogTitle>Sale Details #{selectedSaleDetails?._id.slice(-6).toUpperCase()}</DialogTitle>
+                <DialogTitle>Sale #{selectedSaleDetails?.saleNumber || selectedSaleDetails?._id.slice(-6).toUpperCase()}</DialogTitle>
                 <DialogContent dividers>
                     {selectedSaleDetails && (
                         <Stack spacing={2}>
@@ -337,7 +350,7 @@ export function SaleHistoryView() {
                             </Stack>
                             <Stack direction="row" justifyContent="space-between">
                                 <Typography variant="subtitle2">Customer:</Typography>
-                                <Typography variant="body2">{selectedSaleDetails.customerId?.name || 'Walk-in'}</Typography>
+                                <Typography variant="body2">{selectedSaleDetails.customerId?.fullName || selectedSaleDetails.customerId?.name || 'Walk-in'}</Typography>
                             </Stack>
                             <Stack direction="row" justifyContent="space-between">
                                 <Typography variant="subtitle2">Subtotal:</Typography>
@@ -398,6 +411,18 @@ export function SaleHistoryView() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseDetailsModal} color="inherit">Close</Button>
+                    {selectedSaleDetails && (
+                        <Button
+                            variant="outlined"
+                            startIcon={<Iconify icon="solar:eye-bold" />}
+                            onClick={() => {
+                                handleCloseDetailsModal();
+                                setReceiptModal({ open: true, saleId: selectedSaleDetails._id });
+                            }}
+                        >
+                            View Receipt
+                        </Button>
+                    )}
                     {selectedSaleDetails && selectedSaleDetails.total - selectedSaleDetails.amountPaid > 0 && (
                         <Button
                             variant="contained"
@@ -422,6 +447,13 @@ export function SaleHistoryView() {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+
+            <ReceiptPreviewModal
+                open={receiptModal.open}
+                onClose={() => setReceiptModal({ open: false, saleId: '' })}
+                saleId={receiptModal.saleId}
+                businessId={businessId || ''}
+            />
         </DashboardContent>
     );
 }

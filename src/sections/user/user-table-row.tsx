@@ -13,7 +13,10 @@ import IconButton from '@mui/material/IconButton';
 import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 import { Modal, Button, Select, TextField, Typography, InputLabel, FormControl, MenuItem as MuiMenuItem } from '@mui/material';
 
+import { formatError } from 'src/utils/format-error';
+
 import { api } from 'src/services/api';
+import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -28,6 +31,7 @@ type UserTableRowProps = {
 };
 
 export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTableRowProps) {
+  const { showSuccess, showError } = useAppSnackbar();
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [openPayModal, setOpenPayModal] = useState(false);
@@ -61,7 +65,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
       onRefresh();
       handleClosePopover();
     } catch (error) {
-      console.error('Failed to update status:', error);
+      showError(formatError(error));
     }
   }, [row.userId._id, onRefresh, handleClosePopover]);
 
@@ -72,7 +76,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
         onRefresh();
         handleClosePopover();
       } catch (error) {
-        console.error('Failed to delete employee:', error);
+        showError(formatError(error));
       }
     }
   }, [row._id, onRefresh, handleClosePopover]);
@@ -83,7 +87,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
       setOpenEditModal(false);
       onRefresh();
     } catch (error) {
-      console.error('Failed to update HR record:', error);
+      showError(formatError(error));
     }
   }, [row._id, editData, onRefresh]);
 
@@ -94,9 +98,9 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
         ...payData,
       });
       setOpenPayModal(false);
-      alert('Salary payment recorded successfully');
+      showSuccess('Salary payment recorded successfully.');
     } catch (error) {
-      console.error('Failed to pay salary:', error);
+      showError(formatError(error));
     }
   }, [row._id, payData]);
 
