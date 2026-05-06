@@ -2,7 +2,7 @@ import type { RouteObject } from 'react-router';
 
 import { lazy, Suspense } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
 import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -47,6 +47,7 @@ export const BusinessSettingsPage = lazy(() => import('src/pages/business-settin
 export const NotificationsPage = lazy(() => import('src/pages/notifications'));
 export const BargainingAnalyticsPage = lazy(() => import('src/pages/bargaining-analytics'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
+export const HomePage = lazy(() => import('src/pages/home-page'));
 
 const renderFallback = () => (
   <Box
@@ -71,7 +72,11 @@ const renderFallback = () => (
 export const routesSection: RouteObject[] = [
   {
     index: true,
-    element: <Navigate to="/app" replace />,
+    element: (
+      <Suspense fallback={renderFallback()}>
+        <HomePage />
+      </Suspense>
+    ),
   },
   {
     path: 'app',
