@@ -1,4 +1,8 @@
 import type { Category } from 'src/types';
+import type { Sale, CreateSalePayload } from 'src/types/sale';
+import type { AssignProductToOutletPayload } from 'src/types/product';
+import type { Swap, SwapStatus, CreateSwapPayload } from 'src/types/swap';
+import type { ProductReturn, ReturnStatus, CreateReturnPayload } from 'src/types/return';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
 
@@ -289,16 +293,22 @@ export const api = {
     }
   ) =>
     request<any>(`/products/variants/${productId}`, { method: 'POST', body: JSON.stringify(data) }),
-  assignProductToOutlet: (data: {
-    productId: string;
-    outletId: string;
-    sellingPrice: number;
-    costPrice: number;
-    minStock: number;
-    quantity: number;
-  }) => request<any>('/product-outlets/assign', { method: 'POST', body: JSON.stringify(data) }),
+  assignProductToOutlet: (data: AssignProductToOutletPayload) =>
+    request<any>('/product-outlets/assign', { method: 'POST', body: JSON.stringify(data) }),
   updateProductOutlet: (productId: string, outletId: string, data: any) =>
     request<any>(`/product-outlets/${productId}/${outletId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  updateProductOutletPrice: (productId: string, outletId: string, data: {
+    sellingPrice?: number;
+    floorPrice?: number;
+    guidePrice?: number;
+    defaultSalePrice?: number;
+    costPrice?: number;
+    minStock?: number;
+  }) =>
+    request<any>(`/product-outlets/${productId}/${outletId}/price`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -339,22 +349,9 @@ export const api = {
     const queryString = query.toString();
     return request<any>(`/product-outlets/outlet/${outletId}${queryString ? `?${queryString}` : ''}`);
   },
-  createSale: (data: {
-    items: {
-      productId: string;
-      quantity: number;
-      price?: number;
-      tax?: number;
-      discount?: number;
-    }[];
-    paymentMethod: string;
-    amountPaid: number;
-    customerId?: string;
-    paymentDeadline?: string;
-    notes?: string;
-    businessId?: string;
-    outletId?: string;
-  }) => request<any>('/sales', { method: 'POST', body: JSON.stringify(data) }),
+  // unitPrice is the negotiated price per line — this is the correct field name (was 'price', now 'unitPrice')
+  createSale: (data: CreateSalePayload) =>
+    request<{ data: Sale }>('/sales', { method: 'POST', body: JSON.stringify(data) }),
   addSalePayment: (saleId: string, data: { amount: number; paymentMethod: string; notes?: string }) =>
     request<any>(`/sales/${saleId}/payments`, { method: 'POST', body: JSON.stringify(data) }),
   getSalesHistory: (params: {
@@ -478,4 +475,177 @@ export const api = {
     ledgerAccountId: string;
     notes?: string;
   }) => request<any>('/expenditures', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Outlet management
+  updateOutlet: (id: string, data: {
+    name?: string;
+    address?: { street?: string; city?: string; state?: string; country?: string };
+    phone?: string;
+    isActive?: boolean;
+  }) => request<any>(`/outlets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Stock / Inventory
+  receiveStock: (data: {
+    businessId: string;
+    outletId: string;
+    productId: string;
+    quantity: number;
+    unitCost: number;
+    notes?: string;
+  }) => request<any>('/stock/movements', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, type: 'purchase', totalCost: data.quantity * data.unitCost }),
+  }),
+  adjustStock: (data: {
+    businessId: string;
+    outletId: string;
+    productId: string;
+    quantity: number;
+    type: 'adjustment' | 'damage';
+    reasonCode: string;
+    notes?: string;
+  }) => request<any>('/stock/movements', { method: 'POST', body: JSON.stringify(data) }),
+  getStockMovements: (params: {
+    businessId?: string;
+    outletId?: string;
+    productId?: string;
+    type?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    return request<{ data: any[]; pagination: any }>(`/stock/movements?${query.toString()}`);
+  },
+
+  // Receipt
+  getReceiptData: (saleId: string, businessId: string) =>
+    request<{ data: any }>(`/sales/${saleId}/receipt?businessId=${businessId}`),
+  downloadReceiptPdf: async (saleId: string, businessId: string): Promise<void> => {
+    const token = localStorage.getItem('accessToken');
+    const url = `${API_BASE_URL}/sales/${saleId}/receipt/pdf?businessId=${businessId}`;
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to download PDF');
+    }
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = `receipt-${saleId.slice(-8).toUpperCase()}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  },
+
+  // Receipt template
+  getReceiptTemplate: (businessId: string, outletId?: string) => {
+    const query = new URLSearchParams({ businessId });
+    if (outletId) query.append('outletId', outletId);
+    return request<any>(`/receipt-template?${query.toString()}`);
+  },
+  upsertReceiptTemplate: (data: any) =>
+    request<any>('/receipt-template', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Reporting extras
+  getSalesOverTime: (params?: { outletId?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.outletId) query.append('outletId', params.outletId);
+    return request<any>(`/reporting/sales-overtime?${query.toString()}`);
+  },
+  getTopProducts: (params?: { outletId?: string; year?: number; month?: number }) => {
+    const query = new URLSearchParams();
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
+    return request<any[]>(`/reporting/top-products?${query.toString()}`);
+  },
+  getProfitLoss: (params: { startDate: string; endDate: string; outletId?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
+    return request<any>(`/reporting/profit-loss?${query.toString()}`);
+  },
+  getBalanceSheet: (params: { asOf: string; outletId?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
+    return request<any>(`/reporting/balance-sheet?${query.toString()}`);
+  },
+  getTrialBalance: (params: { startDate: string; endDate: string; outletId?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
+    return request<any>(`/reporting/trial-balance?${query.toString()}`);
+  },
+
+  // Business Settings
+  getBusinessSettings: (businessId: string) =>
+    request<any>(`/business-settings?businessId=${businessId}`),
+  upsertBusinessSettings: (data: any) =>
+    request<any>('/business-settings', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Stocktake
+  initiateStocktake: (data: { businessId: string; outletId: string; notes?: string }) =>
+    request<any>('/stocktake', { method: 'POST', body: JSON.stringify(data) }),
+  listStocktakes: (params: { businessId: string; outletId?: string; status?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
+    return request<any>(`/stocktake?${query.toString()}`);
+  },
+  getStocktake: (id: string, businessId: string) =>
+    request<any>(`/stocktake/${id}?businessId=${businessId}`),
+  updateStocktakeItem: (id: string, data: { productId: string; countedQty: number; notes?: string }, businessId: string) =>
+    request<any>(`/stocktake/${id}/items?businessId=${businessId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  submitStocktake: (id: string, businessId: string) =>
+    request<any>(`/stocktake/${id}/submit?businessId=${businessId}`, { method: 'POST' }),
+  reconcileStocktake: (id: string, businessId: string) =>
+    request<any>(`/stocktake/${id}/reconcile?businessId=${businessId}`, { method: 'POST' }),
+  cancelStocktake: (id: string, businessId: string) =>
+    request<any>(`/stocktake/${id}/cancel?businessId=${businessId}`, { method: 'POST' }),
+
+  // Swaps
+  createSwap: (data: CreateSwapPayload) =>
+    request<{ data: Swap }>('/swaps', { method: 'POST', body: JSON.stringify(data) }),
+  getSwaps: (params: { businessId: string; outletId?: string; status?: SwapStatus; customerId?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
+    return request<{ data: Swap[]; total: number; page: number; limit: number }>(`/swaps?${query.toString()}`);
+  },
+  getSwap: (id: string) => request<{ data: Swap }>(`/swaps/${id}`),
+  completeSwap: (id: string) =>
+    request<{ data: Swap }>(`/swaps/${id}/complete`, { method: 'POST' }),
+  cancelSwap: (id: string) =>
+    request<{ data: Swap }>(`/swaps/${id}/cancel`, { method: 'POST' }),
+
+  // Returns
+  createReturn: (data: CreateReturnPayload) =>
+    request<{ data: ProductReturn }>('/returns', { method: 'POST', body: JSON.stringify(data) }),
+  getReturns: (params: { outletId?: string; status?: ReturnStatus; customerId?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
+    return request<{ data: ProductReturn[]; total: number; page: number; limit: number }>(`/returns?${query.toString()}`);
+  },
+  getReturn: (id: string) => request<{ data: ProductReturn }>(`/returns/${id}`),
+  getSaleWithItems: (saleId: string) => request<{ sale: any; items: any[] }>(`/returns/sale/${saleId}/items`),
+  sendToDistributor: (id: string, data: { distributorName: string; distributorContact?: string; distributorReferenceNo?: string; note?: string }) =>
+    request<{ data: ProductReturn }>(`/returns/${id}/send-to-distributor`, { method: 'POST', body: JSON.stringify(data) }),
+  receiveFromDistributor: (id: string, data: { resolution: 'repaired' | 'replaced' | 'no_fault_found'; distributorNotes?: string; note?: string }) =>
+    request<{ data: ProductReturn }>(`/returns/${id}/receive-from-distributor`, { method: 'POST', body: JSON.stringify(data) }),
+  notifyCustomer: (id: string, data: { note?: string }) =>
+    request<{ data: ProductReturn }>(`/returns/${id}/notify-customer`, { method: 'POST', body: JSON.stringify(data) }),
+  completeReturn: (id: string, data: { note?: string }) =>
+    request<{ data: ProductReturn }>(`/returns/${id}/complete`, { method: 'POST', body: JSON.stringify(data) }),
+  processRefund: (id: string, data: { refundAmount: number; refundMethod: string; note?: string }) =>
+    request<{ data: ProductReturn }>(`/returns/${id}/refund`, { method: 'POST', body: JSON.stringify(data) }),
+  cancelReturn: (id: string, data: { note?: string }) =>
+    request<{ data: ProductReturn }>(`/returns/${id}/cancel`, { method: 'POST', body: JSON.stringify(data) }),
+
+  // Bargaining analytics
+  getBargainingAnalytics: (params: { outletId?: string; startDate?: string; endDate?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
+    return request<any>(`/reporting/bargaining-analytics?${query.toString()}`);
+  },
 };

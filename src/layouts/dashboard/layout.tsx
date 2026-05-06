@@ -16,15 +16,16 @@ import { NavMobile, NavDesktop } from './nav';
 import { layoutClasses } from '../core/classes';
 import { _account } from '../nav-config-account';
 import { dashboardLayoutVars } from './css-vars';
-import { navData } from '../nav-config-dashboard';
 import { MainSection } from '../core/main-section';
 import { Searchbar } from '../components/searchbar';
 import { MenuButton } from '../components/menu-button';
 import { HeaderSection } from '../core/header-section';
 import { LayoutSection } from '../core/layout-section';
+import { getNavForRole } from '../nav-config-dashboard';
 import { AccountPopover } from '../components/account-popover';
 import { ThemeModeButton } from '../components/theme-mode-button';
 import { NotificationsPopover } from '../components/notifications-popover';
+import { NotificationToastStack } from 'src/components/notifications/notification-toast-stack';
 
 import type { MainSectionProps } from '../core/main-section';
 import type { HeaderSectionProps } from '../core/header-section';
@@ -54,7 +55,8 @@ export function DashboardLayout({
 
   const { setMode } = useColorScheme();
 
-  const { user, outlets } = useAuth();
+  const { user, outlets, appData } = useAuth();
+  const filteredNav = getNavForRole(appData?.role);
 
   useEffect(() => {
     if (user?.themePreference) {
@@ -93,7 +95,7 @@ export function DashboardLayout({
             onClick={onOpen}
             sx={{ mr: 1, ml: -1, [theme.breakpoints.up(layoutQuery)]: { display: 'none' } }}
           />
-          <NavMobile data={navData} open={open} onClose={onClose} workspaces={workspaces} />
+          <NavMobile data={filteredNav} open={open} onClose={onClose} workspaces={workspaces} />
         </>
       ),
       rightArea: (
@@ -138,6 +140,8 @@ export function DashboardLayout({
   );
 
   return (
+    <>
+    <NotificationToastStack />
     <LayoutSection
       /** **************************************
        * @Header
@@ -148,7 +152,7 @@ export function DashboardLayout({
        *************************************** */
       sidebarSection={
         <NavDesktop
-          data={navData}
+          data={filteredNav}
           layoutQuery={layoutQuery}
           workspaces={workspaces}
           collapsed={collapsed}
@@ -180,5 +184,6 @@ export function DashboardLayout({
     >
       {renderMain()}
     </LayoutSection>
+    </>
   );
 }
