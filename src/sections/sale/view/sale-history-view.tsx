@@ -1,11 +1,15 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Tooltip from '@mui/material/Tooltip';
+import Skeleton from '@mui/material/Skeleton';
+import Collapse from '@mui/material/Collapse';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
 import MenuItem from '@mui/material/MenuItem';
@@ -49,11 +53,23 @@ export function SaleHistoryView() {
     const [loading, setLoading] = useState(false);
     const [selectedOutletId, setSelectedOutletId] = useState(isOwner ? (outlets[0]?.id || '') : (assignedOutletId || ''));
 
-    // Pagination states
+    // Pagination
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [totalElements, setTotalElements] = useState(0);
 
+    // Server-side filters
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+
+    // Client-side filters
+    const [keyword, setKeyword] = useState('');
+    const [minAmount, setMinAmount] = useState('');
+    const [maxAmount, setMaxAmount] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+
+    // Modals
     const [openPaymentModal, setOpenPaymentModal] = useState(false);
     const [selectedSale, setSelectedSale] = useState<any>(null);
     const [paymentAmount, setPaymentAmount] = useState<number>(0);
@@ -64,19 +80,22 @@ export function SaleHistoryView() {
     const [openDetailsModal, setOpenDetailsModal] = useState(false);
     const [selectedSaleDetails, setSelectedSaleDetails] = useState<any>(null);
 
+    const [receiptModal, setReceiptModal] = useState({ open: false, saleId: '' });
+
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
         severity: 'success' as 'success' | 'error',
     });
 
-    const [receiptModal, setReceiptModal] = useState({ open: false, saleId: '' });
-
     useEffect(() => {
         if (outlets.length > 0 && !selectedOutletId) {
             setSelectedOutletId(isOwner ? outlets[0].id : (assignedOutletId || outlets[0].id));
         }
     }, [outlets, selectedOutletId, isOwner, assignedOutletId]);
+
+    // Reset to page 0 when server-side filters change
+    useEffect(() => { setPage(0); }, [selectedOutletId, startDate, endDate, statusFilter]);
 
     const fetchSales = useCallback(async () => {
         setLoading(true);
@@ -85,24 +104,53 @@ export function SaleHistoryView() {
                 outletId: selectedOutletId || undefined,
                 page: page + 1,
                 limit: rowsPerPage,
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
+                status: statusFilter || undefined,
             });
             setSales(response.data || []);
             setTotalElements(response.pagination?.total || 0);
-        } catch (error) {
-            console.error('Failed to fetch sales history:', error);
+        } catch {
             setSnackbar({ open: true, message: 'Failed to fetch sales history', severity: 'error' });
         } finally {
             setLoading(false);
         }
-    }, [selectedOutletId, page, rowsPerPage]);
+    }, [selectedOutletId, page, rowsPerPage, startDate, endDate, statusFilter]);
 
-    useEffect(() => {
-        fetchSales();
-    }, [fetchSales]);
+    useEffect(() => { fetchSales(); }, [fetchSales]);
+
+    // Client-side keyword + price filter applied on top of server results
+    const filteredSales = useMemo(() => {
+        let result = sales;
+        if (keyword) {
+            const q = keyword.toLowerCase();
+            result = result.filter((s) => {
+                const customer = s.customerName || s.customerId?.fullName || s.customerId?.name || '';
+                const saleId = s._id?.toLowerCase() || '';
+                const saleNum = (s.saleNumber || '').toLowerCase();
+                const cashier = (s.cashierName || '').toLowerCase();
+                return (
+                    customer.toLowerCase().includes(q) ||
+                    saleId.includes(q) ||
+                    saleNum.includes(q) ||
+                    cashier.includes(q)
+                );
+            });
+        }
+        if (minAmount) result = result.filter((s) => s.total >= Number(minAmount));
+        if (maxAmount) result = result.filter((s) => s.total <= Number(maxAmount));
+        return result;
+    }, [sales, keyword, minAmount, maxAmount]);
+
+    const handleCopySaleId = (id: string) => {
+        navigator.clipboard.writeText(id).then(() => {
+            setSnackbar({ open: true, message: 'Sale ID copied to clipboard', severity: 'success' });
+        });
+    };
 
     const handleOpenPaymentModal = (sale: any) => {
         setSelectedSale(sale);
-        setPaymentAmount(sale.total - sale.amountPaid);
+        setPaymentAmount(sale.amountPending ?? (sale.total - sale.amountPaid));
         setOpenPaymentModal(true);
     };
 
@@ -127,11 +175,7 @@ export function SaleHistoryView() {
         if (!selectedSale || paymentAmount <= 0) return;
         setIsSubmittingPayment(true);
         try {
-            await api.addSalePayment(selectedSale._id, {
-                amount: paymentAmount,
-                paymentMethod,
-                notes: paymentNotes,
-            });
+            await api.addSalePayment(selectedSale._id, { amount: paymentAmount, paymentMethod, notes: paymentNotes });
             setSnackbar({ open: true, message: 'Payment recorded successfully', severity: 'success' });
             handleClosePaymentModal();
             fetchSales();
@@ -142,31 +186,31 @@ export function SaleHistoryView() {
         }
     };
 
-    const handleChangePage = useCallback((event: unknown, newPage: number) => {
-        setPage(newPage);
-    }, []);
-
-    const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    }, []);
-
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'completed': return 'success';
             case 'partially_paid': return 'warning';
-            case 'not_paid': return 'error';
-            case 'pending': return 'error';
+            case 'not_paid':
+            case 'pending':
             case 'overdue': return 'error';
             default: return 'default';
         }
     };
 
+    const resolveDisplayStatus = (sale: any) => {
+        const balance = sale.total - sale.amountPaid;
+        if (balance <= 0) return 'completed';
+        if (sale.amountPaid === 0) return 'not_paid';
+        return 'partially_paid';
+    };
+
+    const activeFilterCount = [startDate, endDate, statusFilter, minAmount, maxAmount].filter(Boolean).length;
+
     return (
         <DashboardContent>
             <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Sales', href: '/app/sales' }, { name: 'History' }]} sx={{ mb: 5 }} />
 
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
                 <Typography variant="h4">Sales History</Typography>
                 <Stack direction="row" spacing={2}>
                     <TextField
@@ -182,25 +226,130 @@ export function SaleHistoryView() {
                             <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
                         ))}
                     </TextField>
-                    <Button
-                        variant="contained"
-                        startIcon={<Iconify icon="mingcute:add-line" />}
-                        href="/app/sales"
-                    >
+                    <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} href="/app/sales">
                         New Sale
                     </Button>
                 </Stack>
             </Stack>
 
+            {/* Search + Filter bar */}
+            <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
+                <TextField
+                    size="small"
+                    placeholder="Search by customer, cashier, sale ID…"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    sx={{ flexGrow: 1 }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+                            </InputAdornment>
+                        ),
+                        endAdornment: keyword ? (
+                            <InputAdornment position="end">
+                                <IconButton size="small" onClick={() => setKeyword('')}>
+                                    <Iconify icon="eva:close-fill" width={16} />
+                                </IconButton>
+                            </InputAdornment>
+                        ) : null,
+                    }}
+                />
+                <Button
+                    size="small"
+                    variant={showFilters ? 'contained' : 'outlined'}
+                    startIcon={<Iconify icon="ic:round-filter-list" />}
+                    onClick={() => setShowFilters((v) => !v)}
+                    endIcon={
+                        activeFilterCount > 0 ? (
+                            <Chip label={activeFilterCount} size="small" color="error" sx={{ height: 18, fontSize: 11 }} />
+                        ) : null
+                    }
+                >
+                    Filters
+                </Button>
+                {activeFilterCount > 0 && (
+                    <Button
+                        size="small"
+                        color="inherit"
+                        onClick={() => {
+                            setStartDate('');
+                            setEndDate('');
+                            setStatusFilter('');
+                            setMinAmount('');
+                            setMaxAmount('');
+                        }}
+                    >
+                        Clear
+                    </Button>
+                )}
+            </Stack>
+
+            <Collapse in={showFilters}>
+                <Card sx={{ p: 2, mb: 2 }}>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
+                        <TextField
+                            size="small"
+                            label="From date"
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ minWidth: 160 }}
+                        />
+                        <TextField
+                            size="small"
+                            label="To date"
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ minWidth: 160 }}
+                        />
+                        <TextField
+                            select
+                            size="small"
+                            label="Status"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            sx={{ minWidth: 150 }}
+                        >
+                            <MenuItem value="">All statuses</MenuItem>
+                            <MenuItem value="completed">Completed</MenuItem>
+                            <MenuItem value="partially_paid">Partially Paid</MenuItem>
+                            <MenuItem value="pending">Pending</MenuItem>
+                            <MenuItem value="overdue">Overdue</MenuItem>
+                        </TextField>
+                        <TextField
+                            size="small"
+                            label="Min amount (₦)"
+                            type="number"
+                            value={minAmount}
+                            onChange={(e) => setMinAmount(e.target.value)}
+                            sx={{ minWidth: 140 }}
+                        />
+                        <TextField
+                            size="small"
+                            label="Max amount (₦)"
+                            type="number"
+                            value={maxAmount}
+                            onChange={(e) => setMaxAmount(e.target.value)}
+                            sx={{ minWidth: 140 }}
+                        />
+                    </Stack>
+                </Card>
+            </Collapse>
+
             <Card>
                 <Scrollbar>
                     <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
-                        <Table sx={{ minWidth: 800 }}>
+                        <Table sx={{ minWidth: 900 }}>
                             <TableHead>
                                 <TableRow>
                                     <TableCell>Date</TableCell>
                                     <TableCell>Sale ID</TableCell>
                                     <TableCell>Customer</TableCell>
+                                    <TableCell>Cashier</TableCell>
                                     <TableCell>Total</TableCell>
                                     <TableCell>Paid</TableCell>
                                     <TableCell>Balance</TableCell>
@@ -210,62 +359,86 @@ export function SaleHistoryView() {
                             </TableHead>
                             <TableBody>
                                 {loading ? (
-                                    <TableRow><TableCell colSpan={8} align="center">Loading...</TableCell></TableRow>
-                                ) : sales.length > 0 ? (
-                                    sales.map((sale) => (
+                                    Array.from({ length: 6 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            {Array.from({ length: 9 }).map((__, j) => (
+                                                <TableCell key={j}><Skeleton animation="wave" /></TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
+                                ) : filteredSales.length > 0 ? (
+                                    filteredSales.map((sale) => (
                                         <TableRow key={sale._id}>
-                                            <TableCell>{fDateTime(sale.createdAt)}</TableCell>
-                                            <TableCell>{sale.saleNumber || sale._id.slice(-6).toUpperCase()}</TableCell>
-                                            <TableCell>{sale.customerId?.fullName || sale.customerId?.name || 'Walk-in'}</TableCell>
+                                            <TableCell sx={{ whiteSpace: 'nowrap' }}>{fDateTime(sale.createdAt)}</TableCell>
+
+                                            {/* Clickable Sale ID — copies full _id to clipboard */}
+                                            <TableCell>
+                                                <Tooltip title="Click to copy full Sale ID" placement="top">
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            cursor: 'pointer',
+                                                            fontFamily: 'monospace',
+                                                            fontWeight: 600,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 0.5,
+                                                            '&:hover': { color: 'primary.main' },
+                                                        }}
+                                                        onClick={() => handleCopySaleId(sale._id)}
+                                                    >
+                                                        {sale.saleNumber || sale._id.slice(-6).toUpperCase()}
+                                                        <Iconify icon="solar:copy-bold" width={14} sx={{ opacity: 0.5 }} />
+                                                    </Typography>
+                                                </Tooltip>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                {sale.customerName
+                                                    || sale.customerId?.fullName
+                                                    || sale.customerId?.name
+                                                    || 'Walk-in'}
+                                            </TableCell>
+
+                                            <TableCell>{sale.cashierName || '—'}</TableCell>
+
                                             <TableCell>{fCurrency(sale.total)}</TableCell>
                                             <TableCell>{fCurrency(sale.amountPaid)}</TableCell>
-                                            <TableCell>{fCurrency(sale.amountPending)}</TableCell>
+                                            <TableCell>{fCurrency(sale.amountPending ?? Math.max(0, sale.total - sale.amountPaid))}</TableCell>
+
                                             <TableCell>
-                                                {(() => {
-                                                    let displayStatus = sale.status;
-                                                    const balance = sale.total - sale.amountPaid;
-
-                                                    if (balance === 0 || balance < 0) {
-                                                        displayStatus = 'completed';
-                                                    } else if (sale.amountPaid === 0) {
-                                                        displayStatus = 'not_paid';
-                                                    } else {
-                                                        displayStatus = 'partially_paid';
-                                                    }
-
-                                                    return (
-                                                        <Label variant="soft" color={getStatusColor(displayStatus)}>
-                                                            {displayStatus.replace('_', ' ').toUpperCase()}
-                                                        </Label>
-                                                    );
-                                                })()}
+                                                <Label variant="soft" color={getStatusColor(resolveDisplayStatus(sale))}>
+                                                    {resolveDisplayStatus(sale).replace('_', ' ').toUpperCase()}
+                                                </Label>
                                             </TableCell>
+
                                             <TableCell align="right">
                                                 <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                                                    {sale.total - sale.amountPaid > 0 && (
+                                                    {(sale.amountPending ?? (sale.total - sale.amountPaid)) > 0 && (
                                                         <Button size="small" variant="outlined" onClick={() => handleOpenPaymentModal(sale)}>
                                                             Pay
                                                         </Button>
                                                     )}
-                                                    <IconButton size="small" aria-label="view details" onClick={() => handleOpenDetailsModal(sale)}>
-                                                        <Iconify icon="solar:eye-bold" />
-                                                    </IconButton>
-                                                    <IconButton
-                                                        size="small"
-                                                        aria-label="view receipt"
-                                                        title="Preview Receipt"
-                                                        onClick={() => setReceiptModal({ open: true, saleId: sale._id })}
-                                                    >
-                                                        <Iconify icon="solar:eye-bold" />
-                                                    </IconButton>
+                                                    <Tooltip title="View details">
+                                                        <IconButton size="small" onClick={() => handleOpenDetailsModal(sale)}>
+                                                            <Iconify icon="solar:eye-bold" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Preview receipt">
+                                                        <IconButton size="small" onClick={() => setReceiptModal({ open: true, saleId: sale._id })}>
+                                                            <Iconify icon="solar:receipt-bold" />
+                                                        </IconButton>
+                                                    </Tooltip>
                                                 </Stack>
                                             </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                                            <Typography variant="body1" color="text.secondary">No sales found</Typography>
+                                        <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
+                                            <Typography variant="body1" color="text.secondary">
+                                                {keyword || activeFilterCount > 0 ? 'No sales match your filters' : 'No sales found'}
+                                            </Typography>
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -280,9 +453,9 @@ export function SaleHistoryView() {
                 component="div"
                 count={totalElements}
                 rowsPerPage={rowsPerPage}
-                onPageChange={handleChangePage}
+                onPageChange={(_, p) => setPage(p)}
                 rowsPerPageOptions={[5, 10, 25]}
-                onRowsPerPageChange={handleChangeRowsPerPage}
+                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
             />
 
             {/* Payment modal */}
@@ -291,7 +464,7 @@ export function SaleHistoryView() {
                 <DialogContent dividers>
                     <Stack spacing={3} sx={{ py: 1 }}>
                         <Typography variant="body2" color="text.secondary">
-                            Recording payment for Sale #{selectedSale?.saleNumber || selectedSale?._id.slice(-6).toUpperCase()}
+                            Sale #{selectedSale?.saleNumber || selectedSale?._id.slice(-6).toUpperCase()}
                         </Typography>
                         <TextField
                             fullWidth
@@ -299,7 +472,7 @@ export function SaleHistoryView() {
                             label="Amount"
                             value={paymentAmount}
                             onChange={(e) => setPaymentAmount(Number(e.target.value))}
-                            InputProps={{ startAdornment: <InputAdornment position="start">â‚¦</InputAdornment> }}
+                            InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}
                         />
                         <TextField
                             select
@@ -335,35 +508,47 @@ export function SaleHistoryView() {
                 </DialogActions>
             </Dialog>
 
+            {/* Details modal */}
             <Dialog open={openDetailsModal} onClose={handleCloseDetailsModal} fullWidth maxWidth="md">
-                <DialogTitle>Sale #{selectedSaleDetails?.saleNumber || selectedSaleDetails?._id.slice(-6).toUpperCase()}</DialogTitle>
+                <DialogTitle>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between">
+                        <span>Sale #{selectedSaleDetails?.saleNumber || selectedSaleDetails?._id.slice(-6).toUpperCase()}</span>
+                        {selectedSaleDetails && (
+                            <Tooltip title="Copy full Sale ID">
+                                <Chip
+                                    label={selectedSaleDetails._id}
+                                    size="small"
+                                    icon={<Iconify icon="solar:copy-bold" width={14} />}
+                                    onClick={() => handleCopySaleId(selectedSaleDetails._id)}
+                                    sx={{ fontFamily: 'monospace', fontSize: 11, cursor: 'pointer', maxWidth: 240 }}
+                                />
+                            </Tooltip>
+                        )}
+                    </Stack>
+                </DialogTitle>
                 <DialogContent dividers>
                     {selectedSaleDetails && (
                         <Stack spacing={2}>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="subtitle2">Sale ID:</Typography>
-                                <Typography variant="body2">{selectedSaleDetails._id}</Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="subtitle2">Date:</Typography>
-                                <Typography variant="body2">{fDateTime(selectedSaleDetails.createdAt)}</Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="subtitle2">Customer:</Typography>
-                                <Typography variant="body2">{selectedSaleDetails.customerId?.fullName || selectedSaleDetails.customerId?.name || 'Walk-in'}</Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="subtitle2">Subtotal:</Typography>
-                                <Typography variant="body2">{fCurrency(selectedSaleDetails.subtotal)}</Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="subtitle2">Discount:</Typography>
-                                <Typography variant="body2">{fCurrency(selectedSaleDetails.discountTotal)}</Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="subtitle2">Tax:</Typography>
-                                <Typography variant="body2">{fCurrency(selectedSaleDetails.taxTotal)}</Typography>
-                            </Stack>
+                            {[
+                                { label: 'Date', value: fDateTime(selectedSaleDetails.createdAt) },
+                                {
+                                    label: 'Customer',
+                                    value: selectedSaleDetails.customerName
+                                        || selectedSaleDetails.customerId?.fullName
+                                        || selectedSaleDetails.customerId?.name
+                                        || 'Walk-in'
+                                },
+                                { label: 'Cashier', value: selectedSaleDetails.cashierName || '—' },
+                                { label: 'Payment Method', value: selectedSaleDetails.paymentMethod },
+                                { label: 'Subtotal', value: fCurrency(selectedSaleDetails.subtotal) },
+                                { label: 'Discount', value: fCurrency(selectedSaleDetails.discountTotal) },
+                                { label: 'Tax', value: fCurrency(selectedSaleDetails.taxTotal) },
+                            ].map(({ label, value }) => (
+                                <Stack key={label} direction="row" justifyContent="space-between">
+                                    <Typography variant="subtitle2">{label}:</Typography>
+                                    <Typography variant="body2">{value}</Typography>
+                                </Stack>
+                            ))}
                             <Stack direction="row" justifyContent="space-between">
                                 <Typography variant="h6">Total:</Typography>
                                 <Typography variant="h6">{fCurrency(selectedSaleDetails.total)}</Typography>
@@ -374,30 +559,14 @@ export function SaleHistoryView() {
                             </Stack>
                             <Stack direction="row" justifyContent="space-between">
                                 <Typography variant="subtitle2">Balance:</Typography>
-                                <Typography variant="body2">{fCurrency(selectedSaleDetails.total - selectedSaleDetails.amountPaid)}</Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="subtitle2">Payment Method:</Typography>
-                                <Typography variant="body2">{selectedSaleDetails.paymentMethod}</Typography>
+                                <Typography variant="body2">
+                                    {fCurrency(selectedSaleDetails.amountPending ?? Math.max(0, selectedSaleDetails.total - selectedSaleDetails.amountPaid))}
+                                </Typography>
                             </Stack>
                             <Stack direction="row" justifyContent="space-between">
                                 <Typography variant="subtitle2">Status:</Typography>
-                                <Label
-                                    variant="soft"
-                                    color={getStatusColor(
-                                        selectedSaleDetails.total - selectedSaleDetails.amountPaid === 0
-                                            ? 'completed'
-                                            : selectedSaleDetails.amountPaid === 0
-                                                ? 'not_paid'
-                                                : 'partially_paid'
-                                    )}
-                                >
-                                    {(selectedSaleDetails.total - selectedSaleDetails.amountPaid === 0
-                                        ? 'completed'
-                                        : selectedSaleDetails.amountPaid === 0
-                                            ? 'not_paid'
-                                            : 'partially_paid'
-                                    ).replace('_', ' ').toUpperCase()}
+                                <Label variant="soft" color={getStatusColor(resolveDisplayStatus(selectedSaleDetails))}>
+                                    {resolveDisplayStatus(selectedSaleDetails).replace('_', ' ').toUpperCase()}
                                 </Label>
                             </Stack>
                             {selectedSaleDetails.notes && (
@@ -414,7 +583,7 @@ export function SaleHistoryView() {
                     {selectedSaleDetails && (
                         <Button
                             variant="outlined"
-                            startIcon={<Iconify icon="solar:eye-bold" />}
+                            startIcon={<Iconify icon="solar:receipt-bold" />}
                             onClick={() => {
                                 handleCloseDetailsModal();
                                 setReceiptModal({ open: true, saleId: selectedSaleDetails._id });
@@ -423,7 +592,7 @@ export function SaleHistoryView() {
                             View Receipt
                         </Button>
                     )}
-                    {selectedSaleDetails && selectedSaleDetails.total - selectedSaleDetails.amountPaid > 0 && (
+                    {selectedSaleDetails && (selectedSaleDetails.amountPending ?? (selectedSaleDetails.total - selectedSaleDetails.amountPaid)) > 0 && (
                         <Button
                             variant="contained"
                             onClick={() => {
@@ -439,7 +608,7 @@ export function SaleHistoryView() {
 
             <Snackbar
                 open={snackbar.open}
-                autoHideDuration={4000}
+                autoHideDuration={3000}
                 onClose={() => setSnackbar({ ...snackbar, open: false })}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >

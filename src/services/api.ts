@@ -359,12 +359,13 @@ export const api = {
     cashierId?: string;
     startDate?: string;
     endDate?: string;
+    status?: string;
     page?: number;
     limit?: number;
   }) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) query.append(key, value.toString());
+      if (value !== undefined && value !== '') query.append(key, value.toString());
     });
     return request<any>(`/sales/history?${query.toString()}`);
   },

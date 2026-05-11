@@ -10,6 +10,7 @@ import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
+import Skeleton from '@mui/material/Skeleton';
 import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
 import TableRow from '@mui/material/TableRow';
@@ -314,7 +315,13 @@ export function InventoryView() {
                   </TableHead>
                   <TableBody>
                     {loadingMovements ? (
-                      <TableRow><TableCell colSpan={7} align="center">Loading...</TableCell></TableRow>
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                          {Array.from({ length: 7 }).map((__, j) => (
+                            <TableCell key={j}><Skeleton animation="wave" /></TableCell>
+                          ))}
+                        </TableRow>
+                      ))
                     ) : movements.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
