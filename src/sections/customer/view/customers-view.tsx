@@ -9,6 +9,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
+import Skeleton from '@mui/material/Skeleton';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
 import TableBody from '@mui/material/TableBody';
@@ -251,11 +252,13 @@ export function CustomersView() {
                             </TableHead>
                             <TableBody>
                                 {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                                            <Typography variant="body2" color="text.secondary">Loading customers...</Typography>
-                                        </TableCell>
-                                    </TableRow>
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            {Array.from({ length: 6 }).map((__, j) => (
+                                                <TableCell key={j}><Skeleton animation="wave" /></TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
                                 ) : filteredCustomers.length > 0 ? (
                                     filteredCustomers.map((customer) => (
                                         <TableRow key={customer._id} hover>

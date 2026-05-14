@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 
+import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 
 import { _tasks } from 'src/_mock';
@@ -19,9 +21,11 @@ export function OverviewAnalyticsView() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [categoryPerformance, setCategoryPerformance] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
+      setLoading(true);
       try {
         const fetchPromises: Promise<any>[] = [
           api.getSalesAnalytics(),
@@ -38,6 +42,8 @@ export function OverviewAnalyticsView() {
         }
       } catch (error) {
         console.error('Failed to fetch analytics:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -58,6 +64,37 @@ export function OverviewAnalyticsView() {
   const monthlySalesPercent = analytics
     ? calculatePercent(analytics.last4Months, 'totalAmount')
     : 0;
+
+  if (loading) {
+    return (
+      <DashboardContent maxWidth="xl">
+        <Skeleton variant="text" width={220} height={40} sx={{ mb: { xs: 3, md: 5 } }} />
+        <Grid container spacing={3}>
+          {[0, 1, 2, 3].map((i) => (
+            <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+              <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'background.paper', boxShadow: 1 }}>
+                <Skeleton variant="text" width="60%" height={24} />
+                <Skeleton variant="text" width="40%" height={48} sx={{ my: 1 }} />
+                <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 1 }} />
+              </Box>
+            </Grid>
+          ))}
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+            <Skeleton variant="rectangular" height={380} sx={{ borderRadius: 2 }} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6, lg: 8 }}>
+            <Skeleton variant="rectangular" height={380} sx={{ borderRadius: 2 }} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6, lg: 8 }}>
+            <Skeleton variant="rectangular" height={320} sx={{ borderRadius: 2 }} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+            <Skeleton variant="rectangular" height={320} sx={{ borderRadius: 2 }} />
+          </Grid>
+        </Grid>
+      </DashboardContent>
+    );
+  }
 
   return (
     <DashboardContent maxWidth="xl">

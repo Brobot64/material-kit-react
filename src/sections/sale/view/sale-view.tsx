@@ -86,7 +86,11 @@ export function SaleView() {
   const [totalProducts, setTotalProducts] = useState(0);
 
   const [customers, setCustomers] = useState<any[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerNotes, setCustomerNotes] = useState('');
+  // resolvedCustomer: found existing customer, null = not found yet
+  const [resolvedCustomer, setResolvedCustomer] = useState<any>(null);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'credit'>('cash');
@@ -111,6 +115,39 @@ export function SaleView() {
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
+  // Helpers
+  // Customer model: { _id (Customer), userId: { _id (TajUser), fullName, phone, ... } }
+  const getCustomerDisplayName = (c: any) =>
+    c.userId?.fullName || c.fullName || '';
+  const getCustomerPhone = (c: any) =>
+    c.userId?.phone || c.phone || '';
+  // The sale needs the taj_user._id, not the Customer._id
+  const getCustomerTajUserId = (c: any) =>
+    c.userId?._id?.toString() || c.userId?.toString() || '';
+
+  // Phone-field live lookup — only activates when the Autocomplete hasn't already set a customer
+  useEffect(() => {
+    const phone = customerPhone.replace(/\s/g, '');
+    if (!phone) {
+      // Only clear if nothing was selected via the Autocomplete
+      setResolvedCustomer((prev: any) => {
+        if (!prev) setCustomerName('');
+        return prev;
+      });
+      return;
+    }
+    const found = customers.find(
+      (c) => getCustomerPhone(c).replace(/\s/g, '') === phone
+    );
+    if (found) {
+      setResolvedCustomer(found);
+      setCustomerName(getCustomerDisplayName(found));
+    } else {
+      setResolvedCustomer(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerPhone, customers]);
+
   const fetchProducts = useCallback(async () => {
     if (!selectedOutletId) return;
     setLoadingProducts(true);
@@ -124,7 +161,7 @@ export function SaleView() {
       const productsData = response?.results || response?.data || (Array.isArray(response) ? response : []);
       setProducts(productsData);
       setTotalProducts(response?.pagination?.total || productsData.length);
-    } catch (error) {
+    } catch {
       setSnackbar({ open: true, message: 'Failed to fetch products', severity: 'error' });
     } finally {
       setLoadingProducts(false);
@@ -231,8 +268,9 @@ export function SaleView() {
       setSnackbar({ open: true, message: 'Cart is empty', severity: 'error' });
       return;
     }
-    if (amountPaid < total && !selectedCustomer) {
-      setSnackbar({ open: true, message: 'Select a customer for partial/credit sales', severity: 'error' });
+    const hasCustomer = !!resolvedCustomer || (!!customerPhone && !!customerName);
+    if (amountPaid < total && !hasCustomer) {
+      setSnackbar({ open: true, message: 'Add customer details for partial/credit sales', severity: 'error' });
       return;
     }
 
@@ -246,6 +284,22 @@ export function SaleView() {
 
     setIsSubmitting(true);
     try {
+      // Resolve customer: use existing (taj_user._id) or create new
+      let customerId: string | undefined = resolvedCustomer
+        ? getCustomerTajUserId(resolvedCustomer)
+        : undefined;
+
+      if (!customerId && customerPhone && customerName) {
+        // onboardCustomer returns { user: { id, fullName, phone }, customer, account }
+        const created = await api.createCustomer({
+          fullName: customerName,
+          phone: customerPhone,
+          notes: customerNotes || undefined,
+        });
+        customerId = created?.user?.id || created?.data?.user?.id;
+        await fetchCustomers();
+      }
+
       await api.createSale({
         businessId: appData?.businessId,
         outletId: selectedOutletId,
@@ -259,13 +313,16 @@ export function SaleView() {
         })),
         paymentMethod,
         amountPaid,
-        customerId: selectedCustomer?._id || undefined,
+        customerId,
         notes,
       });
       setSnackbar({ open: true, message: 'Sale recorded successfully', severity: 'success' });
       setCart([]);
       setAmountPaid(0);
-      setSelectedCustomer(null);
+      setCustomerPhone('');
+      setCustomerName('');
+      setCustomerNotes('');
+      setResolvedCustomer(null);
       setNotes('');
       fetchProducts();
     } catch (error: any) {
@@ -535,27 +592,126 @@ export function SaleView() {
                 }}
               />
 
-              {(paymentMethod === 'credit' || amountPaid < total) && (
-                <Autocomplete
-                  fullWidth
-                  size="small"
-                  options={customers}
-                  getOptionLabel={(option) => {
-                    const name = option.fullName || option.userId?.fullName || 'Unknown';
-                    const phone = option.phone || option.userId?.phone || '';
-                    return phone ? `${name} (${phone})` : name;
-                  }}
-                  value={selectedCustomer}
-                  onChange={(_, newValue) => setSelectedCustomer(newValue)}
-                  renderInput={(params) => (
+              {/* Customer — always visible, required for partial/credit */}
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    Customer {amountPaid < total ? '(Required)' : '(Optional)'}
+                  </Typography>
+                  {resolvedCustomer && (
+                    <Typography
+                      variant="caption"
+                      color="error"
+                      sx={{ cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => {
+                        setResolvedCustomer(null);
+                        setCustomerPhone('');
+                        setCustomerName('');
+                        setCustomerNotes('');
+                      }}
+                    >
+                      Clear
+                    </Typography>
+                  )}
+                </Stack>
+
+                <Stack spacing={1.5}>
+                  {/* Primary: phone lookup */}
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Phone Number"
+                    value={customerPhone}
+                    onChange={(e) => {
+                      setCustomerPhone(e.target.value);
+                      // If user edits phone manually, unpin the autocomplete selection
+                      if (resolvedCustomer && getCustomerPhone(resolvedCustomer).replace(/\s/g, '') !== e.target.value.replace(/\s/g, '')) {
+                        setResolvedCustomer(null);
+                        setCustomerName('');
+                      }
+                    }}
+                    InputProps={{
+                      endAdornment: resolvedCustomer ? (
+                        <InputAdornment position="end">
+                          <Iconify icon="eva:checkmark-circle-2-fill" sx={{ color: 'success.main' }} width={18} />
+                        </InputAdornment>
+                      ) : null,
+                    }}
+                    helperText={
+                      resolvedCustomer
+                        ? `Existing customer found`
+                        : customerPhone
+                          ? 'No match — fill name below to create'
+                          : ''
+                    }
+                    FormHelperTextProps={{
+                      sx: { color: resolvedCustomer ? 'success.main' : 'warning.main' },
+                    }}
+                  />
+
+                  {/* Secondary: Autocomplete search by name or phone */}
+                  <Autocomplete
+                    fullWidth
+                    size="small"
+                    options={customers}
+                    value={resolvedCustomer}
+                    onChange={(_, selected) => {
+                      if (selected) {
+                        setResolvedCustomer(selected);
+                        setCustomerPhone(getCustomerPhone(selected));
+                        setCustomerName(getCustomerDisplayName(selected));
+                      } else {
+                        setResolvedCustomer(null);
+                        setCustomerPhone('');
+                        setCustomerName('');
+                      }
+                    }}
+                    getOptionLabel={(option) => {
+                      const name = getCustomerDisplayName(option);
+                      const phone = getCustomerPhone(option);
+                      return phone ? `${name} (${phone})` : name;
+                    }}
+                    filterOptions={(options, { inputValue }) => {
+                      const q = inputValue.toLowerCase();
+                      return options.filter((c) => {
+                        const name = getCustomerDisplayName(c).toLowerCase();
+                        const phone = getCustomerPhone(c).replace(/\s/g, '');
+                        return name.includes(q) || phone.includes(q.replace(/\s/g, ''));
+                      });
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Search by name or phone"
+                        placeholder="Type to search existing customers…"
+                      />
+                    )}
+                  />
+
+                  {/* Name — auto-filled from lookup, editable only for new customers */}
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Full Name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    disabled={!!resolvedCustomer}
+                    placeholder={resolvedCustomer ? '' : 'Enter name for new customer'}
+                  />
+
+                  {/* Notes — only for new customers */}
+                  {!resolvedCustomer && (
                     <TextField
-                      {...params}
-                      label="Customer"
-                      helperText="Required for credit/partial sales"
+                      fullWidth
+                      size="small"
+                      label="Notes (optional)"
+                      value={customerNotes}
+                      onChange={(e) => setCustomerNotes(e.target.value)}
+                      placeholder="Internal notes about this customer"
                     />
                   )}
-                />
-              )}
+                </Stack>
+              </Box>
 
               <TextField
                 fullWidth
