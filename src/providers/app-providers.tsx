@@ -12,12 +12,10 @@ type AppProvidersProps = {
 };
 
 function InnerProviders({ children }: AppProvidersProps) {
-  const { accessToken } = useAuth();
+  const { appData } = useAuth();
 
   return (
-    <SocketProvider
-      token={accessToken}
-    >
+    <SocketProvider businessId={appData?.businessId ?? null}>
       <NotificationProvider>
         {children}
       </NotificationProvider>

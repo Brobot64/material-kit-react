@@ -8,9 +8,25 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
 
 // ----------------------------------------------------------------------
 
+/** Prefer the Clerk session JWT; fall back to a legacy token during migration. */
+async function getAuthToken(): Promise<string | null> {
+  const clerk = (
+    globalThis as { Clerk?: { session?: { getToken(): Promise<string | null> } } }
+  ).Clerk;
+  if (clerk?.session) {
+    try {
+      const token = await clerk.session.getToken();
+      if (token) return token;
+    } catch {
+      /* fall through to legacy token */
+    }
+  }
+  return localStorage.getItem('accessToken');
+}
+
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  const token = localStorage.getItem('accessToken');
+  const token = await getAuthToken();
 
   const isFormData = options?.body instanceof FormData;
 
@@ -525,7 +541,7 @@ export const api = {
   getReceiptData: (saleId: string, businessId: string) =>
     request<{ data: any }>(`/sales/${saleId}/receipt?businessId=${businessId}`),
   downloadReceiptPdf: async (saleId: string, businessId: string): Promise<void> => {
-    const token = localStorage.getItem('accessToken');
+    const token = await getAuthToken();
     const url = `${API_BASE_URL}/sales/${saleId}/receipt/pdf?businessId=${businessId}`;
     const res = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
