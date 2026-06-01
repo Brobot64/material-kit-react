@@ -145,7 +145,7 @@ export function SaleView() {
     } else {
       setResolvedCustomer(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [customerPhone, customers]);
 
   const fetchProducts = useCallback(async () => {

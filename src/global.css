@@ -130,6 +130,72 @@
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
 }
 
+/* ======================================
+ * Reveal animation
+ * ====================================== */
+body.ready-to-animate .reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+body.ready-to-animate .reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ======================================
+ * Marquee (infinite scroll)
+ * ====================================== */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes marqueeReverse {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+.animate-marquee         { animation: marquee        40s linear infinite; }
+.animate-marquee-fast    { animation: marquee        25s linear infinite; }
+.animate-marquee-reverse { animation: marqueeReverse 40s linear infinite; }
+
+/* ======================================
+ * Chart bar grow
+ * ====================================== */
+@keyframes growBar {
+  from { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+  to   { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+}
+.chart-bar { animation: growBar 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ======================================
+ * Scroll indicator dot
+ * ====================================== */
+@keyframes scrollDot {
+  0%,100% { transform: translateY(0);   opacity: 0.5; }
+  50%      { transform: translateY(6px); opacity: 1; }
+}
+.animate-scroll-dot { animation: scrollDot 2s ease-in-out infinite; }
+
+/* ======================================
+ * Lime gradient text
+ * ====================================== */
+.gradient-text-lime {
+  background: linear-gradient(135deg, #a3e635 0%, #84cc16 60%, #65a30d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ======================================
+ * Landing glow pulses
+ * ====================================== */
+@keyframes orbPulse {
+  0%,100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 0.6;  transform: scale(1.05); }
+}
+.animate-orb { animation: orbPulse 8s ease-in-out infinite; }
+.animate-orb-delay { animation: orbPulse 8s ease-in-out 4s infinite; }
+
 /** **************************************
 * Baseline
 *************************************** */
