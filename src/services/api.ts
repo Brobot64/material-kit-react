@@ -115,6 +115,14 @@ export const api = {
       method: 'POST',
     }),
 
+  // Businesses (v2 onboarding)
+  createBusiness: (data: { name: string; currency?: string; outletName?: string }) =>
+    request<{ businessId: string; outletId: string; accountsCreated: number }>('/businesses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getMyBusinesses: () => request<{ businesses: any[] }>('/businesses'),
+
   // Teams
   getTeams: () => request<{ teams: any[] }>('/teams'),
   getTeam: (id: string) => request<{ team: any }>(`/teams/${id}`),

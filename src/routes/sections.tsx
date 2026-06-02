@@ -10,7 +10,7 @@ import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgr
 import { AuthLayout } from 'src/layouts/auth';
 import { DashboardLayout } from 'src/layouts/dashboard';
 
-import { AuthGuard, GuestGuard, SubscriptionGuard } from './components';
+import { AuthGuard, GuestGuard, BusinessGuard, SubscriptionGuard } from './components';
 
 // ----------------------------------------------------------------------
 
@@ -24,6 +24,7 @@ export const ProductListPage = lazy(() => import('src/pages/product-list'));
 export const CategoriesPage = lazy(() => import('src/pages/categories'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const SignUpPage = lazy(() => import('src/pages/sign-up'));
+export const OnboardingPage = lazy(() => import('src/pages/onboarding'));
 export const ForgotPasswordPage = lazy(() => import('src/pages/auth/forgot-password'));
 export const ResetPasswordPage = lazy(() => import('src/pages/auth/reset-password'));
 export const ChangePasswordPage = lazy(() => import('src/pages/auth/change-password'));
@@ -83,13 +84,15 @@ export const routesSection: RouteObject[] = [
     path: 'app',
     element: (
       <AuthGuard>
-        <SubscriptionGuard>
-          <DashboardLayout>
-            <Suspense fallback={renderFallback()}>
-              <Outlet />
-            </Suspense>
-          </DashboardLayout>
-        </SubscriptionGuard>
+        <BusinessGuard>
+          <SubscriptionGuard>
+            <DashboardLayout>
+              <Suspense fallback={renderFallback()}>
+                <Outlet />
+              </Suspense>
+            </DashboardLayout>
+          </SubscriptionGuard>
+        </BusinessGuard>
       </AuthGuard>
     ),
     children: [
@@ -189,6 +192,16 @@ export const routesSection: RouteObject[] = [
       <AuthLayout>
         <VerifyOtpPage />
       </AuthLayout>
+    ),
+  },
+  {
+    path: 'onboarding',
+    element: (
+      <AuthGuard>
+        <Suspense fallback={renderFallback()}>
+          <OnboardingPage />
+        </Suspense>
+      </AuthGuard>
     ),
   },
   {
