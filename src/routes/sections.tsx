@@ -48,6 +48,7 @@ export const NotificationsPage = lazy(() => import('src/pages/notifications'));
 export const BargainingAnalyticsPage = lazy(() => import('src/pages/bargaining-analytics'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const HomePage = lazy(() => import('src/pages/home-page'));
+export const ClerkTestPage = lazy(() => import('src/pages/clerk-test'));
 
 const renderFallback = () => (
   <Box
@@ -188,6 +189,14 @@ export const routesSection: RouteObject[] = [
       <AuthLayout>
         <VerifyOtpPage />
       </AuthLayout>
+    ),
+  },
+  {
+    path: 'clerk-test',
+    element: (
+      <Suspense fallback={renderFallback()}>
+        <ClerkTestPage />
+      </Suspense>
     ),
   },
   {
