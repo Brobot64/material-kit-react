@@ -248,32 +248,40 @@ export const api = {
   },
 
   // Products
-  getProducts: (params: {
+  getProducts: async (_params: {
     businessId: string;
     page?: number;
     limit?: number;
     includeVariants?: boolean;
-  }) => {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) query.append(key, value.toString());
-    });
-    return request<{ data: any[]; pagination: any }>(`/products?${query.toString()}`);
+  }): Promise<{ data: any[]; pagination: any }> => {
+    const res = await request<{ products: any[] }>('/products');
+    const data = res.products ?? [];
+    return {
+      data,
+      pagination: { page: 1, limit: data.length, total: data.length, totalPages: 1 },
+    };
   },
 
   // Categories
-  getCategories: (businessId: string) => request<Category[]>(`/categories?businessId=${businessId}`),
-  addCategory: (data: {
+  getCategories: async (_businessId: string): Promise<Category[]> => {
+    const res = await request<{ categories: Category[] }>('/categories');
+    return res.categories ?? [];
+  },
+  addCategory: async (data: {
     businessId: string;
     name: string;
     description?: string;
     parentId?: string;
-  }) => {
-    const query = new URLSearchParams({ businessId: data.businessId });
-    return request<Category>(`/categories?${query.toString()}`, {
+  }): Promise<Category> => {
+    const res = await request<{ category: Category }>('/categories', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        name: data.name,
+        description: data.description,
+        parentId: data.parentId,
+      }),
     });
+    return res.category;
   },
   updateCategory: (
     id: string,
@@ -289,7 +297,7 @@ export const api = {
   updateProduct: (id: string, data: any) =>
     request<any>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProduct: (id: string) => request<any>(`/products/${id}`, { method: 'DELETE' }),
-  addProduct: (data: {
+  addProduct: async (data: {
     businessId: string;
     outletId: string;
     name: string;
@@ -303,7 +311,13 @@ export const api = {
     hasVariants: boolean;
     images?: string[];
     isActive: boolean;
-  }) => request<any>('/products', { method: 'POST', body: JSON.stringify(data) }),
+  }): Promise<any> => {
+    const res = await request<{ product: any }>('/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.product;
+  },
   getVariants: (productId: string) => request<any[]>(`/products/variants/${productId}`),
   addVariant: (
     productId: string,
