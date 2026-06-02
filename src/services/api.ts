@@ -414,8 +414,13 @@ export const api = {
     return request<any>(`/product-outlets/outlet/${outletId}${queryString ? `?${queryString}` : ''}`);
   },
   // unitPrice is the negotiated price per line — this is the correct field name (was 'price', now 'unitPrice')
-  createSale: (data: CreateSalePayload) =>
-    request<{ data: Sale }>('/sales', { method: 'POST', body: JSON.stringify(data) }),
+  createSale: async (data: CreateSalePayload): Promise<{ data: Sale }> => {
+    const result = await request<any>('/sales', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return { data: result as Sale };
+  },
   addSalePayment: (saleId: string, data: { amount: number; paymentMethod: string; notes?: string }) =>
     request<any>(`/sales/${saleId}/payments`, { method: 'POST', body: JSON.stringify(data) }),
   getSalesHistory: (params: {
@@ -557,9 +562,15 @@ export const api = {
     quantity: number;
     unitCost: number;
     notes?: string;
-  }) => request<any>('/stock/movements', {
+  }) => request<any>('/stock/receive', {
     method: 'POST',
-    body: JSON.stringify({ ...data, type: 'purchase', totalCost: data.quantity * data.unitCost }),
+    body: JSON.stringify({
+      productId: data.productId,
+      outletId: data.outletId,
+      quantity: data.quantity,
+      unitCost: data.unitCost,
+      notes: data.notes,
+    }),
   }),
   adjustStock: (data: {
     businessId: string;
@@ -569,7 +580,17 @@ export const api = {
     type: 'adjustment' | 'damage';
     reasonCode: string;
     notes?: string;
-  }) => request<any>('/stock/movements', { method: 'POST', body: JSON.stringify(data) }),
+  }) =>
+    request<any>('/stock/adjust', {
+      method: 'POST',
+      body: JSON.stringify({
+        productId: data.productId,
+        outletId: data.outletId,
+        delta: data.type === 'damage' ? -Math.abs(data.quantity) : data.quantity,
+        reasonCode: data.reasonCode,
+        notes: data.notes,
+      }),
+    }),
   getStockMovements: (params: {
     businessId?: string;
     outletId?: string;
