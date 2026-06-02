@@ -1,6 +1,6 @@
-import { Helmet } from 'src/components/helmet';
+import { SignUp } from '@clerk/react';
 
-import { SignUpView } from 'src/sections/auth';
+import { Helmet } from 'src/components/helmet';
 
 // ----------------------------------------------------------------------
 
@@ -12,7 +12,9 @@ export default function Page() {
         description="Join Tajarah today. Create an account to start managing your business outlets, inventory, and sales effectively."
       />
 
-      <SignUpView />
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+        <SignUp routing="hash" signInUrl="/sign-in" />
+      </div>
     </>
   );
 }

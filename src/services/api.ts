@@ -27,11 +27,13 @@ async function getAuthToken(): Promise<string | null> {
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = await getAuthToken();
+  const activeBusinessId = localStorage.getItem('activeBusinessId');
 
   const isFormData = options?.body instanceof FormData;
 
   const headers: HeadersInit = {
     ...(token && { Authorization: `Bearer ${token}` }),
+    ...(activeBusinessId && { 'X-Business-Id': activeBusinessId }),
     ...options?.headers,
   };
 
