@@ -184,8 +184,11 @@ export const api = {
   markAllNotificationsAsRead: () => request('/notifications/read-all', { method: 'PATCH' }),
 
   // Outlets
-  getOutlets: (businessId: string) => request<any[]>(`/outlets?businessId=${businessId}`),
-  createOutlet: (data: {
+  getOutlets: async (_businessId: string): Promise<any[]> => {
+    const res = await request<{ outlets: any[] }>('/outlets');
+    return res.outlets ?? [];
+  },
+  createOutlet: async (data: {
     name: string;
     address?: {
       street: string;
@@ -196,7 +199,13 @@ export const api = {
     phone?: string;
     businessId: string;
     isMain?: boolean;
-  }) => request<any>('/outlets', { method: 'POST', body: JSON.stringify(data) }),
+  }): Promise<any> => {
+    const res = await request<{ outlet: any }>('/outlets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.outlet;
+  },
 
   // Reporting
   getSalesAnalytics: () => request<any>('/reporting/dashboard/sales'),
@@ -293,9 +302,17 @@ export const api = {
     }
   ) => request<Category>(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  getProduct: (id: string) => request<any>(`/products/${id}`),
-  updateProduct: (id: string, data: any) =>
-    request<any>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  getProduct: async (id: string): Promise<any> => {
+    const res = await request<{ product: any }>(`/products/${id}`);
+    return res.product;
+  },
+  updateProduct: async (id: string, data: any): Promise<any> => {
+    const res = await request<{ product: any }>(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return res.product;
+  },
   deleteProduct: (id: string) => request<any>(`/products/${id}`, { method: 'DELETE' }),
   addProduct: async (data: {
     businessId: string;
@@ -333,8 +350,15 @@ export const api = {
     }
   ) =>
     request<any>(`/products/variants/${productId}`, { method: 'POST', body: JSON.stringify(data) }),
-  assignProductToOutlet: (data: AssignProductToOutletPayload) =>
-    request<any>('/product-outlets/assign', { method: 'POST', body: JSON.stringify(data) }),
+  assignProductToOutlet: async (
+    data: AssignProductToOutletPayload
+  ): Promise<any> => {
+    const res = await request<{ productOutlet: any }>('/product-outlets/assign', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.productOutlet;
+  },
   updateProductOutlet: (productId: string, outletId: string, data: any) =>
     request<any>(`/product-outlets/${productId}/${outletId}`, {
       method: 'PUT',
