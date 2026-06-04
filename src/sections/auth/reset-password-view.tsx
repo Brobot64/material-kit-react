@@ -7,6 +7,7 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import LoadingButton from '@mui/lab/LoadingButton';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
@@ -122,16 +123,16 @@ export function ResetPasswordView() {
         }}
       />
 
-      <Button
+      <LoadingButton
         fullWidth
         size="large"
         type="submit"
         variant="contained"
         color="inherit"
-        disabled={loading}
+        loading={loading}
       >
         Reset Password
-      </Button>
+      </LoadingButton>
 
       <Button
         fullWidth

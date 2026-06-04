@@ -45,6 +45,7 @@ export const StocktakePage = lazy(() => import('src/pages/stocktake'));
 export const ReceiptTemplatePage = lazy(() => import('src/pages/receipt-template'));
 export const BusinessSettingsPage = lazy(() => import('src/pages/business-settings'));
 export const NotificationsPage = lazy(() => import('src/pages/notifications'));
+export const AuditLogsPage = lazy(() => import('src/pages/audit-logs'));
 export const BargainingAnalyticsPage = lazy(() => import('src/pages/bargaining-analytics'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const HomePage = lazy(() => import('src/pages/home-page'));
@@ -115,6 +116,7 @@ export const routesSection: RouteObject[] = [
       { path: 'receipt-template', element: <ReceiptTemplatePage /> },
       { path: 'settings', element: <BusinessSettingsPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
+      { path: 'audit-logs', element: <AuditLogsPage /> },
     ],
   },
   {

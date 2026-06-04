@@ -101,6 +101,12 @@ export const navData: NavItem[] = [
     icon: icon('ic-analytics'),
     roles: ['owner', 'system_admin'],
   },
+  {
+    title: 'Audit Trail',
+    path: '/app/audit-logs',
+    icon: icon('ic-blog'),
+    roles: ['owner', 'outlet_admin', 'store_executive', 'system_admin'],
+  },
 ];
 
 export function getNavForRole(role: string | undefined): NavItem[] {

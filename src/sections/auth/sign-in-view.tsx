@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
+import Button from '@mui/lab/LoadingButton';
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';

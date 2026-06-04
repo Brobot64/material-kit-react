@@ -27,10 +27,26 @@ type SocketProviderProps = {
   serverUrl?: string;
 };
 
+// Resolve the realtime server origin. In v1 the Socket.IO server runs on the SAME host/port
+// as the REST API, so derive it from VITE_API_URL (stripping the "/v1" path). This avoids
+// accidentally pointing at a stale VITE_SOCKET_URL (e.g. a previous deployment host).
+function resolveSocketUrl(): string {
+  const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (apiUrl) {
+    try {
+      return new URL(apiUrl).origin;
+    } catch {
+      /* fall through to other options */
+    }
+  }
+  const explicit = import.meta.env.VITE_SOCKET_URL as string | undefined;
+  return explicit || 'http://localhost:4000';
+}
+
 export function SocketProvider({
   children,
   token,
-  serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000',
+  serverUrl = resolveSocketUrl(),
 }: SocketProviderProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -40,22 +56,38 @@ export function SocketProvider({
     if (!token) return undefined;
 
     const newSocket = io(serverUrl, {
+      // Backend accepts "Bearer <jwt>" (and strips it); query is a fallback for some proxies.
       auth: { token: `Bearer ${token}` },
-      transports: ['websocket'],
+      query: { token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     newSocket.on('connect', () => {
       setIsConnected(true);
-      console.log('Socket connected');
+      console.log('[socket] connected', newSocket.id, '->', serverUrl);
     });
 
     newSocket.on('connected', (data) => {
-      console.log('Successfully connected to real-time service', data);
+      console.log('[socket] joined realtime rooms', data);
     });
 
-    newSocket.on('disconnect', () => {
+    newSocket.on('connect_error', (err: Error) => {
       setIsConnected(false);
-      console.log('Socket disconnected');
+      console.error(`[socket] connect_error: ${err.message} (url: ${serverUrl})`);
+    });
+
+    newSocket.io.on('reconnect', (attempt: number) => {
+      console.log('[socket] reconnected after', attempt, 'attempt(s)');
+    });
+
+    newSocket.on('disconnect', (reason: string) => {
+      setIsConnected(false);
+      console.log('[socket] disconnected:', reason);
     });
 
     newSocket.on('message', (message: ChatMessage) => {

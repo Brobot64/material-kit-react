@@ -505,6 +505,7 @@ export const api = {
     type: 'adjustment' | 'damage';
     reasonCode: string;
     notes?: string;
+    unitCost?: any;
   }) => request<any>('/stock/movements', { method: 'POST', body: JSON.stringify(data) }),
   getStockMovements: (params: {
     businessId?: string;
