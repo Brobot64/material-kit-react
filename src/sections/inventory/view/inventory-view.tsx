@@ -23,6 +23,7 @@ import InputLabel from '@mui/material/InputLabel';
 import LoadingButton from '@mui/lab/LoadingButton';
 import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
@@ -101,6 +102,7 @@ export function InventoryView() {
     type: 'adjustment' as 'adjustment' | 'damage',
     reasonCode: '',
     notes: '',
+    unitCost: 0,
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -174,10 +176,11 @@ export function InventoryView() {
         type: adjustForm.type,
         reasonCode: adjustForm.reasonCode,
         notes: adjustForm.notes,
+        unitCost: adjustForm.unitCost,
       });
       setSnackbar({ open: true, message: 'Stock adjusted successfully', severity: 'success' });
       setAdjustOpen(false);
-      setAdjustForm({ productId: '', quantity: 0, type: 'adjustment', reasonCode: '', notes: '' });
+      setAdjustForm({ productId: '', quantity: 0, type: 'adjustment', reasonCode: '', notes: '', unitCost: 0 });
       fetchMovements();
       fetchProducts();
     } catch (error: any) {
@@ -436,18 +439,44 @@ export function InventoryView() {
         <DialogTitle>Adjust Stock</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 1 }}>
-            <TextField
-              select fullWidth required
-              label="Product"
-              value={adjustForm.productId}
-              onChange={(e) => setAdjustForm({ ...adjustForm, productId: e.target.value })}
-            >
-              {products.map((p) => (
-                <MenuItem key={p._id || p.productId?._id} value={p._id || p.productId?._id}>
-                  {p.name || p.productId?.name}
-                </MenuItem>
-              ))}
-            </TextField>
+
+            <Autocomplete
+              fullWidth
+              options={products}
+              getOptionLabel={(option) => option.name || option.productId?.name || ""}
+
+              isOptionEqualToValue={(option, value) => {
+                const optionId = option._id || option.productId?._id;
+                const valueId = value._id || value.productId?._id;
+                return optionId === valueId;
+              }}
+
+              value={
+                products.find((p) => {
+                  const id = p._id || p.productId?._id;
+                  return id === adjustForm.productId;
+                }) || null
+              }
+
+              onChange={(event, newValue) => {
+                const selectedId = newValue ? (newValue._id || newValue.productId?._id) : '';
+                setAdjustForm({
+                  ...adjustForm,
+                  productId: selectedId,
+                  unitCost: newValue ? (newValue.floorPrice ?? newValue.price ?? 0) : 0, // prefill unit cost if product selected
+                });
+
+              }}
+
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Product"
+                  required
+                />
+              )}
+            />
+
             <TextField
               select fullWidth
               label="Adjustment Type"
@@ -457,19 +486,46 @@ export function InventoryView() {
               <MenuItem value="adjustment">Manual Adjustment</MenuItem>
               <MenuItem value="damage">Damage / Write-off</MenuItem>
             </TextField>
+
             <NumericInput
-              fullWidth required
+              fullWidth
               label="Quantity Change (positive = add, negative = remove)"
               value={adjustForm.quantity}
               onChangeValue={(val) => setAdjustForm({ ...adjustForm, quantity: val })}
             />
-            <TextField
+
+            <NumericInput
+              fullWidth
+              label="Unit Cost (₦)"
+              value={adjustForm.unitCost}
+              onChangeValue={(val) => setAdjustForm({ ...adjustForm, unitCost: val })}
+              InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}
+            />
+
+            {/* <TextField
               fullWidth required
               label="Reason Code"
               placeholder="e.g. DAMAGED, EXPIRED, COUNT_CORRECTION"
               value={adjustForm.reasonCode}
               onChange={(e) => setAdjustForm({ ...adjustForm, reasonCode: e.target.value })}
-            />
+            /> */}
+
+            <TextField
+              select
+              fullWidth
+              required
+              label="Reason Code"
+              value={adjustForm.reasonCode}
+              onChange={(e) => setAdjustForm({ ...adjustForm, reasonCode: e.target.value })}
+            >
+              {Object.keys(MOVEMENT_TYPE_COLOR).map((key) => (
+                <MenuItem key={key} value={key}>
+                  {/* This formats 'transfer_in' to 'TRANSFER IN' for better readability */}
+                  {key.replace('_', ' ').toUpperCase()}
+                </MenuItem>
+              ))}
+            </TextField>
+
             <TextField
               fullWidth multiline rows={2}
               label="Notes"

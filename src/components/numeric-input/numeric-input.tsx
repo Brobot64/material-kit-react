@@ -44,11 +44,15 @@ export function NumericInput({ value, onChangeValue, onFocus, onBlur, ...other }
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value.replace(/,/g, '');
     
-    // Allow non-negative numbers (including decimals)
-    if (rawValue === '' || /^\d*\.?\d*$/.test(rawValue)) {
+    // CHANGED: Added '-?' to the regex to allow an optional leading negative sign
+    if (rawValue === '' || /^-?\d*\.?\d*$/.test(rawValue)) {
       setInputValue(rawValue);
       
-      const numericValue = rawValue === '' || rawValue === '.' ? 0 : parseFloat(rawValue);
+      // CHANGED: Treat incomplete typing states (like just '-', '.', or '-.') as 0 
+      // so we don't pass NaN up to the parent component.
+      const isIncomplete = rawValue === '' || rawValue === '-' || rawValue === '.' || rawValue === '-.';
+      const numericValue = isIncomplete ? 0 : parseFloat(rawValue);
+      
       if (onChangeValue) {
         onChangeValue(numericValue);
       }
