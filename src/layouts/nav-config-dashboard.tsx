@@ -28,13 +28,13 @@ export const navData: NavItem[] = [
   {
     title: 'Bargaining Analytics',
     path: '/app/bargaining-analytics',
-    icon: icon('ic-analytics'),
+    icon: icon('ic-ecommerce'),
     roles: ['owner', 'outlet_admin', 'system_admin'],
   },
   {
     title: 'Outlets',
     path: '/app/outlets',
-    icon: icon('ic-analytics'),
+    icon: icon('ic-banking'),
     roles: ['owner', 'system_admin'],
   },
   {
@@ -46,13 +46,13 @@ export const navData: NavItem[] = [
   {
     title: 'Products',
     path: '/app/products',
-    icon: icon('ic-cart'),
+    icon: icon('ic-kanban'),
     roles: ['owner', 'outlet_admin', 'store_executive', 'system_admin'],
   },
   {
     title: 'Inventory',
     path: '/app/inventory',
-    icon: icon('ic-order'),
+    icon: icon('ic-file'),
     roles: ['owner', 'outlet_admin', 'store_executive'],
   },
   {
@@ -86,13 +86,13 @@ export const navData: NavItem[] = [
   {
     title: 'Stocktake',
     path: '/app/stocktake',
-    icon: icon('ic-order'),
+    icon: icon('ic-course'),
     roles: ['owner', 'outlet_admin', 'store_executive'],
   },
   {
     title: 'Receipt Template',
     path: '/app/receipt-template',
-    icon: icon('ic-blog'),
+    icon: icon('ic-invoice'),
     roles: ['owner', 'system_admin'],
   },
   {
