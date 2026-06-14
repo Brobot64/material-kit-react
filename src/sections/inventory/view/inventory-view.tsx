@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
@@ -46,7 +46,7 @@ import { NumericInput } from 'src/components/numeric-input';
 
 // ----------------------------------------------------------------------
 
-const MOVEMENT_TYPE_COLOR: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
+const MOVEMENT_TYPE_COLOR: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {       
   purchase: 'success',
   sale: 'error',
   transfer_in: 'info',
@@ -60,108 +60,104 @@ const MOVEMENT_TYPE_COLOR: Record<string, 'success' | 'error' | 'warning' | 'inf
 export function InventoryView() {
   const { outlets, appData } = useAuth();
   const isOwner = appData?.role === 'owner';
-  const isStoreExec = appData?.role === 'outlet_admin' || appData?.role === 'store_executive';
   const assignedOutletId = appData?.outletId;
   const businessId = appData?.businessId;
+  
+  const enableExpiry = useMemo(() => 
+    Boolean(appData?.businessSettings?.features?.enableExpiryTracking), 
+    [appData?.businessSettings?.features?.enableExpiryTracking]
+  );
 
   const [tab, setTab] = useState(0);
-  const [selectedOutletId, setSelectedOutletId] = useState(
-    isOwner ? (outlets[0]?.id || '') : (assignedOutletId || '')
-  );
+  const [selectedOutletId, setSelectedOutletId] = useState('');
 
   useEffect(() => {
     if (outlets.length > 0 && !selectedOutletId) {
-      setSelectedOutletId(isOwner ? outlets[0].id : (assignedOutletId || outlets[0].id));
+      const initialId = assignedOutletId || outlets[0].id || outlets[0]._id;
+      if (initialId) setSelectedOutletId(initialId);
     }
-  }, [outlets, selectedOutletId, isOwner, assignedOutletId]);
+  }, [outlets, assignedOutletId, selectedOutletId]);
 
-  // Stock movements list
+  // Stock movements pagination
   const [movements, setMovements] = useState<any[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [movPage, setMovPage] = useState(0);
   const [movLimit, setMovLimit] = useState(10);
   const [movTotal, setMovTotal] = useState(0);
 
-  // Products for outlet (for receive/adjust)
+  // Stock levels (ProductOutlet) pagination
   const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [prodPage, setProdPage] = useState(0);
+  const [prodLimit, setProdLimit] = useState(10);
+  const [prodTotal, setProdTotal] = useState(0);
 
-  // Receive stock dialog
+  // Dialog states
   const [receiveOpen, setReceiveOpen] = useState(false);
-  const [receiveForm, setReceiveForm] = useState({
-    productId: '',
-    quantity: 0,
-    unitCost: 0,
-    notes: '',
-  });
+  const [receiveForm, setReceiveForm] = useState({ productId: '', quantity: 0, unitCost: 0, notes: '', expiryDate: '' });
 
-  // Adjust stock dialog
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustForm, setAdjustForm] = useState({
-    productId: '',
-    quantity: 0,
-    type: 'adjustment' as 'adjustment' | 'damage',
-    reasonCode: '',
-    notes: '',
-    unitCost: 0,
+    productId: '', quantity: 0, type: 'adjustment' as 'adjustment' | 'damage',
+    reasonCode: '', notes: '', unitCost: 0,
   });
 
   const [submitting, setSubmitting] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });     
 
   const fetchMovements = useCallback(async () => {
     if (!businessId) return;
     setLoadingMovements(true);
     try {
-      const response = await api.getStockMovements({
-        businessId,
-        outletId: selectedOutletId || undefined,
-        page: movPage + 1,
-        limit: movLimit,
+      const res = await api.getStockMovements({
+        businessId, outletId: selectedOutletId || undefined,
+        page: movPage + 1, limit: movLimit,
       });
-      setMovements(response.data || []);
-      setMovTotal(response.pagination?.total || 0);
+      setMovements(res.data || []);
+      setMovTotal(res.pagination?.total || 0);
     } catch {
       setSnackbar({ open: true, message: 'Failed to load movements', severity: 'error' });
-    } finally {
-      setLoadingMovements(false);
-    }
+    } finally { setLoadingMovements(false); }
   }, [businessId, selectedOutletId, movPage, movLimit]);
 
   const fetchProducts = useCallback(async () => {
     if (!selectedOutletId) return;
+    setLoadingProducts(true);
     try {
-      const response = await api.getProductOutlets({ outletId: selectedOutletId, limit: 200 });
-      setProducts(response?.data || response?.results || []);
+      const res = await api.getProductOutlets({
+        outletId: selectedOutletId,
+        page: prodPage + 1,
+        limit: prodLimit,
+      });
+      const data = res?.results || res?.data || [];
+      setProducts(data);
+      setProdTotal(res?.pagination?.total || data.length);
     } catch {
-      // non-critical
-    }
-  }, [selectedOutletId]);
+      setSnackbar({ open: true, message: 'Failed to load products', severity: 'error' });
+    } finally { setLoadingProducts(false); }
+  }, [selectedOutletId, prodPage, prodLimit]);
 
   useEffect(() => { fetchMovements(); }, [fetchMovements]);
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  useEffect(() => { setProdPage(0); setMovPage(0); }, [selectedOutletId]);
 
   const handleReceiveStock = async () => {
     if (!receiveForm.productId || receiveForm.quantity <= 0) return;
     setSubmitting(true);
     try {
       await api.receiveStock({
-        businessId: businessId!,
-        outletId: selectedOutletId,
-        productId: receiveForm.productId,
-        quantity: receiveForm.quantity,
-        unitCost: receiveForm.unitCost,
-        notes: receiveForm.notes,
+        businessId: businessId!, outletId: selectedOutletId,
+        productId: receiveForm.productId, quantity: receiveForm.quantity,
+        unitCost: receiveForm.unitCost, notes: receiveForm.notes,
+        expiryDate: receiveForm.expiryDate || undefined
       });
       setSnackbar({ open: true, message: 'Stock received successfully', severity: 'success' });
       setReceiveOpen(false);
-      setReceiveForm({ productId: '', quantity: 0, unitCost: 0, notes: '' });
-      fetchMovements();
-      fetchProducts();
-    } catch (error: any) {
-      setSnackbar({ open: true, message: formatError(error), severity: 'error' });
-    } finally {
-      setSubmitting(false);
-    }
+      setReceiveForm({ productId: '', quantity: 0, unitCost: 0, notes: '', expiryDate: '' });
+      fetchMovements(); fetchProducts();
+    } catch (e: any) { setSnackbar({ open: true, message: formatError(e), severity: 'error' }); }
+    finally { setSubmitting(false); }
   };
 
   const handleAdjustStock = async () => {
@@ -169,30 +165,22 @@ export function InventoryView() {
     setSubmitting(true);
     try {
       await api.adjustStock({
-        businessId: businessId!,
-        outletId: selectedOutletId,
-        productId: adjustForm.productId,
-        quantity: Math.abs(adjustForm.quantity),
-        type: adjustForm.type,
-        reasonCode: adjustForm.reasonCode,
-        notes: adjustForm.notes,
-        unitCost: adjustForm.unitCost,
+        businessId: businessId!, outletId: selectedOutletId,
+        productId: adjustForm.productId, quantity: Math.abs(adjustForm.quantity),
+        type: adjustForm.type, reasonCode: adjustForm.reasonCode,
+        notes: adjustForm.notes, unitCost: adjustForm.unitCost,
       });
       setSnackbar({ open: true, message: 'Stock adjusted successfully', severity: 'success' });
       setAdjustOpen(false);
       setAdjustForm({ productId: '', quantity: 0, type: 'adjustment', reasonCode: '', notes: '', unitCost: 0 });
-      fetchMovements();
-      fetchProducts();
-    } catch (error: any) {
-      setSnackbar({ open: true, message: formatError(error), severity: 'error' });
-    } finally {
-      setSubmitting(false);
-    }
+      fetchMovements(); fetchProducts();
+    } catch (e: any) { setSnackbar({ open: true, message: formatError(e), severity: 'error' }); }
+    finally { setSubmitting(false); }
   };
 
   return (
     <DashboardContent>
-      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Inventory' }]} sx={{ mb: 3 }} />
+      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Inventory' }]} sx={{ mb: 3 }} /> 
 
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
         <Typography variant="h4">Inventory</Typography>
@@ -206,27 +194,12 @@ export function InventoryView() {
               disabled={!isOwner}
             >
               {outlets.map((o: any) => (
-                <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
+                <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>
               ))}
             </Select>
           </FormControl>
-          <Button
-            variant="outlined"
-            startIcon={<Iconify icon="mingcute:add-line" />}
-            onClick={() => setReceiveOpen(true)}
-            disabled={!selectedOutletId}
-          >
-            Receive Stock
-          </Button>
-          <Button
-            variant="outlined"
-            color="warning"
-            startIcon={<Iconify icon="solar:settings-bold-duotone" />}
-            onClick={() => setAdjustOpen(true)}
-            disabled={!selectedOutletId}
-          >
-            Adjust Stock
-          </Button>
+          <Button variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />} onClick={() => setReceiveOpen(true)} disabled={!selectedOutletId}>Receive Stock</Button>
+          <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:settings-bold-duotone" />} onClick={() => setAdjustOpen(true)} disabled={!selectedOutletId}>Adjust Stock</Button>
         </Stack>
       </Stack>
 
@@ -236,67 +209,57 @@ export function InventoryView() {
       </Tabs>
 
       {tab === 0 && (
-        <Card>
-          <Scrollbar>
-            <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Product</TableCell>
-                    <TableCell align="right">On Hand</TableCell>
-                    <TableCell align="right">Reserved</TableCell>
-                    <TableCell align="right">Available</TableCell>
-                    <TableCell align="right">Avg Cost</TableCell>
-                    <TableCell align="right">Value</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {products.length === 0 ? (
+        <>
+          <Card>
+            <Scrollbar>
+              <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
+                <Table>
+                  <TableHead>
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
-                        <Typography color="text.secondary">No products at this outlet</Typography>
-                      </TableCell>
+                      <TableCell>Product</TableCell>
+                      <TableCell align="right">On Hand</TableCell>
+                      <TableCell align="right">Available</TableCell>
+                      <TableCell align="right">Avg Cost</TableCell>
+                      <TableCell align="right">Value</TableCell>
+                      <TableCell>Status</TableCell>
                     </TableRow>
-                  ) : (
-                    products.map((p) => {
-                      const qty = p.quantity ?? p.quantityOnHand ?? 0;
-                      const avail = p.availableQuantity ?? qty;
-                      const minStock = p.minStock ?? 0;
-                      const status = qty <= 0 ? 'OUT_OF_STOCK' : qty <= minStock ? 'LOW_STOCK' : 'IN_STOCK';
-                      const avgCost = p.averageCost ?? p.currentCost ?? 0;
-                      return (
-                        <TableRow key={p._id || p.productId?._id}>
-                          <TableCell>
-                            <Typography variant="subtitle2" noWrap>
-                              {p.name || p.productId?.name || '—'}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {p.sku || p.productId?.sku || p.productId?.barcode || '—'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">{fNumber(qty)}</TableCell>
-                          <TableCell align="right">{fNumber(p.reservedQuantity ?? 0)}</TableCell>
-                          <TableCell align="right">{fNumber(avail)}</TableCell>
-                          <TableCell align="right">{fCurrency(avgCost)}</TableCell>
-                          <TableCell align="right">{fCurrency(qty * avgCost)}</TableCell>
-                          <TableCell>
-                            <Label
-                              variant="soft"
-                              color={status === 'IN_STOCK' ? 'success' : status === 'LOW_STOCK' ? 'warning' : 'error'}
-                            >
-                              {status.replace('_', ' ')}
-                            </Label>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Scrollbar>
-        </Card>
+                  </TableHead>
+                  <TableBody>
+                    {loadingProducts ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>{Array.from({ length: 6 }).map((__, j) => (<TableCell key={j}><Skeleton /></TableCell>))}</TableRow>
+                      ))
+                    ) : products.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8 }}><Typography color="text.secondary">No products found</Typography></TableCell></TableRow>
+                    ) : (
+                      products.map((p) => {
+                        const qty = p.quantity ?? p.quantityOnHand ?? 0;
+                        const avgCost = p.averageCost ?? p.currentCost ?? 0;
+                        const status = qty <= 0 ? 'OUT_OF_STOCK' : qty <= (p.minStock ?? 0) ? 'LOW_STOCK' : 'IN_STOCK';
+                        return (
+                          <TableRow key={p._id || p.productId?._id}>
+                            <TableCell>
+                              <Typography variant="subtitle2" noWrap>{p.name || p.productId?.name || '—'}</Typography>
+                              <Typography variant="caption" color="text.secondary">{p.sku || p.productId?.sku || '—'}</Typography>
+                            </TableCell>
+                            <TableCell align="right">{fNumber(qty)}</TableCell>
+                            <TableCell align="right">{fNumber(p.availableQuantity ?? qty)}</TableCell>
+                            <TableCell align="right">{fCurrency(avgCost)}</TableCell>
+                            <TableCell align="right">{fCurrency(qty * avgCost)}</TableCell>
+                            <TableCell><Label variant="soft" color={status === 'IN_STOCK' ? 'success' : status === 'LOW_STOCK' ? 'warning' : 'error'}>{status.replace('_', ' ')}</Label></TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Scrollbar>
+          </Card>
+          <TablePagination component="div" count={prodTotal} page={prodPage} rowsPerPage={prodLimit}
+            onPageChange={(_, p) => setProdPage(p)} onRowsPerPageChange={(e) => { setProdLimit(parseInt(e.target.value, 10)); setProdPage(0); }}
+            rowsPerPageOptions={[10, 25, 50]} />
+        </>
       )}
 
       {tab === 1 && (
@@ -312,51 +275,35 @@ export function InventoryView() {
                       <TableCell>Type</TableCell>
                       <TableCell align="right">Qty</TableCell>
                       <TableCell align="right">Unit Cost</TableCell>
-                      <TableCell>Reference</TableCell>
+                      {enableExpiry && <TableCell>Expiry</TableCell>}
                       <TableCell>Reason</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {loadingMovements ? (
                       Array.from({ length: 5 }).map((_, i) => (
-                        <TableRow key={i}>
-                          {Array.from({ length: 7 }).map((__, j) => (
-                            <TableCell key={j}><Skeleton animation="wave" /></TableCell>
-                          ))}
-                        </TableRow>
+                        <TableRow key={i}>{Array.from({ length: enableExpiry ? 7 : 6 }).map((__, j) => (<TableCell key={j}><Skeleton /></TableCell>))}</TableRow>
                       ))
                     ) : movements.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
-                          <Typography color="text.secondary">No movements recorded yet</Typography>
-                        </TableCell>
-                      </TableRow>
+                      <TableRow><TableCell colSpan={7} align="center" sx={{ py: 8 }}><Typography color="text.secondary">No movements recorded yet</Typography></TableCell></TableRow>
                     ) : (
                       movements.map((m) => (
                         <TableRow key={m._id}>
                           <TableCell>{fDateTime(m.createdAt)}</TableCell>
-                          <TableCell>
-                            <Typography variant="body2" noWrap>
-                              {m.productId?.name || m.productId || '—'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Label variant="soft" color={MOVEMENT_TYPE_COLOR[m.type] || 'default'}>
-                              {m.type?.replace('_', ' ').toUpperCase()}
-                            </Label>
-                          </TableCell>
+                          <TableCell><Typography variant="body2" noWrap>{m.productId?.name || '—'}</Typography></TableCell>
+                          <TableCell><Label variant="soft" color={MOVEMENT_TYPE_COLOR[m.type] || 'default'}>{m.type?.toUpperCase()}</Label></TableCell>
                           <TableCell align="right">{fNumber(m.quantity)}</TableCell>
                           <TableCell align="right">{fCurrency(m.unitCost)}</TableCell>
-                          <TableCell>
-                            <Typography variant="caption" color="text.secondary">
-                              {m.referenceType || '—'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="caption" color="text.secondary">
-                              {m.reasonCode || m.notes || '—'}
-                            </Typography>
-                          </TableCell>
+                          {enableExpiry && (
+                            <TableCell>
+                              {m.expiryDate ? (
+                                <Label color={new Date(m.expiryDate) < new Date() ? 'error' : 'default'} variant="soft">
+                                  {new Date(m.expiryDate).toLocaleDateString()}
+                                </Label>
+                              ) : '—'}
+                            </TableCell>
+                          )}
+                          <TableCell><Typography variant="caption" color="text.secondary">{m.reasonCode || m.notes || '—'}</Typography></TableCell>
                         </TableRow>
                       ))
                     )}
@@ -365,196 +312,72 @@ export function InventoryView() {
               </TableContainer>
             </Scrollbar>
           </Card>
-          <TablePagination
-            component="div"
-            count={movTotal}
-            page={movPage}
-            rowsPerPage={movLimit}
-            onPageChange={(_, p) => setMovPage(p)}
-            onRowsPerPageChange={(e) => { setMovLimit(parseInt(e.target.value, 10)); setMovPage(0); }}
-            rowsPerPageOptions={[10, 25, 50]}
-          />
+          <TablePagination component="div" count={movTotal} page={movPage} rowsPerPage={movLimit}
+            onPageChange={(_, p) => setMovPage(p)} onRowsPerPageChange={(e) => { setMovLimit(parseInt(e.target.value, 10)); setMovPage(0); }}
+            rowsPerPageOptions={[10, 25, 50]} />
         </>
       )}
 
-      {/* Receive Stock Dialog */}
       <Dialog open={receiveOpen} onClose={() => setReceiveOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Receive Stock</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 1 }}>
-            <TextField
-              select fullWidth required
-              label="Product"
-              value={receiveForm.productId}
-              onChange={(e) => setReceiveForm({ ...receiveForm, productId: e.target.value })}
-            >
-              {products.map((p) => (
-                <MenuItem key={p._id || p.productId?._id} value={p._id || p.productId?._id}>
-                  {p.name || p.productId?.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Autocomplete fullWidth options={products} getOptionLabel={(o) => o.name || o.productId?.name || ""}
+              value={products.find((p) => (p._id || p.productId?._id) === receiveForm.productId) || null}
+              onChange={(_, v) => setReceiveForm({ ...receiveForm, productId: v ? (v._id || v.productId?._id) : '' })}
+              renderInput={(p) => <TextField {...p} label="Product" required />} />
             <Grid container spacing={2}>
-              <Grid size={{ xs: 6 }}>
-                <NumericInput
-                  fullWidth required
-                  label="Quantity Received"
-                  value={receiveForm.quantity}
-                  onChangeValue={(val) => setReceiveForm({ ...receiveForm, quantity: val })}
-                />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <NumericInput
-                  fullWidth
-                  label="Unit Cost (₦)"
-                  value={receiveForm.unitCost}
-                  onChangeValue={(val) => setReceiveForm({ ...receiveForm, unitCost: val })}
-                  InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}
-                />
-              </Grid>
+              <Grid size={{ xs: 6 }}><NumericInput fullWidth required label="Quantity" value={receiveForm.quantity} onChangeValue={(v) => setReceiveForm({ ...receiveForm, quantity: v })} /></Grid>
+              <Grid size={{ xs: 6 }}><NumericInput fullWidth label="Unit Cost (₦)" value={receiveForm.unitCost} onChangeValue={(v) => setReceiveForm({ ...receiveForm, unitCost: v })} InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }} /></Grid>
             </Grid>
-            <TextField
-              fullWidth multiline rows={2}
-              label="Notes (Optional)"
-              value={receiveForm.notes}
-              onChange={(e) => setReceiveForm({ ...receiveForm, notes: e.target.value })}
-            />
+            
+            {enableExpiry && (
+              <TextField
+                fullWidth
+                label="Expiry Date"
+                type="date"
+                value={receiveForm.expiryDate}
+                onChange={(e) => setReceiveForm({ ...receiveForm, expiryDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            )}
+
+            <TextField fullWidth multiline rows={2} label="Notes" value={receiveForm.notes} onChange={(e) => setReceiveForm({ ...receiveForm, notes: e.target.value })} />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReceiveOpen(false)} color="inherit">Cancel</Button>
-          <LoadingButton
-            variant="contained"
-            loading={submitting}
-            onClick={handleReceiveStock}
-            disabled={!receiveForm.productId || receiveForm.quantity <= 0}
-          >
-            Receive
-          </LoadingButton>
+          <LoadingButton variant="contained" loading={submitting} onClick={handleReceiveStock} disabled={!receiveForm.productId || receiveForm.quantity <= 0}>Receive</LoadingButton>
         </DialogActions>
       </Dialog>
 
-      {/* Adjust Stock Dialog */}
       <Dialog open={adjustOpen} onClose={() => setAdjustOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Adjust Stock</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 1 }}>
-
-            <Autocomplete
-              fullWidth
-              options={products}
-              getOptionLabel={(option) => option.name || option.productId?.name || ""}
-
-              isOptionEqualToValue={(option, value) => {
-                const optionId = option._id || option.productId?._id;
-                const valueId = value._id || value.productId?._id;
-                return optionId === valueId;
-              }}
-
-              value={
-                products.find((p) => {
-                  const id = p._id || p.productId?._id;
-                  return id === adjustForm.productId;
-                }) || null
-              }
-
-              onChange={(event, newValue) => {
-                const selectedId = newValue ? (newValue._id || newValue.productId?._id) : '';
-                setAdjustForm({
-                  ...adjustForm,
-                  productId: selectedId,
-                  unitCost: newValue ? (newValue.floorPrice ?? newValue.price ?? 0) : 0, // prefill unit cost if product selected
-                });
-
-              }}
-
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Product"
-                  required
-                />
-              )}
-            />
-
-            <TextField
-              select fullWidth
-              label="Adjustment Type"
-              value={adjustForm.type}
-              onChange={(e) => setAdjustForm({ ...adjustForm, type: e.target.value as any })}
-            >
-              <MenuItem value="adjustment">Manual Adjustment</MenuItem>
-              <MenuItem value="damage">Damage / Write-off</MenuItem>
+            <Autocomplete fullWidth options={products} getOptionLabel={(o) => o.name || o.productId?.name || ""}
+              value={products.find((p) => (p._id || p.productId?._id) === adjustForm.productId) || null}
+              onChange={(_, v) => setAdjustForm({ ...adjustForm, productId: v ? (v._id || v.productId?._id) : '', unitCost: v ? (v.floorPrice ?? v.price ?? 0) : 0 })}
+              renderInput={(p) => <TextField {...p} label="Product" required />} />
+            <TextField select fullWidth label="Type" value={adjustForm.type} onChange={(e) => setAdjustForm({ ...adjustForm, type: e.target.value as any })}>
+              <MenuItem value="adjustment">Manual Adjustment</MenuItem><MenuItem value="damage">Damage / Write-off</MenuItem>
             </TextField>
-
-            <NumericInput
-              fullWidth
-              label="Quantity Change (positive = add, negative = remove)"
-              value={adjustForm.quantity}
-              onChangeValue={(val) => setAdjustForm({ ...adjustForm, quantity: val })}
-            />
-
-            <NumericInput
-              fullWidth
-              label="Unit Cost (₦)"
-              value={adjustForm.unitCost}
-              onChangeValue={(val) => setAdjustForm({ ...adjustForm, unitCost: val })}
-              InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}
-            />
-
-            {/* <TextField
-              fullWidth required
-              label="Reason Code"
-              placeholder="e.g. DAMAGED, EXPIRED, COUNT_CORRECTION"
-              value={adjustForm.reasonCode}
-              onChange={(e) => setAdjustForm({ ...adjustForm, reasonCode: e.target.value })}
-            /> */}
-
-            <TextField
-              select
-              fullWidth
-              required
-              label="Reason Code"
-              value={adjustForm.reasonCode}
-              onChange={(e) => setAdjustForm({ ...adjustForm, reasonCode: e.target.value })}
-            >
-              {Object.keys(MOVEMENT_TYPE_COLOR).map((key) => (
-                <MenuItem key={key} value={key}>
-                  {/* This formats 'transfer_in' to 'TRANSFER IN' for better readability */}
-                  {key.replace('_', ' ').toUpperCase()}
-                </MenuItem>
-              ))}
+            <NumericInput fullWidth label="Quantity Change" value={adjustForm.quantity} onChangeValue={(v) => setAdjustForm({ ...adjustForm, quantity: v })} />
+            <NumericInput fullWidth label="Unit Cost (₦)" value={adjustForm.unitCost} onChangeValue={(v) => setAdjustForm({ ...adjustForm, unitCost: v })} InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }} />
+            <TextField select fullWidth required label="Reason" value={adjustForm.reasonCode} onChange={(e) => setAdjustForm({ ...adjustForm, reasonCode: e.target.value })}>
+              {Object.keys(MOVEMENT_TYPE_COLOR).map((k) => (<MenuItem key={k} value={k}>{k.replace('_', ' ').toUpperCase()}</MenuItem>))}
             </TextField>
-
-            <TextField
-              fullWidth multiline rows={2}
-              label="Notes"
-              value={adjustForm.notes}
-              onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })}
-            />
+            <TextField fullWidth multiline rows={2} label="Notes" value={adjustForm.notes} onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })} />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAdjustOpen(false)} color="inherit">Cancel</Button>
-          <LoadingButton
-            variant="contained"
-            color="warning"
-            loading={submitting}
-            onClick={handleAdjustStock}
-            disabled={!adjustForm.productId || !adjustForm.reasonCode.trim()}
-          >
-            Adjust
-          </LoadingButton>
+          <LoadingButton variant="contained" color="warning" loading={submitting} onClick={handleAdjustStock} disabled={!adjustForm.productId || !adjustForm.reasonCode.trim()}>Adjust</LoadingButton>
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
     </DashboardContent>
   );

@@ -11,6 +11,7 @@ export type NavItem = {
   info?: React.ReactNode;
   children?: NavItem[];
   roles?: string[];
+  feature?: string;
 };
 
 export const navData: NavItem[] = [
@@ -54,6 +55,13 @@ export const navData: NavItem[] = [
     path: '/app/inventory',
     icon: icon('ic-file'),
     roles: ['owner', 'outlet_admin', 'store_executive'],
+  },
+  {
+    title: 'Expiry Management',
+    path: '/app/inventory/expiry',
+    icon: icon('ic-lock'),
+    roles: ['owner', 'outlet_admin', 'store_executive'],
+    feature: 'enableExpiryTracking',
   },
   {
     title: 'Categories',
@@ -109,7 +117,15 @@ export const navData: NavItem[] = [
   },
 ];
 
-export function getNavForRole(role: string | undefined): NavItem[] {
-  if (!role) return navData.filter((item) => !item.roles);
-  return navData.filter((item) => !item.roles || item.roles.includes(role));
+export function getNavForRole(role: string | undefined, features: any = {}): NavItem[] {
+  return navData.filter((item) => {
+    // 1. Role Check
+    const hasRole = !item.roles || (role && item.roles.includes(role));
+    if (!hasRole) return false;
+
+    // 2. Feature Check
+    if (item.feature && !features?.[item.feature]) return false;
+
+    return true;
+  });
 }

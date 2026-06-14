@@ -1,96 +1,88 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
+import Stack from '@mui/material/Stack';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
+import InputLabel from '@mui/material/InputLabel';
+import FormControl from '@mui/material/FormControl';
 
-import { _tasks } from 'src/_mock';
 import { api } from 'src/services/api';
+import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
-import { AnalyticsTasks } from '../analytics-tasks';
+import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
 import { AnalyticsCurrentVisits } from '../analytics-current-visits';
 import { AnalyticsOrderTimeline } from '../analytics-order-timeline';
 import { AnalyticsWebsiteVisits } from '../analytics-website-visits';
-import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
 
 // ----------------------------------------------------------------------
 
 export function OverviewAnalyticsView() {
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [categoryPerformance, setCategoryPerformance] = useState<any[]>([]);
+  const { outlets, appData } = useAuth();
+  const isOwner = appData?.role === 'owner';
+  const assignedOutletId = appData?.outletId;
+
+  const [selectedOutletId, setSelectedOutletId] = useState<string>('');
+
+  const [overview, setOverview] = useState<any>(null);
+  const [incomeExpenseData, setIncomeExpenseData] = useState<any[]>([]);
+  const [expenseBreakdown, setExpenseBreakdown] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAnalytics = useCallback(async () => {
+    if (!selectedOutletId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [overviewData, graphData, breakdownData, logsData] = await Promise.all([
+        api.getFinancialOverview({ outletId: selectedOutletId }),
+        api.getIncomeExpenseGraph({ outletId: selectedOutletId }),
+        api.getExpenseBreakdownGraph({ outletId: selectedOutletId }),
+        api.getAuditLogs({ outletId: selectedOutletId, limit: 10 }),
+      ]);
+
+      setOverview(overviewData);
+      setIncomeExpenseData(graphData || []);
+      setExpenseBreakdown(breakdownData || []);
+      if (logsData) {
+        setAuditLogs(logsData.data || []);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch analytics:', err);
+      setError(err.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedOutletId]);
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      setLoading(true);
-      try {
-        const fetchPromises: Promise<any>[] = [
-          api.getSalesAnalytics(),
-          api.getCategoryPerformance({ year: new Date().getFullYear() }),
-          api.getAuditLogs({ limit: 5 }),
-        ];
-
-        const [salesData, categoryData, logsData] = await Promise.all(fetchPromises);
-
-        setAnalytics(salesData);
-        setCategoryPerformance(categoryData);
-        if (logsData) {
-          setAuditLogs(logsData.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch analytics:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAnalytics();
-  }, []);
+  }, [fetchAnalytics]);
 
-  const calculatePercent = (data: any[], key: string) => {
-    if (data.length < 2) return 0;
-    const current = data[data.length - 1][key];
-    const previous = data[data.length - 2][key];
-    if (previous === 0) return 0;
-    return ((current - previous) / previous) * 100;
-  };
+  useEffect(() => {
+    if (outlets.length > 0 && !selectedOutletId) {
+      const initialId = assignedOutletId || outlets[0].id || outlets[0]._id;
+      if (initialId) setSelectedOutletId(initialId);
+    }
+  }, [outlets, assignedOutletId, selectedOutletId]);
 
-  const weeklyCountPercent = analytics ? calculatePercent(analytics.last4Weeks, 'count') : 0;
-  const weeklySalesPercent = analytics ? calculatePercent(analytics.last4Weeks, 'totalAmount') : 0;
-  const monthlyCountPercent = analytics ? calculatePercent(analytics.last4Months, 'count') : 0;
-  const monthlySalesPercent = analytics
-    ? calculatePercent(analytics.last4Months, 'totalAmount')
-    : 0;
-
-  if (loading) {
+  if (loading && !overview) {
     return (
       <DashboardContent maxWidth="xl">
-        <Skeleton variant="text" width={220} height={40} sx={{ mb: { xs: 3, md: 5 } }} />
+        <Skeleton variant="text" width={220} height={40} sx={{ mb: 5 }} />
         <Grid container spacing={3}>
           {[0, 1, 2, 3].map((i) => (
             <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
-              <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'background.paper', boxShadow: 1 }}>
-                <Skeleton variant="text" width="60%" height={24} />
-                <Skeleton variant="text" width="40%" height={48} sx={{ my: 1 }} />
-                <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 1 }} />
-              </Box>
+              <Skeleton variant="rectangular" height={160} sx={{ borderRadius: 2 }} />
             </Grid>
           ))}
-          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-            <Skeleton variant="rectangular" height={380} sx={{ borderRadius: 2 }} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6, lg: 8 }}>
-            <Skeleton variant="rectangular" height={380} sx={{ borderRadius: 2 }} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6, lg: 8 }}>
-            <Skeleton variant="rectangular" height={320} sx={{ borderRadius: 2 }} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-            <Skeleton variant="rectangular" height={320} sx={{ borderRadius: 2 }} />
-          </Grid>
         </Grid>
       </DashboardContent>
     );
@@ -98,71 +90,104 @@ export function OverviewAnalyticsView() {
 
   return (
     <DashboardContent maxWidth="xl">
-      <Typography variant="h4" sx={{ mb: { xs: 3, md: 5 } }}>
-        Hi, Welcome back 👋
-      </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: { xs: 3, md: 5 } }}>
+        <Typography variant="h4">Financial Analytics</Typography>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>Select Outlet</InputLabel>
+          <Select
+            value={selectedOutletId}
+            label="Select Outlet"
+            onChange={(e) => setSelectedOutletId(e.target.value)}
+            disabled={!isOwner}
+          >
+            {outlets.map((outlet: any) => (
+              <MenuItem key={outlet.id || outlet._id} value={outlet.id || outlet._id}>
+                {outlet.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Stack>
+
+      {error && (
+        <Card sx={{ p: 3, mb: 3, bgcolor: 'error.lighter', color: 'error.darker' }}>
+          <Typography variant="subtitle1">Dashboard Error</Typography>
+          <Typography variant="body2">{error}</Typography>
+        </Card>
+      )}
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
-            title="Weekly count"
-            percent={weeklyCountPercent}
-            total={analytics?.currentWeek?.count || 0}
-            icon={<img alt="Weekly count" src="/assets/icons/glass/ic-glass-bag.svg" />}
+            title="Total Income"
+            total={overview?.totalIncome || 0}
+            percent={0}
+            icon={<img alt="Income" src="/assets/icons/glass/ic-glass-bag.svg" />}
             chart={{
-              categories: analytics?.last4Weeks?.map((item: any) => item.group) || [],
-              series: analytics?.last4Weeks?.map((item: any) => item.count) || [],
+              categories: incomeExpenseData.map((d) => d.label),
+              series: incomeExpenseData.map((d) => d.income),
             }}
           />
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
-            title="Weekly sales"
-            percent={weeklySalesPercent}
-            total={analytics?.currentWeek?.totalAmount || 0}
-            color="secondary"
-            icon={<img alt="Weekly sales" src="/assets/icons/glass/ic-glass-users.svg" />}
-            chart={{
-              categories: analytics?.last4Weeks?.map((item: any) => item.group) || [],
-              series: analytics?.last4Weeks?.map((item: any) => item.totalAmount) || [],
-            }}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <AnalyticsWidgetSummary
-            title="Monthly count"
-            percent={monthlyCountPercent}
-            total={analytics?.currentMonth?.count || 0}
-            color="warning"
-            icon={<img alt="Monthly count" src="/assets/icons/glass/ic-glass-buy.svg" />}
-            chart={{
-              categories: analytics?.last4Months?.map((item: any) => item.group) || [],
-              series: analytics?.last4Months?.map((item: any) => item.count) || [],
-            }}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <AnalyticsWidgetSummary
-            title="Monthly sales"
-            percent={monthlySalesPercent}
-            total={analytics?.currentMonth?.totalAmount || 0}
+            title="Total Expenses"
+            total={overview?.totalExpenses || 0}
             color="error"
-            icon={<img alt="Monthly sales" src="/assets/icons/glass/ic-glass-message.svg" />}
+            percent={0}
+            icon={<img alt="Expenses" src="/assets/icons/glass/ic-glass-buy.svg" />}
             chart={{
-              categories: analytics?.last4Months?.map((item: any) => item.group) || [],
-              series: analytics?.last4Months?.map((item: any) => item.totalAmount) || [],
+              categories: incomeExpenseData.map((d) => d.label),
+              series: incomeExpenseData.map((d) => d.expense),
+            }}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <AnalyticsWidgetSummary
+            title="Cash Liquidity"
+            total={overview?.netProfit || 0}
+            color="warning"
+            percent={0}
+            icon={<img alt="Profit" src="/assets/icons/glass/ic-glass-users.svg" />}
+            chart={{
+              categories: incomeExpenseData.map((d) => d.label),
+              series: incomeExpenseData.map((d) => d.income - d.expense),
+            }}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <AnalyticsWidgetSummary
+            title="Receivables"
+            total={overview?.totalReceivables || 0}
+            color="info"
+            percent={0}
+            icon={<img alt="Receivables" src="/assets/icons/glass/ic-glass-message.svg" />}
+            chart={{ categories: [], series: [] }}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6, lg: 8 }}>
+          <AnalyticsWebsiteVisits
+            title="Income vs Expenses"
+            subheader="Performance over time"
+            chart={{
+              categories: incomeExpenseData.map((d) => d.label),
+              series: [
+                { name: 'Money In', data: incomeExpenseData.map((d) => d.income) },
+                { name: 'Money Out', data: incomeExpenseData.map((d) => d.expense) },
+              ],
             }}
           />
         </Grid>
 
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <AnalyticsCurrentVisits
-            title="Category performance"
+            title="Expense Breakdown"
             chart={{
-              series: categoryPerformance.map((item) => ({
+              series: expenseBreakdown.map((item) => ({
                 label: item.label,
                 value: item.value,
               })),
@@ -171,89 +196,49 @@ export function OverviewAnalyticsView() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6, lg: 8 }}>
-          <AnalyticsWebsiteVisits
-            title="Monthly sales"
-            subheader="Performance over the last 4 months"
-            chart={{
-              categories: analytics?.last4Months?.map((item: any) => item.group) || [],
-              series: [
-                {
-                  name: 'Total Amount',
-                  data: analytics?.last4Months?.map((item: any) => item.totalAmount) || [],
-                },
-                {
-                  name: 'Transaction Count',
-                  data: analytics?.last4Months?.map((item: any) => item.count) || [],
-                },
-              ],
-            }}
-          />
-        </Grid>
-
-        {/* <Grid size={{ xs: 12, md: 6, lg: 8 }}>
-          <AnalyticsConversionRates
-            title="Conversion rates"
-            subheader="(+43%) than last year"
-            chart={{
-              categories: ['Italy', 'Japan', 'China', 'Canada', 'France'],
-              series: [
-                { name: '2022', data: [44, 55, 41, 64, 22] },
-                { name: '2023', data: [53, 32, 33, 52, 13] },
-              ],
-            }}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-          <AnalyticsCurrentSubject
-            title="Current subject"
-            chart={{
-              categories: ['English', 'History', 'Physics', 'Geography', 'Chinese', 'Math'],
-              series: [
-                { name: 'Series 1', data: [80, 50, 30, 40, 100, 20] },
-                { name: 'Series 2', data: [20, 30, 40, 80, 20, 80] },
-                { name: 'Series 3', data: [44, 76, 78, 13, 43, 10] },
-              ],
-            }}
-          />
-        </Grid> */}
-
-        {/* <Grid size={{ xs: 12, md: 6, lg: 8 }}>
-          <AnalyticsNews title="News" list={_posts.slice(0, 5)} />
-        </Grid> */}
-
-        <Grid size={{ xs: 12, md: 6, lg: 8 }}>
-          <AnalyticsTasks title="Tasks" list={_tasks} />
+          <Card sx={{ p: 3, height: '100%' }}>
+            <Typography variant="h6" sx={{ mb: 3 }}>Outlet Financial Status</Typography>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Cash Balance</Typography>
+                  <Typography variant="h4">₦{(overview?.cashBalance || 0).toLocaleString()}</Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Bank Balance</Typography>
+                  <Typography variant="h4">₦{(overview?.bankBalance || 0).toLocaleString()}</Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Inventory Value</Typography>
+                  <Typography variant="h4">₦{(overview?.inventoryValue || 0).toLocaleString()}</Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Total Payables</Typography>
+                  <Typography variant="h4">₦{(overview?.totalPayables || 0).toLocaleString()}</Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Card>
         </Grid>
 
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <AnalyticsOrderTimeline
-            title="Audit logs"
+            title="Outlet Activities"
             list={auditLogs.map((log) => ({
               id: log._id,
               title: log.description || log.action,
-              performer: log.actionBy?.name || 'System',
-              type: log.action.includes('CREATE')
-                ? 'order1'
-                : log.action.includes('ADD')
-                  ? 'order2'
-                  : log.action.includes('UPDATE')
-                    ? 'order3'
-                    : log.action.includes('DELETE')
-                      ? 'order4'
-                      : 'order5',
+              performer: log.userName || 'System',
+              type: 'order1',
               time: log.createdAt,
             }))}
           />
         </Grid>
-
-        {/* <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-          <AnalyticsTrafficBySite title="Traffic by site" list={_traffic} />
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6, lg: 8 }}>
-          <AnalyticsTasks title="Tasks" list={_tasks} />
-        </Grid> */}
       </Grid>
     </DashboardContent>
   );

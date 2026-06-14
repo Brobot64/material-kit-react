@@ -40,6 +40,7 @@ export const ReturnsPage = lazy(() => import('src/pages/returns'));
 export const CustomersPage = lazy(() => import('src/pages/customers'));
 export const OutletsPage = lazy(() => import('src/pages/outlets'));
 export const InventoryPage = lazy(() => import('src/pages/inventory'));
+export const InventoryExpiryPage = lazy(() => import('src/pages/inventory-expiry'));
 export const ReceivablesPage = lazy(() => import('src/pages/receivables'));
 export const StocktakePage = lazy(() => import('src/pages/stocktake'));
 export const ReceiptTemplatePage = lazy(() => import('src/pages/receipt-template'));
@@ -111,6 +112,7 @@ export const routesSection: RouteObject[] = [
       { path: 'customers', element: <CustomersPage /> },
       { path: 'outlets', element: <OutletsPage /> },
       { path: 'inventory', element: <InventoryPage /> },
+      { path: 'inventory/expiry', element: <InventoryExpiryPage /> },
       { path: 'receivables', element: <ReceivablesPage /> },
       { path: 'stocktake', element: <StocktakePage /> },
       { path: 'receipt-template', element: <ReceiptTemplatePage /> },

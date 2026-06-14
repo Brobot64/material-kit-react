@@ -7,7 +7,7 @@ export type InputNumberValue = string | number | null | undefined;
 
 type Options = Intl.NumberFormatOptions;
 
-const DEFAULT_LOCALE = { code: 'en-US', currency: 'USD' };
+const DEFAULT_LOCALE = { code: 'en-NG', currency: 'NGN' };
 
 function processInput(inputValue: InputNumberValue): number | null {
   if (inputValue == null || Number.isNaN(inputValue)) return null;
@@ -41,7 +41,7 @@ export function fCurrency(inputValue: InputNumberValue, options?: Options) {
 
   const fm = new Intl.NumberFormat(locale.code, {
     style: 'currency',
-    currency: "NGN",
+    currency: locale.currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
     ...options,

@@ -1,4 +1,4 @@
-﻿import type { BusinessSettings } from 'src/types/business-settings';
+import type { BusinessSettings } from 'src/types/business-settings';
 
 import { useState, useEffect, useCallback } from 'react';
 
@@ -30,13 +30,15 @@ const DEFAULTS: Omit<BusinessSettings, 'businessId'> = {
   brandSecondaryColor: '#7c3aed',
   timezone: 'Africa/Lagos',
   currency: 'NGN',
-  currencySymbol: 'â‚¦',
+  currencySymbol: '₦',
   features: {
     enableBarcode: false,
     enableReceiptPrinting: true,
     enableLowStockAlerts: true,
     lowStockThreshold: 5,
-  },
+    enableExpiryTracking: false,
+    defaultExpiryNotificationDays: 30,
+  } as any,
 };
 
 export function BusinessSettingsView() {
@@ -60,16 +62,16 @@ export function BusinessSettingsView() {
 
   const set = (field: string, value: any) => setForm((p) => ({ ...p, [field]: value }));
   const setFeature = (field: string, value: any) =>
-    setForm((p) => ({ ...p, features: { ...(p.features ?? DEFAULTS.features), [field]: value } }));
+    setForm((p) => ({ ...p, features: { ...(p.features ?? DEFAULTS.features), [field]: value } }));       
 
   const handleSave = async () => {
     if (!businessId) return;
     setSaving(true);
     try {
       await api.upsertBusinessSettings({ ...form, businessId });
-      // Clear cached settings so theme refreshes on next navigation
+      // Clear cached settings
       localStorage.removeItem('businessSettings');
-      setSnack({ open: true, msg: 'Business settings saved. Reload to apply theme changes.', severity: 'success' });
+      setSnack({ open: true, msg: 'Business settings saved. Reload to apply changes.', severity: 'success' });
     } catch (e: any) {
       setSnack({ open: true, msg: e.message || 'Save failed', severity: 'error' });
     } finally {
@@ -164,7 +166,6 @@ export function BusinessSettingsView() {
                   </Box>
                 </Stack>
 
-                {/* Color preview swatch */}
                 <Stack direction="row" spacing={1}>
                   <Box sx={{ flex: 1, height: 32, borderRadius: 1, bgcolor: form.brandPrimaryColor ?? '#2563eb', border: '1px solid rgba(0,0,0,0.1)' }} />
                   <Box sx={{ flex: 1, height: 32, borderRadius: 1, bgcolor: form.brandSecondaryColor ?? '#7c3aed', border: '1px solid rgba(0,0,0,0.1)' }} />
@@ -199,22 +200,22 @@ export function BusinessSettingsView() {
                     fullWidth
                     value={form.timezone ?? 'Africa/Lagos'}
                     InputProps={{ readOnly: true }}
-                    helperText="NGN / Africa/Lagos â€” v1 fixed"
                   />
                   <TextField
                     label="Currency"
                     size="small"
-                    value={`${form.currency ?? 'NGN'} (${form.currencySymbol ?? 'â‚¦'})`}
+                    value={`${form.currency ?? 'NGN'} (${form.currencySymbol ?? '₦'})`}
                     InputProps={{ readOnly: true }}
                   />
                 </Stack>
 
                 <Divider />
-                <Typography variant="subtitle2">Feature Flags</Typography>
+                <Typography variant="subtitle2">Inventory Features</Typography>
                 {[
                   { key: 'enableBarcode', label: 'Enable Barcode Scanning' },
                   { key: 'enableReceiptPrinting', label: 'Enable Receipt Printing' },
                   { key: 'enableLowStockAlerts', label: 'Low Stock Alerts' },
+                  { key: 'enableExpiryTracking', label: 'Product Expiry Tracking' },
                 ].map(({ key, label }) => (
                   <FormControlLabel
                     key={key}
@@ -232,13 +233,25 @@ export function BusinessSettingsView() {
 
                 {!!(form.features as any)?.enableLowStockAlerts && (
                   <TextField
-                    label="Low Stock Threshold (units)"
+                    label="Low Stock Threshold"
                     size="small"
                     type="number"
                     value={form.features?.lowStockThreshold ?? 5}
                     onChange={(e) => setFeature('lowStockThreshold', Number(e.target.value))}
-                    inputProps={{ min: 1, max: 1000 }}
                     sx={{ maxWidth: 200 }}
+                    disabled={!isOwner}
+                  />
+                )}
+
+                {!!(form.features as any)?.enableExpiryTracking && (
+                  <TextField
+                    label="Alert Days Before Expiry"
+                    size="small"
+                    type="number"
+                    value={(form.features as any)?.defaultExpiryNotificationDays ?? 30}
+                    onChange={(e) => setFeature('defaultExpiryNotificationDays', Number(e.target.value))}
+                    sx={{ maxWidth: 200 }}
+                    helperText="Days prior to notification"
                     disabled={!isOwner}
                   />
                 )}
@@ -262,7 +275,7 @@ export function BusinessSettingsView() {
         onClose={() => setSnack((s) => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert severity={snack.severity} onClose={() => setSnack((s) => ({ ...s, open: false }))}>
+        <Alert severity={snack.severity as any} onClose={() => setSnack((s) => ({ ...s, open: false }))}>
           {snack.msg}
         </Alert>
       </Snackbar>
