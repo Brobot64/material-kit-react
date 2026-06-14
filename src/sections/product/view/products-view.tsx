@@ -117,7 +117,7 @@ export function ProductsView() {
         limit: pagination.limit,
         includeVariants: true,
       });
-      setProducts(response.data);
+      setProducts(response.data || []);
       setPagination(response.pagination);
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -289,7 +289,7 @@ export function ProductsView() {
         ]}
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>        
         <Typography variant="h4">Product List</Typography>
         <Stack direction="row" spacing={1}>
           <Button
@@ -337,7 +337,7 @@ export function ProductsView() {
         <Scrollbar>
           <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>      
                 <CircularProgress />
               </Box>
             ) : (
@@ -368,7 +368,7 @@ export function ProductsView() {
                             <Typography variant="subtitle2" noWrap>
                               {product.name}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>        
                               {product.categoryName ||
                                 categories.find((c) => c._id === product.categoryId)?.name ||
                                 'No Category'}
@@ -613,7 +613,7 @@ export function ProductsView() {
                   disabled={!newProduct.outletId}
                   value={newProduct.costPrice}
                   onChangeValue={(val) => setNewProduct({ ...newProduct, costPrice: val })}
-                  InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}
+                  InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}  
                 />
                 <NumericInput
                   fullWidth
@@ -634,7 +634,7 @@ export function ProductsView() {
                   label="Default Sale Price — POS Prefill (₦)"
                   disabled={!newProduct.outletId}
                   value={newProduct.defaultSalePrice}
-                  onChangeValue={(val) => setNewProduct({ ...newProduct, defaultSalePrice: val })}
+                  onChangeValue={(val) => setNewProduct({ ...newProduct, defaultSalePrice: val })}        
                 />
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <NumericInput
@@ -682,7 +682,7 @@ export function ProductsView() {
       >
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
+          severity={snackbar.severity as any}
           sx={{ width: '100%' }}
         >
           {snackbar.message}

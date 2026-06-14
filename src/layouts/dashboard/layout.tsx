@@ -56,7 +56,7 @@ export function DashboardLayout({
   const { setMode } = useColorScheme();
 
   const { user, outlets, appData } = useAuth();
-  const filteredNav = getNavForRole(appData?.role);
+  const filteredNav = getNavForRole(appData?.role, appData?.businessSettings?.features || appData?.features);
 
   useEffect(() => {
     if (user?.themePreference) {
@@ -141,49 +141,49 @@ export function DashboardLayout({
 
   return (
     <>
-    <NotificationToastStack />
-    <LayoutSection
-      /** **************************************
-       * @Header
-       *************************************** */
-      headerSection={renderHeader()}
-      /** **************************************
-       * @Sidebar
-       *************************************** */
-      sidebarSection={
-        <NavDesktop
-          data={filteredNav}
-          layoutQuery={layoutQuery}
-          workspaces={workspaces}
-          collapsed={collapsed}
-          onToggleCollapsed={onToggleCollapsed}
-        />
-      }
-      /** **************************************
-       * @Footer
-       *************************************** */
-      footerSection={renderFooter()}
-      /** **************************************
-       * @Styles
-       *************************************** */
-      cssVars={{ ...dashboardLayoutVars(theme, collapsed), ...cssVars }}
-      sx={[
-        {
-          [`& .${layoutClasses.sidebarContainer}`]: {
-            [theme.breakpoints.up(layoutQuery)]: {
-              pl: 'var(--layout-nav-vertical-width)',
-              transition: theme.transitions.create(['padding-left'], {
-                easing: 'var(--layout-transition-easing)',
-                duration: 'var(--layout-transition-duration)',
-              }),
+      <NotificationToastStack />
+      <LayoutSection
+        /** **************************************
+         * @Header
+         *************************************** */
+        headerSection={renderHeader()}
+        /** **************************************
+         * @Sidebar
+         *************************************** */
+        sidebarSection={
+          <NavDesktop
+            data={filteredNav}
+            layoutQuery={layoutQuery}
+            workspaces={workspaces}
+            collapsed={collapsed}
+            onToggleCollapsed={onToggleCollapsed}
+          />
+        }
+        /** **************************************
+         * @Footer
+         *************************************** */
+        footerSection={renderFooter()}
+        /** **************************************
+         * @Styles
+         *************************************** */
+        cssVars={{ ...dashboardLayoutVars(theme, collapsed), ...cssVars }}
+        sx={[
+          {
+            [`& .${layoutClasses.sidebarContainer}`]: {
+              [theme.breakpoints.up(layoutQuery)]: {
+                pl: 'var(--layout-nav-vertical-width)',
+                transition: theme.transitions.create(['padding-left'], {
+                  easing: 'var(--layout-transition-easing)',
+                  duration: 'var(--layout-transition-duration)',
+                }),
+              },
             },
           },
-        },
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}
-    >
-      {renderMain()}
-    </LayoutSection>
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
+      >
+        {renderMain()}
+      </LayoutSection>
     </>
   );
 }

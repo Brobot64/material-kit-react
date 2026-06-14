@@ -50,13 +50,18 @@ import { ProductUploadDialog } from '../product-upload-dialog';
 
 export function ProductListView() {
   const router = useRouter();
-  const { appData, categories } = useAuth();
+  const { appData, categories, outlets: contextOutlets } = useAuth();
   const businessId = appData?.businessId;
 
   const [products, setProducts] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(true);
+  
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [filterOutletId, setFilterOutletId] = useState('');
 
   const [openModal, setOpenModal] = useState(false);
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
@@ -69,7 +74,7 @@ export function ProductListView() {
   // Edit modal state
   const [openEditModal, setOpenEditModal] = useState(false);
   const [editProduct, setEditProduct] = useState<any>(null);
-  const [editProductData, setEditProductData] = useState<any>(null); // full product with productOutlets
+  const [editProductData, setEditProductData] = useState<any>(null); // full product with productOutlets  
   const [selectedOutletId, setSelectedOutletId] = useState('');
   const [outletForm, setOutletForm] = useState({
     sellingPrice: 0,
@@ -88,6 +93,19 @@ export function ProductListView() {
     severity: 'success' as 'success' | 'error',
   });
 
+  // Debounce search effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPagination((prev: any) => ({ ...prev, page: 1 }));
+  }, [debouncedSearch, startDate, endDate, filterOutletId]);
+
   const handleOpenPopover = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>, product: any) => {
       setOpenPopover(event.currentTarget);
@@ -105,7 +123,7 @@ export function ProductListView() {
 
   const handleViewProduct = () => {
     if (selectedProductId) {
-      router.push(`/products/${selectedProductId}`);
+      router.push(`/app/products/${selectedProductId}`);
     }
     handleClosePopover();
   };
@@ -114,12 +132,9 @@ export function ProductListView() {
     if (!selectedProduct) return;
     handleClosePopover();
 
-    // Use the product data already available from the list (no extra API call needed)
-    // The list API returns outlets under the 'outlets' key
     const productData = selectedProduct;
     const outletsList: any[] = productData.outlets || productData.productOutlets || [];
 
-    // Normalise outlets so the edit modal can reference them as productOutlets
     const normalised = { ...productData, productOutlets: outletsList.map((o) => ({ ...o, outletId: o.outletId || o._id })) };
     setEditProductData(normalised);
 
@@ -135,7 +150,7 @@ export function ProductListView() {
 
     if (productData.details && Object.keys(productData.details).length > 0) {
       setEditProductDetails(
-        Object.entries(productData.details).map(([key, value]) => ({ key, value: String(value) }))
+        Object.entries(productData.details).map(([key, value]) => ({ key, value: String(value) }))        
       );
     } else {
       setEditProductDetails([{ key: '', value: '' }]);
@@ -169,7 +184,7 @@ export function ProductListView() {
   const handleEditOutletChange = (event: any) => {
     const outletId = event.target.value;
     setSelectedOutletId(outletId);
-    const outletData = editProductData?.productOutlets?.find((o: any) => o.outletId === outletId);
+    const outletData = editProductData?.productOutlets?.find((o: any) => o.outletId === outletId);        
     if (outletData) {
       setOutletForm({
         sellingPrice: outletData.sellingPrice || 0,
@@ -192,7 +207,7 @@ export function ProductListView() {
     setEditProductDetails(updated.length ? updated : [{ key: '', value: '' }]);
   };
 
-  const handleEditProductDetailChange = (index: number, field: 'key' | 'value', value: string) => {
+  const handleEditProductDetailChange = (index: number, field: 'key' | 'value', value: string) => {       
     const updated = [...editProductDetails];
     updated[index][field] = value;
     setEditProductDetails(updated);
@@ -294,25 +309,35 @@ export function ProductListView() {
         page: pagination.page,
         limit: pagination.limit,
         includeVariants: true,
+        search: debouncedSearch || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        outletId: filterOutletId || undefined,
       });
-      setProducts(response.data);
+      // The backend returns { data: [...], pagination: {...} } or { results: [...], pagination: {...} }
+      const results = response.results || response.data || [];
+      setProducts(results);
       setPagination(response.pagination);
     } catch (error) {
       console.error('Failed to fetch products:', error);
     } finally {
       setLoading(false);
     }
-  }, [businessId, pagination.page, pagination.limit]);
+  }, [businessId, pagination.page, pagination.limit, debouncedSearch, startDate, endDate, filterOutletId]);
 
   const fetchOutlets = useCallback(async () => {
     if (!businessId) return;
     try {
-      const data = await api.getOutlets(businessId);
-      setOutlets(data);
+      if (contextOutlets && contextOutlets.length > 0) {
+        setOutlets(contextOutlets);
+      } else {
+        const data = await api.getOutlets(businessId);
+        setOutlets(data.map((o: any) => ({ ...o, id: o._id })));
+      }
     } catch (error) {
       console.error('Failed to fetch outlets:', error);
     }
-  }, [businessId]);
+  }, [businessId, contextOutlets]);
 
   useEffect(() => {
     fetchProducts();
@@ -323,8 +348,6 @@ export function ProductListView() {
       fetchOutlets();
     }
   }, [openModal, fetchOutlets]);
-
-  // fetchOutlets is also called imperatively in handleEditProduct
 
   const handlePageChange = (event: unknown, newPage: number) => {
     setPagination({ ...pagination, page: newPage + 1 });
@@ -421,7 +444,7 @@ export function ProductListView() {
         ]}
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>        
         <Typography variant="h4">Product List</Typography>
         <Stack direction="row" spacing={1}>
           <Button
@@ -450,7 +473,7 @@ export function ProductListView() {
       />
 
       <Card>
-        <Box sx={{ p: 2.5, pb: 0 }}>
+        <Box sx={{ p: 2.5, display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center' }}>
           <TextField
             fullWidth
             placeholder="Search products..."
@@ -462,14 +485,55 @@ export function ProductListView() {
                   <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
                 </InputAdornment>
               ),
+              endAdornment: loading && searchQuery !== debouncedSearch && (
+                <InputAdornment position="end">
+                   <CircularProgress size={20} color="inherit" />
+                </InputAdornment>
+              )
             }}
           />
+
+          <Stack direction="row" spacing={2} sx={{ width: { xs: 1, md: 'auto' } }}>
+            <TextField
+              size="small"
+              label="From"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 150 }}
+            />
+            <TextField
+              size="small"
+              label="To"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 150 }}
+            />
+            <TextField
+              select
+              size="small"
+              label="Outlet"
+              value={filterOutletId}
+              onChange={(e) => setFilterOutletId(e.target.value)}
+              sx={{ minWidth: 150 }}
+            >
+              <MenuItem value="">All Outlets</MenuItem>
+              {(contextOutlets && contextOutlets.length > 0 ? contextOutlets : outlets).map((outlet) => (
+                <MenuItem key={outlet._id || outlet.id} value={outlet._id || outlet.id}>
+                  {outlet.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
         </Box>
 
         <Scrollbar>
           <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>      
                 <CircularProgress />
               </Box>
             ) : (
@@ -564,7 +628,7 @@ export function ProductListView() {
           count={pagination.total}
           rowsPerPage={pagination.limit}
           onPageChange={handlePageChange}
-          rowsPerPageOptions={[5, 10, 25]}
+          rowsPerPageOptions={[5, 10, 25, 50]}
           onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Card>
@@ -716,12 +780,14 @@ export function ProductListView() {
                         : ''
                     }
                   >
-                    {editProductData?.productOutlets?.map((po: any) => (
-                      <MenuItem key={po.outletId} value={po.outletId}>
-                        {outlets.find((o) => o._id === po.outletId || o.id === po.outletId)
-                          ?.name || po.outletId}
-                      </MenuItem>
-                    ))}
+                    {(outlets.length > 0 ? outlets : contextOutlets).map((po: any) => {
+                      const outletId = po.outletId || po._id || po.id;
+                      return (
+                        <MenuItem key={outletId} value={outletId}>
+                          {outlets.find((o) => o._id === outletId || o.id === outletId)?.name || po.name || outletId}
+                        </MenuItem>
+                      );
+                    })}
                   </TextField>
 
                   <NumericInput
@@ -921,8 +987,8 @@ export function ProductListView() {
                   onChange={(e) => setNewProduct({ ...newProduct, outletId: e.target.value })}
                 >
                   <MenuItem value="">None</MenuItem>
-                  {outlets.map((outlet) => (
-                    <MenuItem key={outlet._id} value={outlet._id}>
+                  {(outlets.length > 0 ? outlets : contextOutlets).map((outlet) => (
+                    <MenuItem key={outlet._id || outlet.id} value={outlet._id || outlet.id}>
                       {outlet.name}
                     </MenuItem>
                   ))}
