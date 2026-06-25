@@ -42,7 +42,7 @@ const DEFAULTS: Omit<BusinessSettings, 'businessId'> = {
 };
 
 export function BusinessSettingsView() {
-  const { appData } = useAuth();
+  const { appData, updateAppData } = useAuth();
   const businessId = appData?.businessId;
   const isOwner = appData?.role === 'owner' || appData?.role === 'system_admin';
 
@@ -71,7 +71,9 @@ export function BusinessSettingsView() {
       await api.upsertBusinessSettings({ ...form, businessId });
       // Clear cached settings
       localStorage.removeItem('businessSettings');
-      setSnack({ open: true, msg: 'Business settings saved. Reload to apply changes.', severity: 'success' });
+      // Update local appData settings
+      updateAppData({ businessSettings: form });
+      setSnack({ open: true, msg: 'Business settings saved successfully.', severity: 'success' });
     } catch (e: any) {
       setSnack({ open: true, msg: e.message || 'Save failed', severity: 'error' });
     } finally {

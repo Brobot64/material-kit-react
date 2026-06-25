@@ -263,7 +263,7 @@ export function CustomersView() {
                                     filteredCustomers.map((customer) => (
                                         <TableRow key={customer._id} hover>
                                             <TableCell>
-                                                <Typography variant="subtitle2">{customer.userId.fullName}</Typography>
+                                                <Typography variant="subtitle2" sx={{ textTransform: 'capitalize' }}>{customer.userId.fullName}</Typography>
                                             </TableCell>
                                             <TableCell>
                                                 <Stack>

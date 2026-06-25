@@ -22,6 +22,7 @@ type AuthContextType = {
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   appData: any;
+  updateAppData: (updates: any) => void;
   categories: Category[];
   outlets: Outlet[];
   refreshCategories: () => Promise<void>;
@@ -266,6 +267,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const updateAppData = useCallback((updates: any) => {
+    setAppData((prev: any) => {
+      const updated = { ...(prev || {}), ...updates };
+      localStorage.setItem('appData', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -284,6 +293,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         logout,
         updateUser,
         appData,
+        updateAppData,
         categories,
         outlets,
         refreshCategories,

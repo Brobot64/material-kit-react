@@ -233,9 +233,14 @@ export function InventoryView() {
                       <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8 }}><Typography color="text.secondary">No products found</Typography></TableCell></TableRow>
                     ) : (
                       products.map((p) => {
-                        const qty = p.quantity ?? p.quantityOnHand ?? 0;
-                        const avgCost = p.averageCost ?? p.currentCost ?? 0;
-                        const status = qty <= 0 ? 'OUT_OF_STOCK' : qty <= (p.minStock ?? 0) ? 'LOW_STOCK' : 'IN_STOCK';
+                        const outlet = p.outlets?.find((o: any) => {
+                          const oId = typeof o.outletId === 'object' ? o.outletId?._id || o.outletId?.id : o.outletId;
+                          return oId === selectedOutletId;
+                        }) || p.outlets?.[0];
+                        const qty = outlet?.quantity ?? p.quantity ?? p.quantityOnHand ?? 0;
+                        const avgCost = outlet?.averageCost ?? outlet?.currentCost ?? p.averageCost ?? p.currentCost ?? 0;
+                        const minStock = outlet?.minStock ?? p.minStock ?? 0;
+                        const status = qty <= 0 ? 'OUT_OF_STOCK' : qty <= minStock ? 'LOW_STOCK' : 'IN_STOCK';
                         return (
                           <TableRow key={p._id || p.productId?._id}>
                             <TableCell>
@@ -243,7 +248,7 @@ export function InventoryView() {
                               <Typography variant="caption" color="text.secondary">{p.sku || p.productId?.sku || '—'}</Typography>
                             </TableCell>
                             <TableCell align="right">{fNumber(qty)}</TableCell>
-                            <TableCell align="right">{fNumber(p.availableQuantity ?? qty)}</TableCell>
+                            <TableCell align="right">{fNumber(outlet?.availableQuantity ?? qty)}</TableCell>
                             <TableCell align="right">{fCurrency(avgCost)}</TableCell>
                             <TableCell align="right">{fCurrency(qty * avgCost)}</TableCell>
                             <TableCell><Label variant="soft" color={status === 'IN_STOCK' ? 'success' : status === 'LOW_STOCK' ? 'warning' : 'error'}>{status.replace('_', ' ')}</Label></TableCell>
@@ -357,7 +362,13 @@ export function InventoryView() {
           <Stack spacing={2.5} sx={{ pt: 1 }}>
             <Autocomplete fullWidth options={products} getOptionLabel={(o) => o.name || o.productId?.name || ""}
               value={products.find((p) => (p._id || p.productId?._id) === adjustForm.productId) || null}
-              onChange={(_, v) => setAdjustForm({ ...adjustForm, productId: v ? (v._id || v.productId?._id) : '', unitCost: v ? (v.floorPrice ?? v.price ?? 0) : 0 })}
+              onChange={(_, v) => {
+                const outlet = v?.outlets?.find((o: any) => {
+                  const oId = typeof o.outletId === 'object' ? o.outletId?._id || o.outletId?.id : o.outletId;
+                  return oId === selectedOutletId;
+                }) || v?.outlets?.[0];
+                setAdjustForm({ ...adjustForm, productId: v ? (v._id || v.productId?._id) : '', unitCost: outlet ? (outlet.floorPrice ?? outlet.sellingPrice ?? 0) : 0 });
+              }}
               renderInput={(p) => <TextField {...p} label="Product" required />} />
             <TextField select fullWidth label="Type" value={adjustForm.type} onChange={(e) => setAdjustForm({ ...adjustForm, type: e.target.value as any })}>
               <MenuItem value="adjustment">Manual Adjustment</MenuItem><MenuItem value="damage">Damage / Write-off</MenuItem>
