@@ -152,7 +152,11 @@ export function SaleView() {
 
   const addToCart = (product: any) => {
     const productId = product._id || product.productId?._id;
-    const stock = product.availableQuantity ?? product.quantity ?? 0;
+    const outlet = product.outlets?.find((o: any) => {
+      const oId = typeof o.outletId === 'object' ? o.outletId?._id || o.outletId?.id : o.outletId;
+      return oId === selectedOutletId;
+    }) || product.outlets?.[0];
+    const stock = outlet?.availableQuantity ?? outlet?.quantity ?? product.availableQuantity ?? product.quantity ?? 0;
     if (stock <= 0) return;
     
     const existing = cart.find((i) => i.productId === productId);
@@ -163,14 +167,14 @@ export function SaleView() {
       }
       setCart(cart.map((i) => i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i));       
     } else {
-      const price = product.defaultSalePrice ?? product.guidePrice ?? product.sellingPrice ?? 0;
+      const price = outlet?.defaultSalePrice ?? outlet?.guidePrice ?? outlet?.sellingPrice ?? product.defaultSalePrice ?? product.guidePrice ?? product.sellingPrice ?? 0;
       setCart([...cart, {
         productId,
         name: product.name || product.productId?.name || 'Unknown',
         quantity: 1,
         unitPrice: price,
-        guidePrice: product.guidePrice ?? price,
-        floorPrice: product.floorPrice ?? 0,
+        guidePrice: outlet?.guidePrice ?? price,
+        floorPrice: outlet?.floorPrice ?? 0,
         tax: 0,
         discount: 0,
         stock,
@@ -257,8 +261,14 @@ export function SaleView() {
             <Scrollbar sx={{ maxHeight: 560 }}>
               <Grid container spacing={2}>
                 {loadingProducts ? <CircularProgress sx={{ mx: 'auto', my: 5 }} /> : products.map((p) => {
-                  const availableQty = p.availableQuantity ?? p.quantity ?? 0;
+                  const outlet = p.outlets?.find((o: any) => {
+                    const oId = typeof o.outletId === 'object' ? o.outletId?._id || o.outletId?.id : o.outletId;
+                    return oId === selectedOutletId;
+                  }) || p.outlets?.[0];
+                  const availableQty = outlet?.availableQuantity ?? outlet?.quantity ?? p.availableQuantity ?? p.quantity ?? 0;
                   const isOutOfStock = availableQty <= 0;
+                  const guidePrice = outlet?.guidePrice ?? outlet?.defaultSalePrice ?? outlet?.sellingPrice ?? p.guidePrice ?? p.defaultSalePrice ?? p.sellingPrice ?? 0;
+                  const floorPrice = outlet?.floorPrice ?? p.floorPrice ?? 0;
                   
                   return (
                     <Grid size={{ xs: 12, sm: 6 }} key={p._id}>
@@ -286,10 +296,10 @@ export function SaleView() {
                           
                           <Box textAlign="right">
                             <Typography variant="subtitle2" color="primary.main">
-                              Guide: {fCurrency(p.guidePrice ?? p.defaultSalePrice)}
+                              Guide: {fCurrency(guidePrice)}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              Floor: {fCurrency(p.floorPrice ?? 0)}
+                              Floor: {fCurrency(floorPrice)}
                             </Typography>
                           </Box>
                         </Stack>

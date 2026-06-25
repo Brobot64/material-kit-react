@@ -231,21 +231,28 @@ function CreateSwapDialog({ open, onClose, onCreated }: CreateSwapDialogProps) {
               label="Select Product *"
               onChange={(e) => {
                 const po = productOutlets.find((p) => {
-                  const pid = typeof p.productId === 'object' ? p.productId._id : p.productId;
-                  return pid === e.target.value;
+                  const pId = p._id || (p.productId && typeof p.productId === 'object' ? p.productId._id : p.productId);
+                  return pId === e.target.value;
                 });
+                const outlet = po?.outlets?.find((o: any) => {
+                  const oId = typeof o.outletId === 'object' ? o.outletId?._id || o.outletId?.id : o.outletId;
+                  return oId === outletId;
+                }) || po?.outlets?.[0];
                 setForm((prev) => ({
                   ...prev,
                   newProductId: e.target.value,
-                  newProductUnitPrice: po?.defaultSalePrice || po?.sellingPrice || 0,
+                  newProductUnitPrice: outlet?.defaultSalePrice || outlet?.sellingPrice || po?.defaultSalePrice || po?.sellingPrice || 0,
                 }));
               }}
             >
               {productOutlets.map((po) => {
-                const product = typeof po.productId === 'object' ? po.productId : { _id: po.productId, name: 'Unknown' };
+                const product = (po.productId && typeof po.productId === 'object') ? po.productId : po;
+                const pId = product._id || po._id || (typeof po.productId === 'string' ? po.productId : '');
+                const pName = product.name || 'Unknown';
+                const pSku = product.sku || '';
                 return (
-                  <MenuItem key={product._id} value={product._id}>
-                    {product.name} {product.sku ? `(${product.sku})` : ''}
+                  <MenuItem key={pId} value={pId}>
+                    {pName} {pSku ? `(${pSku})` : ''}
                   </MenuItem>
                 );
               })}

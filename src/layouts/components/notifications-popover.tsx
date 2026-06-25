@@ -95,9 +95,9 @@ export function NotificationsPopover({
   const sections: { label: string; items: NotificationItemProps[] }[] = groupBy?.(
     mappedNotifications
   ) ?? [
-    { label: 'New', items: mappedNotifications.filter((n) => n.isUnRead) },
-    { label: 'Before that', items: mappedNotifications.filter((n) => !n.isUnRead) },
-  ];
+      { label: 'New', items: mappedNotifications.filter((n) => n.isUnRead) },
+      { label: 'Before that', items: mappedNotifications.filter((n) => !n.isUnRead).slice(0, 5) },
+    ];
 
   return (
     <>
@@ -221,6 +221,7 @@ function NotificationItem({ notification }: { notification: NotificationItemProp
               display: 'flex',
               alignItems: 'center',
               color: 'text.disabled',
+              textTransform: 'capitalize',
             }}
           >
             <Iconify width={14} icon="solar:clock-circle-outline" />

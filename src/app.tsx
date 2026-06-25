@@ -9,6 +9,8 @@ import { useBusinessSettings } from 'src/hooks/useBusinessSettings';
 import { SnackbarProvider } from 'src/contexts/snackbar-context';
 import { BusinessThemeProvider } from 'src/theme/business-theme-provider';
 
+import { PwaInstallPrompt } from 'src/components/pwa-install-prompt';
+
 // ----------------------------------------------------------------------
 
 function TitleEnhancer() {
@@ -53,6 +55,7 @@ export default function App({ children }: AppProps) {
       <SnackbarProvider>
         <TitleEnhancer />
         {children}
+        <PwaInstallPrompt />
       </SnackbarProvider>
     </BusinessThemeProvider>
   );
