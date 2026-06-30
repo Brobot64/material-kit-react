@@ -63,10 +63,11 @@ export function InventoryView() {
   const assignedOutletId = appData?.outletId;
   const businessId = appData?.businessId;
   
-  const enableExpiry = useMemo(() => 
-    Boolean(appData?.businessSettings?.features?.enableExpiryTracking), 
-    [appData?.businessSettings?.features?.enableExpiryTracking]
-  );
+  const enableExpiry = useMemo(() => {
+    const features = appData?.businessSettings?.features || appData?.features;
+    return Boolean(features?.enableExpiryTracking);
+  }, [appData]);
+
 
   const [tab, setTab] = useState(0);
   const [selectedOutletId, setSelectedOutletId] = useState('');
