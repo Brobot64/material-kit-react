@@ -9,6 +9,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
+import Skeleton from '@mui/material/Skeleton';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
 import TableBody from '@mui/material/TableBody';
@@ -27,6 +28,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import TablePagination from '@mui/material/TablePagination';
 
 import { fCurrency } from 'src/utils/format-number';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -168,7 +170,7 @@ export function CustomersView() {
             fetchCustomers();
             handleCloseModal();
         } catch (error: any) {
-            setSnackbar({ open: true, message: error.message || 'Failed to save customer', severity: 'error' });
+            setSnackbar({ open: true, message: formatError(error), severity: 'error' });
         } finally {
             setIsSubmitting(false);
         }
@@ -181,7 +183,7 @@ export function CustomersView() {
             setSnackbar({ open: true, message: 'Customer deactivated', severity: 'success' });
             fetchCustomers();
         } catch (error: any) {
-            setSnackbar({ open: true, message: error.message || 'Failed to deactivate customer', severity: 'error' });
+            setSnackbar({ open: true, message: formatError(error), severity: 'error' });
         }
     };
 
@@ -205,7 +207,7 @@ export function CustomersView() {
 
     return (
         <DashboardContent>
-            <Breadcrumbs links={[{ name: 'Dashboard', href: '/' }, { name: 'Customers' }]} sx={{ mb: 5 }} />
+            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Customers' }]} sx={{ mb: 5 }} />
 
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
                 <Typography variant="h4">Customers</Typography>
@@ -250,16 +252,18 @@ export function CustomersView() {
                             </TableHead>
                             <TableBody>
                                 {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                                            <Typography variant="body2" color="text.secondary">Loading customers...</Typography>
-                                        </TableCell>
-                                    </TableRow>
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            {Array.from({ length: 6 }).map((__, j) => (
+                                                <TableCell key={j}><Skeleton animation="wave" /></TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
                                 ) : filteredCustomers.length > 0 ? (
                                     filteredCustomers.map((customer) => (
                                         <TableRow key={customer._id} hover>
                                             <TableCell>
-                                                <Typography variant="subtitle2">{customer.userId.fullName}</Typography>
+                                                <Typography variant="subtitle2" sx={{ textTransform: 'capitalize' }}>{customer.userId.fullName}</Typography>
                                             </TableCell>
                                             <TableCell>
                                                 <Stack>

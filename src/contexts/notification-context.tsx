@@ -9,14 +9,18 @@ import { useSocket } from './socket-context';
 
 // ----------------------------------------------------------------------
 
+type ToastNotification = Notification & { toastId: string };
+
 type NotificationContextType = {
   notifications: Notification[];
   unreadCount: number;
+  activeToasts: ToastNotification[];
   addNotification: (notification: Notification) => void;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   removeNotification: (id: string) => void;
   clearAll: () => void;
+  dismissToast: (toastId: string) => void;
   requestPermission: () => Promise<boolean>;
 };
 
@@ -28,22 +32,24 @@ type NotificationProviderProps = {
   children: ReactNode;
 };
 
+function mapBackendNotification(n: any): Notification {
+  return {
+    ...n,
+    id: n.id || n._id,
+    read: n.read ?? n.isRead ?? false,
+  };
+}
+
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activeToasts, setActiveToasts] = useState<ToastNotification[]>([]);
   const { isAuthenticated } = useAuth();
   const { socket } = useSocket();
 
   const fetchNotifications = useCallback(async () => {
     try {
       const response = await api.getNotifications();
-      // Ensure we map backend 'read' state correctly if needed
-      // and handle potential different field names (e.g., _id vs id)
-      const mapped = response.notifications.map((n: any) => ({
-        ...n,
-        id: n.id || n._id,
-        read: n.read ?? false,
-      }));
-      setNotifications(mapped);
+      setNotifications(response.notifications.map(mapBackendNotification));
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }
@@ -54,35 +60,40 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       fetchNotifications();
     } else {
       setNotifications([]);
+      setActiveToasts([]);
     }
   }, [isAuthenticated, fetchNotifications]);
 
   useEffect(() => {
-    if (socket) {
-      socket.on('notification', (newNotif: any) => {
-        const notification: Notification = {
-          ...newNotif,
-          id: newNotif.id || newNotif._id,
-          read: false, // New notifications are unread by default
-        };
+    if (!socket) return undefined;
 
-        setNotifications((prev) => [notification, ...prev]);
+    socket.on('notification', (newNotif: any) => {
+      const notification = mapBackendNotification({ ...newNotif, read: false });
 
-        // Show browser notification if permission granted
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new window.Notification(notification.title, {
-            body: notification.message,
-            icon: '/favicon.ico',
-            tag: notification.id,
-          });
-        }
-      });
+      setNotifications((prev) => [notification, ...prev]);
 
-      return () => {
-        socket.off('notification');
-      };
-    }
-    return undefined;
+      // Show in-app toast
+      const toastId = `toast-${Date.now()}-${Math.random()}`;
+      setActiveToasts((prev) => [...prev, { ...notification, toastId }]);
+
+      // Auto-dismiss toast after 6 seconds
+      setTimeout(() => {
+        setActiveToasts((prev) => prev.filter((t) => t.toastId !== toastId));
+      }, 6000);
+
+      // Show browser notification if permission granted
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new window.Notification(notification.title, {
+          body: notification.message,
+          icon: '/favicon.ico',
+          tag: notification.id,
+        });
+      }
+    });
+
+    return () => {
+      socket.off('notification');
+    };
   }, [socket]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -117,20 +128,17 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     setNotifications([]);
   }, []);
 
+  const dismissToast = useCallback((toastId: string) => {
+    setActiveToasts((prev) => prev.filter((t) => t.toastId !== toastId));
+  }, []);
+
   const requestPermission = useCallback(async () => {
-    if (!('Notification' in window)) {
-      return false;
-    }
-
-    if (Notification.permission === 'granted') {
-      return true;
-    }
-
+    if (!('Notification' in window)) return false;
+    if (Notification.permission === 'granted') return true;
     if (Notification.permission !== 'denied') {
       const permission = await Notification.requestPermission();
       return permission === 'granted';
     }
-
     return false;
   }, []);
 
@@ -139,11 +147,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       value={{
         notifications,
         unreadCount,
+        activeToasts,
         addNotification,
         markAsRead,
         markAllAsRead,
         removeNotification,
         clearAll,
+        dismissToast,
         requestPermission,
       }}
     >

@@ -11,17 +11,18 @@ import { useTheme, useColorScheme } from '@mui/material/styles';
 import { useAuth } from 'src/contexts/auth-context';
 
 import { SubscriptionBanner } from 'src/components/subscription/subscription-banner';
+import { NotificationToastStack } from 'src/components/notifications/notification-toast-stack';
 
 import { NavMobile, NavDesktop } from './nav';
 import { layoutClasses } from '../core/classes';
 import { _account } from '../nav-config-account';
 import { dashboardLayoutVars } from './css-vars';
-import { navData } from '../nav-config-dashboard';
 import { MainSection } from '../core/main-section';
 import { Searchbar } from '../components/searchbar';
 import { MenuButton } from '../components/menu-button';
 import { HeaderSection } from '../core/header-section';
 import { LayoutSection } from '../core/layout-section';
+import { getNavForRole } from '../nav-config-dashboard';
 import { AccountPopover } from '../components/account-popover';
 import { ThemeModeButton } from '../components/theme-mode-button';
 import { NotificationsPopover } from '../components/notifications-popover';
@@ -54,7 +55,8 @@ export function DashboardLayout({
 
   const { setMode } = useColorScheme();
 
-  const { user, outlets } = useAuth();
+  const { user, outlets, appData } = useAuth();
+  const filteredNav = getNavForRole(appData?.role, appData?.businessSettings?.features || appData?.features);
 
   useEffect(() => {
     if (user?.themePreference) {
@@ -93,7 +95,7 @@ export function DashboardLayout({
             onClick={onOpen}
             sx={{ mr: 1, ml: -1, [theme.breakpoints.up(layoutQuery)]: { display: 'none' } }}
           />
-          <NavMobile data={navData} open={open} onClose={onClose} workspaces={workspaces} />
+          <NavMobile data={filteredNav} open={open} onClose={onClose} workspaces={workspaces} />
         </>
       ),
       rightArea: (
@@ -138,47 +140,50 @@ export function DashboardLayout({
   );
 
   return (
-    <LayoutSection
-      /** **************************************
-       * @Header
-       *************************************** */
-      headerSection={renderHeader()}
-      /** **************************************
-       * @Sidebar
-       *************************************** */
-      sidebarSection={
-        <NavDesktop
-          data={navData}
-          layoutQuery={layoutQuery}
-          workspaces={workspaces}
-          collapsed={collapsed}
-          onToggleCollapsed={onToggleCollapsed}
-        />
-      }
-      /** **************************************
-       * @Footer
-       *************************************** */
-      footerSection={renderFooter()}
-      /** **************************************
-       * @Styles
-       *************************************** */
-      cssVars={{ ...dashboardLayoutVars(theme, collapsed), ...cssVars }}
-      sx={[
-        {
-          [`& .${layoutClasses.sidebarContainer}`]: {
-            [theme.breakpoints.up(layoutQuery)]: {
-              pl: 'var(--layout-nav-vertical-width)',
-              transition: theme.transitions.create(['padding-left'], {
-                easing: 'var(--layout-transition-easing)',
-                duration: 'var(--layout-transition-duration)',
-              }),
+    <>
+      <NotificationToastStack />
+      <LayoutSection
+        /** **************************************
+         * @Header
+         *************************************** */
+        headerSection={renderHeader()}
+        /** **************************************
+         * @Sidebar
+         *************************************** */
+        sidebarSection={
+          <NavDesktop
+            data={filteredNav}
+            layoutQuery={layoutQuery}
+            workspaces={workspaces}
+            collapsed={collapsed}
+            onToggleCollapsed={onToggleCollapsed}
+          />
+        }
+        /** **************************************
+         * @Footer
+         *************************************** */
+        footerSection={renderFooter()}
+        /** **************************************
+         * @Styles
+         *************************************** */
+        cssVars={{ ...dashboardLayoutVars(theme, collapsed), ...cssVars }}
+        sx={[
+          {
+            [`& .${layoutClasses.sidebarContainer}`]: {
+              [theme.breakpoints.up(layoutQuery)]: {
+                pl: 'var(--layout-nav-vertical-width)',
+                transition: theme.transitions.create(['padding-left'], {
+                  easing: 'var(--layout-transition-easing)',
+                  duration: 'var(--layout-transition-duration)',
+                }),
+              },
             },
           },
-        },
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}
-    >
-      {renderMain()}
-    </LayoutSection>
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
+      >
+        {renderMain()}
+      </LayoutSection>
+    </>
   );
 }

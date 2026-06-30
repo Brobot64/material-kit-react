@@ -19,10 +19,182 @@
 @import './components/chart/styles.css';
 
 /* **************************************
-* Tailwind CSS
+* Tailwind CSS v4
 ************************************** */
-  @tailwind utilities;
- 
+@import "tailwindcss";
+
+/* ======================================
+ * Landing page theme & animations
+ * ====================================== */
+
+:root {
+  --primary-blue: #3b82f6;
+  --primary-indigo: #6366f1;
+  --bg-dark: #050d20;
+  --bg-navy: #020617;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-cyan: #22d3ee;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-15px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(1.05); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-fade-in-up    { animation: fadeInUp   0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in-down  { animation: fadeInDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in-left  { animation: fadeInLeft  0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in-right { animation: fadeInRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-float         { animation: float      5s ease-in-out infinite; }
+.animate-pulse-soft    { animation: pulse-soft 3s ease-in-out infinite; }
+.animate-spin-slow     { animation: spin-slow  30s linear infinite; }
+
+.delay-100  { animation-delay: 0.1s; }
+.delay-200  { animation-delay: 0.2s; }
+.delay-300  { animation-delay: 0.3s; }
+.delay-400  { animation-delay: 0.4s; }
+.delay-500  { animation-delay: 0.5s; }
+
+/* Landing gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass morphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-light {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Glow effects */
+.glow-blue { box-shadow: 0 0 50px rgba(59, 130, 246, 0.15); }
+.glow-indigo { box-shadow: 0 0 50px rgba(99, 102, 241, 0.15); }
+
+/* Buttons */
+.btn-primary-blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+}
+.btn-primary-blue:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+}
+
+/* ======================================
+ * Reveal animation
+ * ====================================== */
+body.ready-to-animate .reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+body.ready-to-animate .reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ======================================
+ * Marquee (infinite scroll)
+ * ====================================== */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes marqueeReverse {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+.animate-marquee         { animation: marquee        40s linear infinite; }
+.animate-marquee-fast    { animation: marquee        25s linear infinite; }
+.animate-marquee-reverse { animation: marqueeReverse 40s linear infinite; }
+
+/* ======================================
+ * Chart bar grow
+ * ====================================== */
+@keyframes growBar {
+  from { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+  to   { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+}
+.chart-bar { animation: growBar 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ======================================
+ * Scroll indicator dot
+ * ====================================== */
+@keyframes scrollDot {
+  0%,100% { transform: translateY(0);   opacity: 0.5; }
+  50%      { transform: translateY(6px); opacity: 1; }
+}
+.animate-scroll-dot { animation: scrollDot 2s ease-in-out infinite; }
+
+/* ======================================
+ * Lime gradient text
+ * ====================================== */
+.gradient-text-lime {
+  background: linear-gradient(135deg, #a3e635 0%, #84cc16 60%, #65a30d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ======================================
+ * Landing glow pulses
+ * ====================================== */
+@keyframes orbPulse {
+  0%,100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 0.6;  transform: scale(1.05); }
+}
+.animate-orb { animation: orbPulse 8s ease-in-out infinite; }
+.animate-orb-delay { animation: orbPulse 8s ease-in-out 4s infinite; }
 
 /** **************************************
 * Baseline

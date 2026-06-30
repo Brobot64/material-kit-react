@@ -11,9 +11,12 @@ import TextField from '@mui/material/TextField';
 import StepLabel from '@mui/material/StepLabel';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
+import LoadingButton from '@mui/lab/LoadingButton';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
+
+import { formatError } from 'src/utils/format-error';
 
 import { useAuth } from 'src/contexts/auth-context';
 
@@ -28,6 +31,7 @@ export function SignUpView() {
   const { register } = useAuth();
 
   const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -114,6 +118,7 @@ export function SignUpView() {
         return;
       }
 
+      setLoading(true);
       try {
         await register({
           fullName: formData.displayName,
@@ -133,7 +138,9 @@ export function SignUpView() {
 
         router.push(`/verify-otp?email=${formData.email}`);
       } catch (err: any) {
-        setError(err.message || 'Registration failed');
+        setError(formatError(err));
+      } finally {
+        setLoading(false);
       }
     },
     [formData, activeStep, router, register, validateStep]
@@ -325,13 +332,13 @@ export function SignUpView() {
           </Button>
         )}
         {activeStep < STEPS.length - 1 ? (
-          <Button fullWidth size="large" variant="contained" color="inherit" onClick={handleNext}>
+          <Button fullWidth size="large" variant="contained" color="inherit" onClick={handleNext} disabled={loading}>
             Next
           </Button>
         ) : (
-          <Button fullWidth size="large" variant="contained" color="inherit" onClick={handleSignUp}>
+          <LoadingButton fullWidth size="large" variant="contained" color="inherit" loading={loading} onClick={handleSignUp}>
             Sign up
-          </Button>
+          </LoadingButton>
         )}
       </Box>
     </Box>

@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
+import Button from '@mui/lab/LoadingButton';
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
@@ -11,6 +11,8 @@ import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
+
+import { formatError } from 'src/utils/format-error';
 
 import { useAuth } from 'src/contexts/auth-context';
 
@@ -40,7 +42,7 @@ export function SignInView() {
         if (userData.mustChangePassword) {
           router.push('/change-password');
         } else {
-          router.push('/');
+          router.push('/app');
         }
       } catch (err: any) {
         console.error(err);
@@ -48,7 +50,7 @@ export function SignInView() {
           router.push(`/verify-otp?email=${email}`);
           return;
         }
-        setError(err.message || 'Login failed');
+        setError(formatError(err));
       } finally {
         setLoading(false);
       }

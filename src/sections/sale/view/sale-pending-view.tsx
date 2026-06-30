@@ -6,6 +6,7 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Skeleton from '@mui/material/Skeleton';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
 import MenuItem from '@mui/material/MenuItem';
@@ -23,6 +24,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { fDateTime } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
@@ -96,7 +98,7 @@ export function SalePendingView() {
             handleClosePaymentModal();
             fetchPendingSales();
         } catch (error: any) {
-            setSnackbar({ open: true, message: error.message || 'Failed to record payment', severity: 'error' });
+            setSnackbar({ open: true, message: formatError(error), severity: 'error' });
         } finally {
             setIsSubmittingPayment(false);
         }
@@ -104,7 +106,7 @@ export function SalePendingView() {
 
     return (
         <DashboardContent>
-            <Breadcrumbs links={[{ name: 'Dashboard', href: '/' }, { name: 'Sales', href: '/sales' }, { name: 'Pending Payments' }]} sx={{ mb: 5 }} />
+            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Sales', href: '/app/sales' }, { name: 'Pending Payments' }]} sx={{ mb: 5 }} />
 
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
                 <Typography variant="h4">Pending Payments</Typography>
@@ -140,7 +142,13 @@ export function SalePendingView() {
                             </TableHead>
                             <TableBody>
                                 {loading ? (
-                                    <TableRow><TableCell colSpan={8} align="center">Loading...</TableCell></TableRow>
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            {Array.from({ length: 8 }).map((__, j) => (
+                                                <TableCell key={j}><Skeleton animation="wave" /></TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
                                 ) : sales.length > 0 ? (
                                     sales.map((sale) => (
                                         <TableRow key={sale._id}>
@@ -188,7 +196,7 @@ export function SalePendingView() {
                             label="Amount"
                             value={paymentAmount}
                             onChange={(e) => setPaymentAmount(Number(e.target.value))}
-                            InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+                            InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}
                         />
                         <TextField
                             select

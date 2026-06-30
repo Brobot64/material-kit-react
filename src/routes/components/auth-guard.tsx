@@ -24,13 +24,17 @@ export function AuthGuard({ children }: Props) {
 
     if (!isAuthenticated) {
       const searchParams = new URLSearchParams({ returnTo: window.location.pathname }).toString();
-
       const href = `/sign-in?${searchParams}`;
-
       router.replace(href);
     } else {
       if (user?.isActive === false) {
         router.replace('/verify-otp?email=' + user.email);
+        return;
+      }
+      // Force password change on first login
+      if (user?.mustChangePassword && window.location.pathname !== '/change-password') {
+        router.replace('/change-password');
+        return;
       }
       setChecked(true);
     }

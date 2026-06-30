@@ -10,10 +10,14 @@ import Checkbox from '@mui/material/Checkbox';
 import MenuList from '@mui/material/MenuList';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
+import LoadingButton from '@mui/lab/LoadingButton';
 import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 import { Modal, Button, Select, TextField, Typography, InputLabel, FormControl, MenuItem as MuiMenuItem } from '@mui/material';
 
+import { formatError } from 'src/utils/format-error';
+
 import { api } from 'src/services/api';
+import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -28,9 +32,12 @@ type UserTableRowProps = {
 };
 
 export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTableRowProps) {
+  const { showSuccess, showError } = useAppSnackbar();
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [openPayModal, setOpenPayModal] = useState(false);
+  const [savingHR, setSavingHR] = useState(false);
+  const [payingSalary, setPayingSalary] = useState(false);
 
   const [editData, setEditData] = useState({
     salary: row.salary,
@@ -61,7 +68,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
       onRefresh();
       handleClosePopover();
     } catch (error) {
-      console.error('Failed to update status:', error);
+      showError(formatError(error));
     }
   }, [row.userId._id, onRefresh, handleClosePopover]);
 
@@ -72,31 +79,37 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
         onRefresh();
         handleClosePopover();
       } catch (error) {
-        console.error('Failed to delete employee:', error);
+        showError(formatError(error));
       }
     }
   }, [row._id, onRefresh, handleClosePopover]);
 
   const handleEditHR = useCallback(async () => {
+    setSavingHR(true);
     try {
       await api.updateEmployee(row._id, editData);
       setOpenEditModal(false);
       onRefresh();
     } catch (error) {
-      console.error('Failed to update HR record:', error);
+      showError(formatError(error));
+    } finally {
+      setSavingHR(false);
     }
   }, [row._id, editData, onRefresh]);
 
   const handlePaySalary = useCallback(async () => {
+    setPayingSalary(true);
     try {
       await api.paySalary({
         employeeId: row._id,
         ...payData,
       });
       setOpenPayModal(false);
-      alert('Salary payment recorded successfully');
+      showSuccess('Salary payment recorded successfully.');
     } catch (error) {
-      console.error('Failed to pay salary:', error);
+      showError(formatError(error));
+    } finally {
+      setPayingSalary(false);
     }
   }, [row._id, payData]);
 
@@ -232,8 +245,8 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
             onChange={(e) => setEditData({ ...editData, salary: Number(e.target.value) })}
           />
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Button onClick={() => setOpenEditModal(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handleEditHR}>Save</Button>
+            <Button onClick={() => setOpenEditModal(false)} disabled={savingHR}>Cancel</Button>
+            <LoadingButton variant="contained" loading={savingHR} onClick={handleEditHR}>Save</LoadingButton>
           </Box>
         </Box>
       </Modal>
@@ -283,8 +296,8 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
             onChange={(e) => setPayData({ ...payData, notes: e.target.value })}
           />
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Button onClick={() => setOpenPayModal(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handlePaySalary} color="primary">Confirm Payment</Button>
+            <Button onClick={() => setOpenPayModal(false)} disabled={payingSalary}>Cancel</Button>
+            <LoadingButton variant="contained" color="primary" loading={payingSalary} onClick={handlePaySalary}>Confirm Payment</LoadingButton>
           </Box>
         </Box>
       </Modal>

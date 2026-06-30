@@ -7,8 +7,11 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import LoadingButton from '@mui/lab/LoadingButton';
 
 import { useRouter } from 'src/routes/hooks';
+
+import { formatError } from 'src/utils/format-error';
 
 import { useAuth } from 'src/contexts/auth-context';
 
@@ -40,9 +43,9 @@ export function JwtVerifyOtpView() {
         setError('');
         setSuccess('');
         await verifyOtp(email, otp);
-        router.push('/');
+        router.push('/app');
       } catch (err: any) {
-        setError(err.message || 'Verification failed');
+        setError(formatError(err));
       } finally {
         setLoading(false);
       }
@@ -63,7 +66,7 @@ export function JwtVerifyOtpView() {
       await resendOtp(email);
       setSuccess('OTP resent successfully');
     } catch (err: any) {
-      setError(err.message || 'Failed to resend OTP');
+      setError(formatError(err));
     } finally {
       setLoading(false);
     }
@@ -117,16 +120,16 @@ export function JwtVerifyOtpView() {
         </Link>
       </Typography>
 
-      <Button
+      <LoadingButton
         fullWidth
         size="large"
         type="submit"
         variant="contained"
         color="inherit"
-        disabled={loading}
+        loading={loading}
       >
         Verify
-      </Button>
+      </LoadingButton>
 
       <Button
         fullWidth

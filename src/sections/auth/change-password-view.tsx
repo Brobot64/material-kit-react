@@ -6,9 +6,12 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import LoadingButton from '@mui/lab/LoadingButton';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
+
+import { formatError } from 'src/utils/format-error';
 
 import { useAuth } from 'src/contexts/auth-context';
 
@@ -41,9 +44,9 @@ export function ChangePasswordView() {
 
       try {
         await changePassword({ currentPassword, newPassword });
-        router.push('/');
+        router.push('/app');
       } catch (err: any) {
-        setError(err.message || 'Something went wrong');
+        setError(formatError(err));
       } finally {
         setLoading(false);
       }
@@ -116,16 +119,16 @@ export function ChangePasswordView() {
         }}
       />
 
-      <Button
+      <LoadingButton
         fullWidth
         size="large"
         type="submit"
         variant="contained"
         color="inherit"
-        disabled={loading}
+        loading={loading}
       >
         Change Password
-      </Button>
+      </LoadingButton>
 
       <Button
         fullWidth

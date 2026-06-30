@@ -29,6 +29,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { fDateTime } from 'src/utils/format-time';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
@@ -137,7 +138,7 @@ export function CategoriesView() {
       console.error('Failed to save category:', error);
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to save category',
+        message: formatError(error),
         severity: 'error',
       });
     } finally {
@@ -151,7 +152,7 @@ export function CategoriesView() {
 
   return (
     <DashboardContent>
-      <Breadcrumbs links={[{ name: 'Dashboard', href: '/' }, { name: 'Categories' }]} sx={{ mb: 5 }} />
+      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Categories' }]} sx={{ mb: 5 }} />
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
         <Typography variant="h4">Categories</Typography>

@@ -8,9 +8,12 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 
+import { formatError } from 'src/utils/format-error';
+
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -18,6 +21,7 @@ import { Iconify } from 'src/components/iconify';
 
 export function ProfileView() {
   const { user, refreshProfile } = useAuth();
+  const { showSuccess, showError, showWarning } = useAppSnackbar();
 
   const [currentTab, setCurrentTab] = useState('account');
 
@@ -54,10 +58,9 @@ export function ProfileView() {
         address: profileData.address,
       });
       await refreshProfile();
-      alert('Profile updated successfully');
+      showSuccess('Profile updated successfully.');
     } catch (error) {
-      console.error(error);
-      alert(error instanceof Error ? error.message : 'Failed to update profile');
+      showError(formatError(error));
     } finally {
       setLoading(false);
     }
@@ -65,7 +68,7 @@ export function ProfileView() {
 
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Passwords do not match');
+      showWarning('Passwords do not match.');
       return;
     }
 
@@ -80,10 +83,9 @@ export function ProfileView() {
         newPassword: '',
         confirmPassword: '',
       });
-      alert('Password updated successfully');
+      showSuccess('Password updated successfully.');
     } catch (error) {
-      console.error(error);
-      alert(error instanceof Error ? error.message : 'Failed to update password');
+      showError(formatError(error));
     } finally {
       setLoading(false);
     }

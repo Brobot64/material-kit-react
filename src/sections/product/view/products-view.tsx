@@ -32,6 +32,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import { fDateTime } from 'src/utils/format-time';
 import { fNumber } from 'src/utils/format-number';
+import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
@@ -77,12 +78,14 @@ export function ProductsView() {
     barcode: '',
     brand: '',
     unit: '1',
-    taxRate: 7.5,
+    taxRate: 0,
     categoryId: '',
     description: '',
     outletId: isOwner ? '' : (assignedOutletId || ''),
-    sellingPrice: 0,
     costPrice: 0,
+    floorPrice: 0,
+    guidePrice: 0,
+    defaultSalePrice: 0,
     minStock: 0,
     quantity: 0,
   });
@@ -114,7 +117,7 @@ export function ProductsView() {
         limit: pagination.limit,
         includeVariants: true,
       });
-      setProducts(response.data);
+      setProducts(response.data || []);
       setPagination(response.pagination);
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -164,12 +167,14 @@ export function ProductsView() {
       barcode: '',
       brand: '',
       unit: '1',
-      taxRate: 7.5,
+      taxRate: 0,
       categoryId: '',
       description: '',
       outletId: isOwner ? '' : (assignedOutletId || ''),
-      sellingPrice: 0,
       costPrice: 0,
+      floorPrice: 0,
+      guidePrice: 0,
+      defaultSalePrice: 0,
       minStock: 0,
       quantity: 0,
     });
@@ -209,7 +214,7 @@ export function ProductsView() {
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to delete product',
+        message: formatError(error),
         severity: 'error',
       });
     }
@@ -247,8 +252,11 @@ export function ProductsView() {
         await api.assignProductToOutlet({
           productId,
           outletId: newProduct.outletId,
-          sellingPrice: newProduct.sellingPrice,
           costPrice: newProduct.costPrice,
+          floorPrice: newProduct.floorPrice || undefined,
+          guidePrice: newProduct.guidePrice || undefined,
+          defaultSalePrice: newProduct.defaultSalePrice || newProduct.guidePrice || undefined,
+          sellingPrice: newProduct.defaultSalePrice || newProduct.guidePrice || undefined,
           minStock: newProduct.minStock,
           quantity: newProduct.quantity,
         });
@@ -265,7 +273,7 @@ export function ProductsView() {
       console.error('Failed to create product:', error);
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to create product',
+        message: formatError(error),
         severity: 'error',
       });
     }
@@ -275,13 +283,13 @@ export function ProductsView() {
     <DashboardContent>
       <Breadcrumbs
         links={[
-          { name: 'Dashboard', href: '/' },
-          { name: 'Product', href: '/products' },
+          { name: 'Dashboard', href: '/app' },
+          { name: 'Product', href: '/app/products' },
           { name: 'List' },
         ]}
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>        
         <Typography variant="h4">Product List</Typography>
         <Stack direction="row" spacing={1}>
           <Button
@@ -329,7 +337,7 @@ export function ProductsView() {
         <Scrollbar>
           <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>      
                 <CircularProgress />
               </Box>
             ) : (
@@ -360,7 +368,7 @@ export function ProductsView() {
                             <Typography variant="subtitle2" noWrap>
                               {product.name}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>        
                               {product.categoryName ||
                                 categories.find((c) => c._id === product.categoryId)?.name ||
                                 'No Category'}
@@ -601,21 +609,32 @@ export function ProductsView() {
 
                 <NumericInput
                   fullWidth
-                  label="Selling Price"
+                  label="Cost Price (Purchase Cost)"
                   disabled={!newProduct.outletId}
-                  value={newProduct.sellingPrice}
-                  onChangeValue={(val) =>
-                    setNewProduct({ ...newProduct, sellingPrice: val })
-                  }
+                  value={newProduct.costPrice}
+                  onChangeValue={(val) => setNewProduct({ ...newProduct, costPrice: val })}
+                  InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}  
                 />
                 <NumericInput
                   fullWidth
-                  label="Cost Price"
+                  label="Floor Price — Minimum Acceptable (₦)"
                   disabled={!newProduct.outletId}
-                  value={newProduct.costPrice}
-                  onChangeValue={(val) =>
-                    setNewProduct({ ...newProduct, costPrice: val })
-                  }
+                  value={newProduct.floorPrice}
+                  onChangeValue={(val) => setNewProduct({ ...newProduct, floorPrice: val })}
+                />
+                <NumericInput
+                  fullWidth
+                  label="Guide Price — Bargaining Anchor (₦)"
+                  disabled={!newProduct.outletId}
+                  value={newProduct.guidePrice}
+                  onChangeValue={(val) => setNewProduct({ ...newProduct, guidePrice: val })}
+                />
+                <NumericInput
+                  fullWidth
+                  label="Default Sale Price — POS Prefill (₦)"
+                  disabled={!newProduct.outletId}
+                  value={newProduct.defaultSalePrice}
+                  onChangeValue={(val) => setNewProduct({ ...newProduct, defaultSalePrice: val })}        
                 />
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <NumericInput
@@ -663,7 +682,7 @@ export function ProductsView() {
       >
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
+          severity={snackbar.severity as any}
           sx={{ width: '100%' }}
         >
           {snackbar.message}

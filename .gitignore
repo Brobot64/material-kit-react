@@ -36,3 +36,7 @@ build
 tsconfig.tsbuildinfo
 .ncurc.js
 knip.jsonc
+
+# Claude Code local config & secrets
+.claude/
+.mcp.json

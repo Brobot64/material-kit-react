@@ -3,16 +3,18 @@ import { useState, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
+import LoadingButton from '@mui/lab/LoadingButton';
 import FormControl from '@mui/material/FormControl';
 
 import { useRouter } from 'src/routes/hooks';
+
+import { formatError } from 'src/utils/format-error';
 
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -87,7 +89,7 @@ export function UserCreateView() {
       router.push('/user');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to onboard employee');
+      setError(formatError(err));
     } finally {
       setLoading(false);
     }
@@ -97,8 +99,8 @@ export function UserCreateView() {
     <DashboardContent>
       <Breadcrumbs
         links={[
-          { name: 'Dashboard', href: '/' },
-          { name: 'User', href: '/user' },
+          { name: 'Dashboard', href: '/app' },
+          { name: 'User', href: '/app/user' },
           { name: 'Create' },
         ]}
       />
@@ -221,16 +223,16 @@ export function UserCreateView() {
 
         {/* Submit Button */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-          <Button
+          <LoadingButton
             variant="contained"
             color="inherit"
             size="large"
             onClick={handleSubmit}
             sx={{ minWidth: 120 }}
-            disabled={loading}
+            loading={loading}
           >
             Onboard employee
-          </Button>
+          </LoadingButton>
         </Box>
       </Card>
     </DashboardContent>

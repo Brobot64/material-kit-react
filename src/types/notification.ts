@@ -1,7 +1,10 @@
+export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+
 export interface Notification {
   id: string;
-  userId: string;
-  type: 'team_invite' | 'project_assigned' | 'task_assigned' | 'message' | 'mention' | 'system';
+  recipient?: string;
+  businessId?: string;
+  type: NotificationType;
   title: string;
   message: string;
   read: boolean;
