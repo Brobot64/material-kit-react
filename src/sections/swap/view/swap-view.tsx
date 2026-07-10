@@ -24,6 +24,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import InputAdornment from '@mui/material/InputAdornment';
 import TableContainer from '@mui/material/TableContainer';
+import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
@@ -328,8 +329,22 @@ export function SwapView() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<SwapStatus | ''>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const businessId = appData?.businessId || '';
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [statusFilter, debouncedSearch]);
 
   const fetchSwaps = useCallback(async () => {
     if (!businessId) return;
@@ -338,14 +353,18 @@ export function SwapView() {
       const res = await api.getSwaps({
         businessId,
         status: statusFilter || undefined,
+        search: debouncedSearch || undefined,
+        page: page + 1,
+        limit: rowsPerPage,
       });
-      setSwaps(res.data);
+      setSwaps(res.data || []);
+      setTotal(res.total || 0);
     } catch (err: any) {
       showError(err.message || 'Failed to load swaps');
     } finally {
       setLoading(false);
     }
-  }, [businessId, statusFilter, showError]);
+  }, [businessId, statusFilter, debouncedSearch, page, rowsPerPage, showError]);
 
   useEffect(() => {
     fetchSwaps();
@@ -384,17 +403,33 @@ export function SwapView() {
         </Button>
       </Stack>
 
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-        {(['', 'pending', 'completed', 'cancelled'] as const).map((s) => (
-          <Chip
-            key={s}
-            label={s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-            color={s === statusFilter ? 'primary' : 'default'}
-            variant={s === statusFilter ? 'filled' : 'outlined'}
-            onClick={() => setStatusFilter(s)}
-            size="small"
-          />
-        ))}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: 'center' }}>
+        <TextField
+          size="small"
+          placeholder="Search swap #, trade-in product, notes…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ minWidth: { sm: 320 }, flexGrow: 1 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Iconify icon="eva:search-fill" width={18} />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {(['', 'pending', 'completed', 'cancelled'] as const).map((s) => (
+            <Chip
+              key={s}
+              label={s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+              color={s === statusFilter ? 'primary' : 'default'}
+              variant={s === statusFilter ? 'filled' : 'outlined'}
+              onClick={() => setStatusFilter(s)}
+              size="small"
+            />
+          ))}
+        </Stack>
       </Stack>
 
       <Card>
@@ -406,92 +441,111 @@ export function SwapView() {
           <Box sx={{ py: 8, textAlign: 'center' }}>
             <Iconify icon="solar:cart-3-bold" width={48} sx={{ color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" color="text.secondary">No swaps found</Typography>
+            {(debouncedSearch || statusFilter) && (
+              <Typography variant="body2" color="text.disabled">
+                Try a different search or status filter
+              </Typography>
+            )}
           </Box>
         ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Swap #</TableCell>
-                  <TableCell>Trade-In</TableCell>
-                  <TableCell>Condition</TableCell>
-                  <TableCell>Accepted Value</TableCell>
-                  <TableCell>Cash Delta</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {swaps.map((swap) => (
-                  <TableRow key={swap._id} hover>
-                    <TableCell>
-                      <Typography variant="caption" fontFamily="monospace">
-                        {swap.swapNumber || swap._id.slice(-8).toUpperCase()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={500}>
-                        {swap.tradeIn.productName}
-                      </Typography>
-                      {swap.tradeIn.description && (
-                        <Typography variant="caption" color="text.secondary">
-                          {swap.tradeIn.description}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={swap.tradeIn.condition}
-                        size="small"
-                        variant="outlined"
-                        color={
-                          swap.tradeIn.condition === 'excellent' ? 'success' :
-                          swap.tradeIn.condition === 'good' ? 'info' :
-                          swap.tradeIn.condition === 'fair' ? 'warning' : 'error'
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>{fCurrency(swap.tradeIn.acceptedValue)}</TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        color={swap.cashDelta >= 0 ? 'primary.main' : 'success.main'}
-                        fontWeight={500}
-                      >
-                        {swap.cashDelta >= 0 ? '+' : '-'}{fCurrency(Math.abs(swap.cashDelta))}
-                      </Typography>
-                      <Typography variant="caption" color="text.disabled">
-                        {swap.cashDelta >= 0 ? 'customer pays' : 'store credits'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={swap.status}
-                        size="small"
-                        color={STATUS_COLORS[swap.status]}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption">{fDate(swap.createdAt)}</Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      {swap.status === 'pending' && (
-                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          <Button size="small" color="success" onClick={() => handleComplete(swap._id)}>
-                            Complete
-                          </Button>
-                          <Button size="small" color="error" onClick={() => handleCancel(swap._id)}>
-                            Cancel
-                          </Button>
-                        </Stack>
-                      )}
-                    </TableCell>
+          <>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Swap #</TableCell>
+                    <TableCell>Trade-In</TableCell>
+                    <TableCell>Condition</TableCell>
+                    <TableCell>Accepted Value</TableCell>
+                    <TableCell>Cash Delta</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {swaps.map((swap) => (
+                    <TableRow key={swap._id} hover>
+                      <TableCell>
+                        <Typography variant="caption" fontFamily="monospace">
+                          {swap.swapNumber || swap._id.slice(-8).toUpperCase()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={500}>
+                          {swap.tradeIn.productName}
+                        </Typography>
+                        {swap.tradeIn.description && (
+                          <Typography variant="caption" color="text.secondary">
+                            {swap.tradeIn.description}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={swap.tradeIn.condition}
+                          size="small"
+                          variant="outlined"
+                          color={
+                            swap.tradeIn.condition === 'excellent' ? 'success' :
+                            swap.tradeIn.condition === 'good' ? 'info' :
+                            swap.tradeIn.condition === 'fair' ? 'warning' : 'error'
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>{fCurrency(swap.tradeIn.acceptedValue)}</TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          color={swap.cashDelta >= 0 ? 'primary.main' : 'success.main'}
+                          fontWeight={500}
+                        >
+                          {swap.cashDelta >= 0 ? '+' : '-'}{fCurrency(Math.abs(swap.cashDelta))}
+                        </Typography>
+                        <Typography variant="caption" color="text.disabled">
+                          {swap.cashDelta >= 0 ? 'customer pays' : 'store credits'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={swap.status}
+                          size="small"
+                          color={STATUS_COLORS[swap.status]}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption">{fDate(swap.createdAt)}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        {swap.status === 'pending' && (
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            <Button size="small" color="success" onClick={() => handleComplete(swap._id)}>
+                              Complete
+                            </Button>
+                            <Button size="small" color="error" onClick={() => handleCancel(swap._id)}>
+                              Cancel
+                            </Button>
+                          </Stack>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              component="div"
+              count={total}
+              page={page}
+              onPageChange={(_, next) => setPage(next)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 20, 50]}
+            />
+          </>
         )}
       </Card>
 

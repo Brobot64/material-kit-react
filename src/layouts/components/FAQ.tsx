@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     q: 'Can I use ShopMaster offline?',
-    a: 'ShopMaster is a cloud-based system that requires an internet connection to sync data across outlets and ensure your records are always up to date. We recommend a stable connection for POS use.',
+    a: 'Yes. Catalog, customers, and POS can keep running when the network drops. Sales are queued on the device and sync automatically as soon as you are back online. Install the PWA for the best offline experience.',
   },
   {
     q: 'What reports are available?',

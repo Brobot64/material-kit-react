@@ -35,6 +35,7 @@ import { fNumber } from 'src/utils/format-number';
 import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
+import { useOffline } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -51,6 +52,7 @@ import { ProductUploadDialog } from '../product-upload-dialog';
 export function ProductsView() {
   const router = useRouter();
   const { appData, categories, outlets: contextOutlets } = useAuth();
+  const { getOfflineProducts } = useOffline();
   const businessId = appData?.businessId;
   const isOwner = appData?.role === 'owner';
   const assignedOutletId = appData?.outletId;
@@ -121,10 +123,15 @@ export function ProductsView() {
       setPagination(response.pagination);
     } catch (error) {
       console.error('Failed to fetch products:', error);
+      const cached = await getOfflineProducts({ limit: pagination.limit });
+      if (cached.length) {
+        setProducts(cached as any[]);
+        setPagination((prev: any) => ({ ...prev, total: cached.length }));
+      }
     } finally {
       setLoading(false);
     }
-  }, [businessId, pagination.page, pagination.limit]);
+  }, [businessId, pagination.page, pagination.limit, getOfflineProducts]);
 
   const fetchOutlets = useCallback(async () => {
     if (!businessId) return;

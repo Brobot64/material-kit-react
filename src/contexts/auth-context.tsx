@@ -84,6 +84,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setCategories(data);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
+        try {
+          const { readOfflineCollection } = await import('src/offline/read-offline');
+          const cached = await readOfflineCollection('categories');
+          if (cached.length) setCategories(cached as any);
+        } catch {
+          /* ignore offline miss */
+        }
       }
     }
   }, [appData?.businessId]);
@@ -95,6 +102,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setOutlets(data.map((o: any) => ({ ...o, id: o._id })));
       } catch (error) {
         console.error('Failed to fetch outlets:', error);
+        try {
+          const { readOfflineCollection } = await import('src/offline/read-offline');
+          const cached = await readOfflineCollection('outlets');
+          if (cached.length) {
+            setOutlets(cached.map((o: any) => ({ ...o, id: o._id || o.id })));
+          }
+        } catch {
+          /* ignore offline miss */
+        }
       }
     }
   }, [appData?.businessId]);

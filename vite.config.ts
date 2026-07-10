@@ -59,13 +59,28 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: '/index.html',
         runtimeCaching: [
+          // Cloudflare sync Worker (may be cross-origin via VITE_SYNC_URL)
+          {
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith('/v1/sync/') ||
+              url.pathname.startsWith('/v1/edge-cache/') ||
+              url.port === '8787',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'sync-edge-cache',
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 5 },
+              networkTimeoutSeconds: 8,
+            },
+          },
+          // Origin Express API (cross-origin via VITE_API_URL host)
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/v1/'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 },
               networkTimeoutSeconds: 10,
             },
           },

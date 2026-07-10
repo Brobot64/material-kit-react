@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import { useTheme, useColorScheme } from '@mui/material/styles';
 
+import { OfflineBanner } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
 
 import { SubscriptionBanner } from 'src/components/subscription/subscription-banner';
@@ -142,6 +143,7 @@ export function DashboardLayout({
   return (
     <>
       <NotificationToastStack />
+      <OfflineBanner />
       <LayoutSection
         /** **************************************
          * @Header

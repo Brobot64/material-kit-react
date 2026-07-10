@@ -1,3 +1,4 @@
+import type { TimelineRangeValue } from 'src/utils/timeline-range';
 import type { IconifyName } from 'src/components/iconify/register-icons';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,7 +10,6 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Divider from '@mui/material/Divider';
 import TableRow from '@mui/material/TableRow';
-import TextField from '@mui/material/TextField';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
@@ -20,12 +20,15 @@ import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fPercent, fCurrency } from 'src/utils/format-number';
+import { timelineRangeToQuery, createDefaultTimelineRange } from 'src/utils/timeline-range';
 
 import { api } from 'src/services/api';
+import { useAuth } from 'src/contexts/auth-context';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
 import { Chart, useChart } from 'src/components/chart';
+import { TimelineFilter } from 'src/components/timeline-filter';
 
 // ----------------------------------------------------------------------
 
@@ -69,24 +72,34 @@ function SummaryCard({
 
 export function BargainingAnalyticsView() {
   const { showError } = useAppSnackbar();
+  const { appData, outlets } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const today = new Date().toISOString().slice(0, 10);
-  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
-  const [startDate, setStartDate] = useState(firstOfMonth);
-  const [endDate, setEndDate] = useState(today);
+  const [timeline, setTimeline] = useState<TimelineRangeValue>(() => createDefaultTimelineRange('month'));
+  const [selectedOutletId, setSelectedOutletId] = useState<string>(appData?.outletId || '');
+
+  useEffect(() => {
+    if (!selectedOutletId && (appData?.outletId || outlets[0])) {
+      setSelectedOutletId(appData?.outletId || outlets[0]?.id || outlets[0]?._id || '');
+    }
+  }, [appData?.outletId, outlets, selectedOutletId]);
 
   const fetch = useCallback(async () => {
+    if (!selectedOutletId) return;
     setLoading(true);
     try {
-      const res = await api.getBargainingAnalytics({ startDate, endDate });
+      const dateParams = timelineRangeToQuery(timeline);
+      const res = await api.getBargainingAnalytics({
+        ...dateParams,
+        outletId: selectedOutletId,
+      });
       setData(res);
     } catch (err: any) {
       showError(err.message || 'Failed to load bargaining analytics');
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, showError]);
+  }, [timeline, selectedOutletId, showError]);
 
   useEffect(() => {
     fetch();
@@ -94,7 +107,7 @@ export function BargainingAnalyticsView() {
 
   const overTimeChartOptions = useChart({
     xaxis: {
-      categories: data?.overTime?.map((d: any) => d._id) ?? [],
+      categories: data?.overTime?.map((d: any) => d.label || d._id) ?? [],
       labels: { rotate: -45 },
     },
     tooltip: { y: { formatter: (v: number) => `${v} overrides` } },
@@ -109,7 +122,7 @@ export function BargainingAnalyticsView() {
   const decisionChartSeries: number[] = data?.byDecision?.map((d: any) => d.count) ?? [];
   const overTimeSeries = [{ name: 'Overrides', data: data?.overTime?.map((d: any) => d.count) ?? [] }];
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
         <CircularProgress />
@@ -121,26 +134,16 @@ export function BargainingAnalyticsView() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }} flexWrap="wrap" gap={2}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        alignItems={{ xs: 'stretch', md: 'center' }}
+        justifyContent="space-between"
+        sx={{ mb: 3 }}
+        flexWrap="wrap"
+        gap={2}
+      >
         <Typography variant="h4">Bargaining Analytics</Typography>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <TextField
-            label="From"
-            type="date"
-            size="small"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="To"
-            type="date"
-            size="small"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Stack>
+        <TimelineFilter value={timeline} onChange={setTimeline} />
       </Stack>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -173,7 +176,10 @@ export function BargainingAnalyticsView() {
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 8 }}>
           <Card>
-            <CardHeader title="Override Frequency Over Time" />
+            <CardHeader
+              title="Override Frequency Over Time"
+              subheader={`${timeline.startDate} to ${timeline.endDate}`}
+            />
             <CardContent>
               {data?.overTime?.length > 0 ? (
                 <Chart

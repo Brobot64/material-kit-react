@@ -9,7 +9,6 @@ import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
 import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
-import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
@@ -22,7 +21,6 @@ import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import LoadingButton from '@mui/lab/LoadingButton';
 import FormControl from '@mui/material/FormControl';
-import Autocomplete from '@mui/material/Autocomplete';
 import InputAdornment from '@mui/material/InputAdornment';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
@@ -32,6 +30,7 @@ import { fCurrency } from 'src/utils/format-number';
 import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
+import { useOffline } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -39,6 +38,7 @@ import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { NumericInput } from 'src/components/numeric-input';
+import { ReceiptPreviewModal } from 'src/components/receipt-preview/ReceiptPreviewModal';
 
 interface CartItem {
   productId: string;
@@ -63,6 +63,7 @@ function getPricingLabel(item: CartItem): { label: string; color: any } {
 
 export function SaleView() {
   const { outlets, appData } = useAuth();
+  const { status: offlineStatus, mutate, getOfflineCustomers, getOfflineProductOutlets } = useOffline();
   const isOwner = appData?.role === 'owner';
   const assignedOutletId = appData?.outletId;
 
@@ -97,6 +98,7 @@ export function SaleView() {
   const [snackbar, setSnackbar] = useState({
     open: false, message: '', severity: 'success' as 'success' | 'error',
   });
+  const [receiptModal, setReceiptModal] = useState({ open: false, saleId: '' });
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(searchQuery), 500);
@@ -107,8 +109,11 @@ export function SaleView() {
     try {
       const response = await api.getCustomers({ limit: 100 });
       setCustomers(response.data || []);
-    } catch { /* ignore */ }
-  }, []);
+    } catch {
+      const cached = await getOfflineCustomers({ limit: 100 });
+      if (cached.length) setCustomers(cached);
+    }
+  }, [getOfflineCustomers]);
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
@@ -141,11 +146,21 @@ export function SaleView() {
       setProducts(data);
       setTotalProducts(response?.pagination?.total || data.length);
     } catch {
-      setSnackbar({ open: true, message: 'Failed to fetch products', severity: 'error' });
+      const cached = await getOfflineProductOutlets({
+        outletId: selectedOutletId,
+        search: debouncedSearch,
+        limit: rowsPerPage,
+      });
+      if (cached.length) {
+        setProducts(cached);
+        setTotalProducts(cached.length);
+      } else {
+        setSnackbar({ open: true, message: 'Failed to fetch products', severity: 'error' });
+      }
     } finally {
       setLoadingProducts(false);
     }
-  }, [selectedOutletId, page, rowsPerPage, debouncedSearch]);
+  }, [selectedOutletId, page, rowsPerPage, debouncedSearch, getOfflineProductOutlets]);
 
   useEffect(() => { setPage(0); }, [selectedOutletId, debouncedSearch]);
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
@@ -197,11 +212,22 @@ export function SaleView() {
   const updateUnitPrice = (pid: string, up: number) => {
     setCart(cart.map((i) => {
       if (i.productId !== pid) return i;
+      const belowFloor = i.floorPrice > 0 && up < i.floorPrice;
       let warn: string | undefined;
-      if (up < i.floorPrice && i.floorPrice > 0) warn = `Below floor (\u20A6${i.floorPrice})`;
+      if (belowFloor) warn = `Below floor (\u20A6${i.floorPrice})`;
       else if (up < i.guidePrice) warn = `Below guide (\u20A6${i.guidePrice})`;
-      return { ...i, unitPrice: up, pricingWarning: warn };
+      return {
+        ...i,
+        unitPrice: up,
+        pricingWarning: warn,
+        // Clear reason once the price is no longer below floor
+        overrideReason: belowFloor ? i.overrideReason : undefined,
+      };
     }));
+  };
+
+  const updateOverrideReason = (pid: string, reason: string) => {
+    setCart(cart.map((i) => (i.productId === pid ? { ...i, overrideReason: reason } : i)));
   };
 
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
@@ -214,31 +240,162 @@ export function SaleView() {
     if (cart.length === 0) return;
     const hasCust = !!resolvedCustomer || (!!customerPhone && !!customerName);
     if (amountPaid < total && !hasCust) {
-      setSnackbar({ open: true, message: 'Customer info required for credit', severity: 'error' });       
+      setSnackbar({ open: true, message: 'Customer info required for credit', severity: 'error' });
+      return;
+    }
+    const missingFloorReasons = cart.filter(
+      (i) => i.floorPrice > 0 && i.unitPrice < i.floorPrice && !i.overrideReason?.trim()
+    );
+    if (missingFloorReasons.length > 0) {
+      setSnackbar({
+        open: true,
+        message: `Add a reason for below-floor price: ${missingFloorReasons.map((i) => i.name).join(', ')}`,
+        severity: 'error',
+      });
       return;
     }
     setIsSubmitting(true);
     try {
+      const saleItems = cart.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        tax: i.tax,
+        discount: i.discount,
+        overrideReason: i.overrideReason,
+      }));
+
+      // Offline / failed-network path: queue sale in Dexie outbox
+      if (!offlineStatus.online || !navigator.onLine) {
+        const clientSaleId =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `sale-${Date.now()}`;
+
+        let cid = resolvedCustomer?.userId?._id || resolvedCustomer?.userId || resolvedCustomer?._id;
+        if (!cid && customerPhone && customerName) {
+          const localCustomerId =
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `cust-${Date.now()}`;
+          await mutate({
+            collection: 'customers',
+            entityId: localCustomerId,
+            patch: {
+              fullName: customerName,
+              phone: customerPhone,
+              _pending: true,
+              clientCustomerId: localCustomerId,
+            },
+          });
+          cid = localCustomerId;
+        }
+
+        await mutate({
+          collection: 'sales',
+          entityId: clientSaleId,
+          patch: {
+            clientSaleId,
+            businessId: appData?.businessId,
+            outletId: selectedOutletId,
+            items: saleItems,
+            paymentMethod,
+            amountPaid,
+            customerId: cid,
+            notes,
+            status: 'pending_sync',
+            _pending: true,
+            createdAt: new Date().toISOString(),
+            total,
+          },
+        });
+
+        // Optimistic local stock decrement for queued sale
+        for (const item of cart) {
+          const localRows = await getOfflineProductOutlets({
+            outletId: selectedOutletId,
+            limit: 500,
+          });
+          const match = localRows.find((row) => {
+            const pid = String(
+              (row as any).productId?._id ||
+                (row as any).productId ||
+                (row as any)._id ||
+                (row as any).id ||
+                ''
+            );
+            return pid === item.productId;
+          });
+          if (match) {
+            const rowId = String((match as any).id || (match as any)._id);
+            const qty = Number((match as any).availableQuantity ?? (match as any).quantity ?? 0);
+            await mutate({
+              collection: 'productOutlets',
+              entityId: rowId,
+              patch: {
+                ...match,
+                availableQuantity: Math.max(0, qty - item.quantity),
+                quantity: Math.max(0, qty - item.quantity),
+              },
+            });
+          }
+        }
+
+        setSnackbar({
+          open: true,
+          message: 'Sale saved offline — will sync when you are back online',
+          severity: 'warning',
+        });
+        setCart([]);
+        setAmountPaid(0);
+        setCustomerPhone('');
+        setCustomerName('');
+        setResolvedCustomer(null);
+        fetchProducts();
+        return;
+      }
+
       let cid = resolvedCustomer?.userId?._id || resolvedCustomer?.userId;
       if (!cid && customerPhone && customerName) {
-        const created = await api.createCustomer({ fullName: customerName, phone: customerPhone });       
+        const created = await api.createCustomer({ fullName: customerName, phone: customerPhone });
         cid = created?.user?.id || created?.data?.user?.id;
       }
-      await api.createSale({
+      const created = await api.createSale({
         businessId: appData?.businessId,
         outletId: selectedOutletId,
-        items: cart.map(i => ({
-          productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice,
-          tax: i.tax, discount: i.discount, overrideReason: i.overrideReason
-        })),
-        paymentMethod, amountPaid, customerId: cid, notes,
+        items: saleItems,
+        paymentMethod,
+        amountPaid,
+        customerId: cid,
+        notes,
       });
+      // Controller returns the sale document directly (201), sometimes wrapped as { data }
+      const salePayload = (created as any)?.data ?? created;
+      const saleId = String(salePayload?._id || salePayload?.id || '');
       setSnackbar({ open: true, message: 'Sale recorded', severity: 'success' });
-      setCart([]); setAmountPaid(0); setCustomerPhone(''); setCustomerName(''); setResolvedCustomer(null);
+      setCart([]);
+      setAmountPaid(0);
+      setCustomerPhone('');
+      setCustomerName('');
+      setResolvedCustomer(null);
       fetchProducts();
+      if (saleId) {
+        setReceiptModal({ open: true, saleId });
+      }
     } catch (e: any) {
-      setSnackbar({ open: true, message: formatError(e), severity: 'error' });
-    } finally { setIsSubmitting(false); }
+      // Network failure mid-submit → queue offline
+      if (!navigator.onLine || e?.message?.includes('Failed to fetch') || e?.status === 0) {
+        setSnackbar({
+          open: true,
+          message: 'Network unavailable — try again or check offline banner for queued sales',
+          severity: 'error',
+        });
+      } else {
+        setSnackbar({ open: true, message: formatError(e), severity: 'error' });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -318,20 +475,48 @@ export function SaleView() {
             <Typography variant="h6" mb={2}>Current Sale</Typography>
             <TableContainer sx={{ maxHeight: 380 }}><Table size="small">
               <TableHead><TableRow><TableCell>Item</TableCell><TableCell align="center">Qty</TableCell><TableCell align="right">Price</TableCell><TableCell /></TableRow></TableHead>
-              <TableBody>{cart.map((i) => (
-                <TableRow key={i.productId}>
-                  <TableCell><Typography variant="body2" noWrap>{i.name}</Typography><Label color={getPricingLabel(i).color} variant="soft">{getPricingLabel(i).label}</Label></TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" alignItems="center">
-                      <IconButton size="small" onClick={() => updateQuantity(i.productId, i.quantity - 1)}><Iconify icon="solar:minus-circle-bold" /></IconButton>
-                      <Typography variant="body2">{i.quantity}</Typography>
-                      <IconButton size="small" onClick={() => updateQuantity(i.productId, i.quantity + 1)}><Iconify icon="solar:plus-circle-bold" /></IconButton>
-                    </Stack>
-                  </TableCell>
-                  <TableCell align="right"><NumericInput size="small" value={i.unitPrice} onChangeValue={(v) => updateUnitPrice(i.productId, v)} sx={{ width: 100 }} /></TableCell>
-                  <TableCell><IconButton size="small" color="error" onClick={() => removeFromCart(i.productId)}><Iconify icon="solar:trash-bin-trash-bold" /></IconButton></TableCell>
-                </TableRow>
-              ))}</TableBody>
+              <TableBody>{cart.map((i) => {
+                const belowFloor = i.floorPrice > 0 && i.unitPrice < i.floorPrice;
+                return (
+                  <TableRow key={i.productId} sx={{ verticalAlign: 'top' }}>
+                    <TableCell sx={{ minWidth: 140 }}>
+                      <Typography variant="body2" noWrap>{i.name}</Typography>
+                      <Label color={getPricingLabel(i).color} variant="soft">{getPricingLabel(i).label}</Label>
+                      {i.pricingWarning && (
+                        <Typography variant="caption" color="warning.main" display="block" sx={{ mt: 0.5 }}>
+                          {i.pricingWarning}
+                        </Typography>
+                      )}
+                      {belowFloor && (
+                        <TextField
+                          size="small"
+                          fullWidth
+                          required
+                          multiline
+                          minRows={1}
+                          maxRows={3}
+                          label="Below-floor reason"
+                          placeholder="Why is this sold below floor?"
+                          value={i.overrideReason || ''}
+                          onChange={(e) => updateOverrideReason(i.productId, e.target.value)}
+                          error={!i.overrideReason?.trim()}
+                          helperText={!i.overrideReason?.trim() ? 'Required for below-floor sales' : ' '}
+                          sx={{ mt: 1, minWidth: 160 }}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" alignItems="center">
+                        <IconButton size="small" onClick={() => updateQuantity(i.productId, i.quantity - 1)}><Iconify icon="solar:minus-circle-bold" /></IconButton>
+                        <Typography variant="body2">{i.quantity}</Typography>
+                        <IconButton size="small" onClick={() => updateQuantity(i.productId, i.quantity + 1)}><Iconify icon="solar:plus-circle-bold" /></IconButton>
+                      </Stack>
+                    </TableCell>
+                    <TableCell align="right"><NumericInput size="small" value={i.unitPrice} onChangeValue={(v) => updateUnitPrice(i.productId, v)} sx={{ width: 100 }} /></TableCell>
+                    <TableCell><IconButton size="small" color="error" onClick={() => removeFromCart(i.productId)}><Iconify icon="solar:trash-bin-trash-bold" /></IconButton></TableCell>
+                  </TableRow>
+                );
+              })}</TableBody>
             </Table></TableContainer>
             <Divider sx={{ my: 2 }} />
             <Stack spacing={1} mb={2}>
@@ -353,6 +538,12 @@ export function SaleView() {
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
+      <ReceiptPreviewModal
+        open={receiptModal.open}
+        onClose={() => setReceiptModal({ open: false, saleId: '' })}
+        saleId={receiptModal.saleId}
+        businessId={appData?.businessId || ''}
+      />
     </DashboardContent>
   );
 }

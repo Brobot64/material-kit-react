@@ -1,3 +1,5 @@
+import type { TimelineRangeValue } from 'src/utils/timeline-range';
+
 import { useState, useEffect, useCallback } from 'react';
 
 import Grid from '@mui/material/Grid';
@@ -27,6 +29,7 @@ import {
 
 import { fDate } from 'src/utils/format-time';
 import { formatError } from 'src/utils/format-error';
+import { timelineRangeToQuery, createDefaultTimelineRange } from 'src/utils/timeline-range';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
@@ -35,6 +38,7 @@ import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { TimelineFilter } from 'src/components/timeline-filter';
 
 import { AnalyticsWidgetSummary } from '../../overview/analytics-widget-summary';
 import { AnalyticsWebsiteVisits } from '../../overview/analytics-website-visits';
@@ -73,6 +77,7 @@ export function FinancialOverviewView() {
   const [outlets, setOutlets] = useState<any[]>([]);
   const [ledgerAccounts, setLedgerAccounts] = useState<any[]>([]);
   const [selectedOutlet, setSelectedOutlet] = useState('all');
+  const [timeline, setTimeline] = useState<TimelineRangeValue>(() => createDefaultTimelineRange('month'));
 
   const [transactions, setTransactions] = useState<any[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
@@ -85,29 +90,34 @@ export function FinancialOverviewView() {
 
   const fetchTransactions = useCallback(async () => {
     try {
+      const dateParams = timelineRangeToQuery(timeline);
       const response = await api.getTransactions({
         page: page + 1,
         limit: rowsPerPage,
         outletId: selectedOutlet === 'all' ? undefined : selectedOutlet,
+        startDate: dateParams.startDate,
+        endDate: dateParams.endDate,
       });
       setTransactions(response.data || []);
       setTotalTransactions(response.total || 0);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     }
-  }, [page, rowsPerPage, selectedOutlet]);
+  }, [page, rowsPerPage, selectedOutlet, timeline]);
 
   const fetchData = useCallback(async () => {
     try {
+      const dateParams = timelineRangeToQuery(timeline);
       const params = {
         outletId: selectedOutlet === 'all' ? undefined : selectedOutlet,
+        ...dateParams,
       };
 
       const [overviewData, graphData, breakdownData, summaryData] = await Promise.all([
         api.getFinancialOverview(params),
         api.getIncomeExpenseGraph(params),
         api.getExpenseBreakdownGraph(params),
-        api.getQuickSummary(),
+        api.getQuickSummary(params),
       ]);
 
       setOverview(overviewData);
@@ -117,7 +127,7 @@ export function FinancialOverviewView() {
     } catch (error: any) {
       console.error('Failed to fetch financial data:', error);
     }
-  }, [selectedOutlet]);
+  }, [selectedOutlet, timeline]);
 
   const fetchOutlets = useCallback(async () => {
     try {
@@ -206,12 +216,22 @@ export function FinancialOverviewView() {
 
   return (
     <DashboardContent maxWidth="xl">
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 3, md: 5 }, gap: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: { xs: 'stretch', md: 'center' },
+          flexDirection: { xs: 'column', md: 'row' },
+          mb: { xs: 3, md: 5 },
+          gap: 2,
+        }}
+      >
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
           Financial Overview
         </Typography>
 
-        <FormControl sx={{ minWidth: 200 }}>
+        <TimelineFilter value={timeline} onChange={setTimeline} />
+
+        <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel>Outlet</InputLabel>
           <Select
             value={selectedOutlet}
@@ -286,7 +306,7 @@ export function FinancialOverviewView() {
         <Grid size={{ xs: 12, md: 8 }}>
           <AnalyticsWebsiteVisits
             title="Income vs Expenses"
-            subheader="Monthly performance"
+            subheader={`${timeline.startDate} to ${timeline.endDate}`}
             chart={{
               categories: incomeExpenseData.map((item) => item.label),
               series: [
