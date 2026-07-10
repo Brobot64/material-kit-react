@@ -129,4 +129,87 @@ export const platformAdminApi = {
       method: 'POST',
       body: JSON.stringify(body || {}),
     }),
+
+  listTickets: (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    businessId?: string;
+    priority?: string;
+    search?: string;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.status) q.set('status', params.status);
+    if (params?.businessId) q.set('businessId', params.businessId);
+    if (params?.priority) q.set('priority', params.priority);
+    if (params?.search) q.set('search', params.search);
+    const qs = q.toString();
+    return platformRequest<{
+      data: PlatformTicketListItem[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/tickets${qs ? `?${qs}` : ''}`);
+  },
+
+  getTicket: (id: string) => platformRequest<PlatformTicketDetail>(`/tickets/${id}`),
+
+  createTicket: (body: {
+    businessId: string;
+    subject: string;
+    body?: string;
+    priority?: string;
+    channel?: string;
+    assigneeId?: string;
+  }) =>
+    platformRequest<PlatformTicketDetail>('/tickets', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateTicketStatus: (id: string, status: string) =>
+    platformRequest<PlatformTicketDetail>(`/tickets/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  assignTicket: (id: string, assigneeId: string | null) =>
+    platformRequest<PlatformTicketDetail>(`/tickets/${id}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assigneeId }),
+    }),
+
+  addTicketMessage: (id: string, body: string) =>
+    platformRequest<PlatformTicketDetail>(`/tickets/${id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+};
+
+export type PlatformTicketListItem = {
+  id: string;
+  subject: string;
+  status: string;
+  priority: string;
+  channel: string;
+  business: { id: string; name: string | null } | null;
+  createdBy: { id: string; fullName: string; email: string } | null;
+  assignee: { id: string; fullName: string; email: string } | null;
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlatformTicketMessage = {
+  id: string;
+  ticketId: string;
+  authorType: 'platform' | 'tenant';
+  body: string;
+  author: { id: string; fullName: string; email: string } | null;
+  createdAt: string;
+};
+
+export type PlatformTicketDetail = PlatformTicketListItem & {
+  messageCount?: number;
+  messages: PlatformTicketMessage[];
 };

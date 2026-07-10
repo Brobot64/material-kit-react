@@ -138,6 +138,13 @@ export default function PlatformBusinessDetailPage() {
         >
           View as owner
         </Button>
+        <Button
+          variant="outlined"
+          disabled={busy}
+          onClick={() => navigate(`/admin/tickets?businessId=${data.id}`)}
+        >
+          Create ticket
+        </Button>
       </Stack>
 
       <Grid container spacing={2}>

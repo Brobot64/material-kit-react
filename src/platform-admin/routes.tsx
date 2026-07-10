@@ -16,6 +16,7 @@ const BusinessesPage = lazy(() => import('./pages/businesses'));
 const BusinessDetailPage = lazy(() => import('./pages/business-detail'));
 const PlansPage = lazy(() => import('./pages/plans'));
 const TicketsPage = lazy(() => import('./pages/tickets'));
+const TicketDetailPage = lazy(() => import('./pages/ticket-detail'));
 const EmailPage = lazy(() => import('./pages/email'));
 const FeatureFlagsPage = lazy(() => import('./pages/feature-flags'));
 
@@ -62,6 +63,7 @@ export const platformAdminRoutes: RouteObject = {
         { path: 'businesses/:id', element: <BusinessDetailPage /> },
         { path: 'plans', element: <PlansPage /> },
         { path: 'tickets', element: <TicketsPage /> },
+        { path: 'tickets/:id', element: <TicketDetailPage /> },
         { path: 'email', element: <EmailPage /> },
         { path: 'feature-flags', element: <FeatureFlagsPage /> },
       ],
