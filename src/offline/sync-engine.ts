@@ -1,12 +1,12 @@
-import { createHLC, receive, tick, type HLC } from './crdt/hlc';
-import { db, docKey, getMeta, getOrCreateDeviceId, getStoredHLC, saveHLC, setMeta } from './db';
+import { tick, receive, type HLC, createHLC } from './crdt/hlc';
+import { db, docKey, getMeta, saveHLC, setMeta, getStoredHLC, getOrCreateDeviceId } from './db';
 import {
   applyOp,
   materialize,
-  mergeEntities,
-  opsFromPatch,
-  type SyncEntity,
   type SyncOp,
+  opsFromPatch,
+  mergeEntities,
+  type SyncEntity,
 } from './crdt/lww-map';
 
 const SYNC_BASE = import.meta.env.VITE_SYNC_URL || 'http://localhost:8787';

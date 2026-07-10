@@ -1,10 +1,10 @@
 export { db } from './db';
-export { syncEngine, bootstrapOffline } from './sync-engine';
-export { OfflineProvider, useOffline } from './offline-context';
 export { OfflineBanner } from './offline-banner';
 export { readOfflineCollection } from './read-offline';
+export { syncEngine, bootstrapOffline } from './sync-engine';
+export { useOffline, OfflineProvider } from './offline-context';
 export { filterOfflineDocs, mapDocsFromPayload } from './offline-catalog';
-export type { SyncStatus } from './sync-engine';
-export type { SyncOp, SyncEntity } from './crdt/lww-map';
 export type { HLC } from './crdt/hlc';
 export type { SyncCollection } from './db';
+export type { SyncStatus } from './sync-engine';
+export type { SyncOp, SyncEntity } from './crdt/lww-map';

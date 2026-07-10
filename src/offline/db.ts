@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 
 import type { HLC } from './crdt/hlc';
-import type { SyncEntity, SyncOp } from './crdt/lww-map';
+import type { SyncOp, SyncEntity } from './crdt/lww-map';
 
 export type SyncMeta = {
   key: string;

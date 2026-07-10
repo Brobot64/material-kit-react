@@ -1,10 +1,11 @@
-import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router';
+
+import { lazy, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
+import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
 import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgress';
-import { varAlpha } from 'minimal-shared/utils';
 
 import { AuthGuard } from 'src/routes/components';
 

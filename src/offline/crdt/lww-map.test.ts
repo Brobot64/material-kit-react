@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { it, expect, describe } from 'vitest';
 
-import { createHLC, compareHLC, receive, tick } from './hlc';
-import { applyOp, mergeEntities, materialize, type SyncOp } from './lww-map';
+import { tick, receive, createHLC, compareHLC } from './hlc';
+import { applyOp, materialize, type SyncOp, mergeEntities } from './lww-map';
 
 describe('client HLC', () => {
   it('ticks logical when wall does not advance', () => {

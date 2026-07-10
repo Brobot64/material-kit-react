@@ -96,7 +96,9 @@ export function SaleView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
-    open: false, message: '', severity: 'success' as 'success' | 'error',
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error' | 'warning' | 'info',
   });
   const [receiptModal, setReceiptModal] = useState({ open: false, saleId: '' });
 
