@@ -15,17 +15,32 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { Iconify } from 'src/components/iconify';
 
 import { useAuth } from 'src/contexts/auth-context';
 
-import { platformAdminApi, type PlatformBusinessDetail } from '../api/platform-admin-api';
+import {
+  platformAdminApi,
+  type PlatformBusinessDetail,
+  type PlatformBusinessFeatures,
+} from '../api/platform-admin-api';
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
   return new Date(value).toLocaleString('en-NG');
 }
+
+const DEFAULT_FEATURES: PlatformBusinessFeatures = {
+  enableBarcode: false,
+  enableReceiptPrinting: true,
+  enableLowStockAlerts: true,
+  lowStockThreshold: 5,
+  enableExpiryTracking: false,
+  defaultExpiryNotificationDays: 30,
+};
 
 export default function PlatformBusinessDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +52,7 @@ export default function PlatformBusinessDetailPage() {
   const [busy, setBusy] = useState(false);
   const [extendOpen, setExtendOpen] = useState(false);
   const [extendDays, setExtendDays] = useState(14);
+  const [features, setFeatures] = useState<PlatformBusinessFeatures>(DEFAULT_FEATURES);
 
   const load = async () => {
     if (!id) return;
@@ -45,6 +61,7 @@ export default function PlatformBusinessDetailPage() {
     try {
       const result = await platformAdminApi.getBusiness(id);
       setData(result);
+      setFeatures({ ...DEFAULT_FEATURES, ...(result.features || {}) });
     } catch (err: any) {
       setError(err.message || 'Failed to load business');
     } finally {
@@ -183,6 +200,90 @@ export default function PlatformBusinessDetailPage() {
             <Stack spacing={1}>
               <Typography variant="body2">Outlets: {data.counts?.outlets ?? 0}</Typography>
               <Typography variant="body2">Users: {data.counts?.users ?? 0}</Typography>
+            </Stack>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <Card sx={{ p: 2.5 }}>
+            <Stack direction="row" alignItems="center" sx={{ mb: 2 }} spacing={2}>
+              <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                Feature flags
+              </Typography>
+              <Button
+                size="small"
+                variant="contained"
+                disabled={busy}
+                onClick={() => run(() => platformAdminApi.updateFeatures(data.id, features))}
+              >
+                Save features
+              </Button>
+            </Stack>
+            <Stack spacing={1}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={features.enableBarcode}
+                    onChange={(e) => setFeatures((f) => ({ ...f, enableBarcode: e.target.checked }))}
+                  />
+                }
+                label="Enable barcode"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={features.enableReceiptPrinting}
+                    onChange={(e) =>
+                      setFeatures((f) => ({ ...f, enableReceiptPrinting: e.target.checked }))
+                    }
+                  />
+                }
+                label="Enable receipt printing"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={features.enableLowStockAlerts}
+                    onChange={(e) =>
+                      setFeatures((f) => ({ ...f, enableLowStockAlerts: e.target.checked }))
+                    }
+                  />
+                }
+                label="Enable low stock alerts"
+              />
+              <TextField
+                size="small"
+                label="Low stock threshold"
+                type="number"
+                value={features.lowStockThreshold}
+                onChange={(e) =>
+                  setFeatures((f) => ({ ...f, lowStockThreshold: Number(e.target.value) }))
+                }
+                sx={{ maxWidth: 240 }}
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={features.enableExpiryTracking}
+                    onChange={(e) =>
+                      setFeatures((f) => ({ ...f, enableExpiryTracking: e.target.checked }))
+                    }
+                  />
+                }
+                label="Enable expiry tracking"
+              />
+              <TextField
+                size="small"
+                label="Default expiry notification days"
+                type="number"
+                value={features.defaultExpiryNotificationDays}
+                onChange={(e) =>
+                  setFeatures((f) => ({
+                    ...f,
+                    defaultExpiryNotificationDays: Number(e.target.value),
+                  }))
+                }
+                sx={{ maxWidth: 280 }}
+              />
             </Stack>
           </Card>
         </Grid>

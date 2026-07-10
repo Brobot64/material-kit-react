@@ -42,6 +42,21 @@ export type PlatformDashboard = {
     newUsersWeek: number;
     newUsersMonth: number;
   };
+  inventory?: {
+    totalInventoryValueProcessed: number;
+    totalOnHandValue: number;
+    movementCount: number;
+    range: { startDate: string | null; endDate: string | null };
+  };
+};
+
+export type PlatformBusinessFeatures = {
+  enableBarcode: boolean;
+  enableReceiptPrinting: boolean;
+  enableLowStockAlerts: boolean;
+  lowStockThreshold: number;
+  enableExpiryTracking: boolean;
+  defaultExpiryNotificationDays: number;
 };
 
 export type PlatformBusinessListItem = {
@@ -61,7 +76,21 @@ export type PlatformBusinessDetail = PlatformBusinessListItem & {
   logo?: string;
   fiscalYearStart?: string;
   counts: { outlets: number; users: number };
+  features?: PlatformBusinessFeatures;
   updatedAt?: string;
+};
+
+export type PlatformPlan = {
+  _id?: string;
+  id?: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  durationInDays: number;
+  maxOutlets: number;
+  maxUsers: number;
+  maxProducts?: number;
 };
 
 export const platformAdminApi = {
@@ -100,6 +129,71 @@ export const platformAdminApi = {
       { method: 'POST', body: JSON.stringify(body || {}) }
     ),
 
+  updateFeatures: (id: string, features: Partial<PlatformBusinessFeatures>) =>
+    platformRequest<PlatformBusinessDetail>(`/businesses/${id}/features`, {
+      method: 'PATCH',
+      body: JSON.stringify({ features }),
+    }),
+
+  getInventoryMetrics: (params?: { startDate?: string; endDate?: string; refresh?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.startDate) q.set('startDate', params.startDate);
+    if (params?.endDate) q.set('endDate', params.endDate);
+    if (params?.refresh) q.set('refresh', '1');
+    const qs = q.toString();
+    return platformRequest<{
+      totalInventoryValueProcessed: number;
+      totalOnHandValue: number;
+      movementCount: number;
+      inboundValue: number;
+      outboundValue: number;
+      totalQuantityOnHand: number;
+      range: { startDate: string | null; endDate: string | null };
+      cached: boolean;
+      computedAt: string;
+    }>(`/inventory/metrics${qs ? `?${qs}` : ''}`);
+  },
+
+  getPlans: () => platformRequest<PlatformPlan[]>('/plans'),
+
+  createPlan: (body: Partial<PlatformPlan> & { name: string; price: number }) =>
+    platformRequest<PlatformPlan>('/plans', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updatePlan: (id: string, body: Partial<PlatformPlan>) =>
+    platformRequest<PlatformPlan>(`/plans/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  deletePlan: (id: string) =>
+    platformRequest<void>(`/plans/${id}`, { method: 'DELETE' }),
+
+  previewEmailAudience: (audience: 'all_owners' | 'active' | 'expired') =>
+    platformRequest<{
+      audience: string;
+      recipientCount: number;
+      sample: Array<{ email: string; fullName: string }>;
+    }>(`/email/audience?audience=${audience}`),
+
+  sendBulkEmail: (body: {
+    audience: 'all_owners' | 'active' | 'expired';
+    subject: string;
+    body: string;
+  }) =>
+    platformRequest<{
+      audience: string;
+      recipientCount: number;
+      sent: number;
+      failed: number;
+      failures: Array<{ email: string; reason: string }>;
+    }>('/email/bulk', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   getUserStats: () =>
     platformRequest<{
       ownersCount: number;
@@ -107,8 +201,6 @@ export const platformAdminApi = {
       newUsersMonth: number;
       totalUsers: number;
     }>('/users/stats'),
-
-  getPlans: () => platformRequest<any[]>('/plans'),
 
   impersonate: (body: { businessId: string; ownerUserId?: string; reason?: string }) =>
     platformRequest<{

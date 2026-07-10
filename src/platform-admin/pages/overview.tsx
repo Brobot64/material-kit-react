@@ -107,6 +107,20 @@ export default function PlatformOverviewPage() {
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <KpiCard label="New users (30d)" value={data.users.newUsersMonth} />
         </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <KpiCard
+            label="Inventory value processed (30d)"
+            value={formatNgn(data.inventory?.totalInventoryValueProcessed || 0)}
+            hint={`${data.inventory?.movementCount ?? 0} stock movements`}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <KpiCard
+            label="On-hand inventory value"
+            value={formatNgn(data.inventory?.totalOnHandValue || 0)}
+            hint="Sum of WAC × qty across tenants"
+          />
+        </Grid>
       </Grid>
     </Stack>
   );
