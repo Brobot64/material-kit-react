@@ -12,6 +12,8 @@ import { DashboardLayout } from 'src/layouts/dashboard';
 
 import { AuthGuard, GuestGuard, SubscriptionGuard } from './components';
 
+import { platformAdminRoutes } from 'src/platform-admin/routes';
+
 // ----------------------------------------------------------------------
 
 export const DashboardPage = lazy(() => import('src/pages/dashboard'));
@@ -121,6 +123,7 @@ export const routesSection: RouteObject[] = [
       { path: 'audit-logs', element: <AuditLogsPage /> },
     ],
   },
+  platformAdminRoutes,
   {
     path: 'subscription',
     element: (

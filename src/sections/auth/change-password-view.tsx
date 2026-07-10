@@ -21,7 +21,7 @@ import { Iconify } from 'src/components/iconify';
 
 export function ChangePasswordView() {
   const router = useRouter();
-  const { changePassword, logout } = useAuth();
+  const { changePassword, logout, user } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -44,14 +44,18 @@ export function ChangePasswordView() {
 
       try {
         await changePassword({ currentPassword, newPassword });
-        router.push('/app');
+        if (user?.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/app');
+        }
       } catch (err: any) {
         setError(formatError(err));
       } finally {
         setLoading(false);
       }
     },
-    [currentPassword, newPassword, confirmPassword, changePassword, router]
+    [currentPassword, newPassword, confirmPassword, changePassword, router, user?.role]
   );
 
   const renderForm = (
