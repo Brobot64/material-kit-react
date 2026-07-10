@@ -23,6 +23,8 @@ export type Employee = {
   salary: number;
   hireDate: string;
   position: string;
+  /** ShopMaster membership role (from ShopMasterUser) */
+  role?: EmployeeRole | string;
   createdAt: string;
   updatedAt: string;
   __v: number;

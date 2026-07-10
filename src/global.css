@@ -30,11 +30,14 @@
 :root {
   --primary-blue: #3b82f6;
   --primary-indigo: #6366f1;
-  --bg-dark: #050d20;
-  --bg-navy: #020617;
+  --bg-dark: #05080f;
+  --bg-navy: #070d18;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
+  --accent-lime: #a3e635;
   --accent-cyan: #22d3ee;
+  --landing-radius: 1.25rem;
+  --landing-border: rgba(255, 255, 255, 0.08);
 }
 
 @keyframes fadeInUp {

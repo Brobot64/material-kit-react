@@ -46,13 +46,17 @@ export function UserView() {
   const { outlets, onboardEmployee, appData } = useAuth();
   const { showError, showSuccess } = useAppSnackbar();
 
-  const isOwner = appData?.role === 'owner';
+  const isOwner = appData?.role === 'owner' || appData?.role === 'system_admin';
+  const isOutletScoped = !isOwner && Boolean(appData?.outletId);
   const assignedOutletId = appData?.outletId;
+  const canManageAcrossOutlets = isOwner;
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pagination, setPagination] = useState<EmployeePagination | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedOutlet, setSelectedOutlet] = useState<string>(isOwner ? 'all' : (assignedOutletId || 'all'));
+  const [selectedOutlet, setSelectedOutlet] = useState<string>(
+    canManageAcrossOutlets ? 'all' : (assignedOutletId || '')
+  );
   const [statusFilter, setStatusFilter] = useState('all');
   const [filterName, setFilterName] = useState('');
 
@@ -64,24 +68,41 @@ export function UserView() {
     role: 'sales_rep',
     salary: 0,
     position: '',
-    outletId: isOwner ? '' : (assignedOutletId || ''),
+    outletId: canManageAcrossOutlets ? '' : (assignedOutletId || ''),
   });
+
+  // Keep outlet-scoped managers locked to their assigned outlet
+  useEffect(() => {
+    if (isOutletScoped && assignedOutletId) {
+      setSelectedOutlet(assignedOutletId);
+      setNewEmployee((prev) => ({ ...prev, outletId: assignedOutletId }));
+    }
+  }, [isOutletScoped, assignedOutletId]);
 
   // Set default outletId when outlets are loaded
   useEffect(() => {
     if (outlets.length > 0 && !newEmployee.outletId) {
-      setNewEmployee((prev) => ({ ...prev, outletId: isOwner ? outlets[0].id : (assignedOutletId || outlets[0].id) }));
+      setNewEmployee((prev) => ({
+        ...prev,
+        outletId: canManageAcrossOutlets ? outlets[0].id : (assignedOutletId || outlets[0].id),
+      }));
     }
-  }, [outlets, newEmployee.outletId, isOwner, assignedOutletId]);
+  }, [outlets, newEmployee.outletId, canManageAcrossOutlets, assignedOutletId]);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
+      const outletId = isOutletScoped
+        ? assignedOutletId
+        : selectedOutlet === 'all'
+          ? undefined
+          : selectedOutlet;
+
       const response = await api.getEmployees({
         page: table.page + 1,
         limit: table.rowsPerPage,
         status: statusFilter === 'all' ? undefined : statusFilter,
-        outletId: selectedOutlet === 'all' ? undefined : selectedOutlet,
+        outletId,
       });
       setEmployees(response.data);
       setPagination(response.pagination);
@@ -90,7 +111,7 @@ export function UserView() {
     } finally {
       setLoading(false);
     }
-  }, [table.page, table.rowsPerPage, statusFilter, selectedOutlet]);
+  }, [table.page, table.rowsPerPage, statusFilter, selectedOutlet, isOutletScoped, assignedOutletId]);
 
   useEffect(() => {
     fetchEmployees();
@@ -101,8 +122,16 @@ export function UserView() {
       if (!appData?.businessId) {
         throw new Error('Business ID is missing');
       }
+
+      const outletId = isOutletScoped ? assignedOutletId : newEmployee.outletId;
+      if (!outletId) {
+        throw new Error('Outlet is required');
+      }
+
       await onboardEmployee({
         ...newEmployee,
+        role: isOutletScoped ? 'sales_rep' : newEmployee.role,
+        outletId,
         businessId: appData.businessId,
       });
       setOpenCreateModal(false);
@@ -115,7 +144,7 @@ export function UserView() {
         role: 'sales_rep',
         salary: 0,
         position: '',
-        outletId: isOwner ? (outlets[0]?.id || '') : (assignedOutletId || ''),
+        outletId: canManageAcrossOutlets ? (outlets[0]?.id || '') : (assignedOutletId || ''),
       });
     } catch (error) {
       showError(formatError(error));
@@ -132,12 +161,12 @@ export function UserView() {
 
   const handleFilterOutlet = useCallback(
     (event: any) => {
-      if (isOwner) {
+      if (canManageAcrossOutlets) {
         setSelectedOutlet(event.target.value);
         table.onResetPage();
       }
     },
-    [table, isOwner]
+    [table, canManageAcrossOutlets]
   );
 
   const notFound = !loading && !employees.length;
@@ -197,10 +226,13 @@ export function UserView() {
               value={selectedOutlet}
               label="Outlet"
               onChange={handleFilterOutlet}
-              disabled={!isOwner}
+              disabled={!canManageAcrossOutlets}
             >
-              {isOwner && <MuiMenuItem value="all">All Outlets</MuiMenuItem>}
-              {outlets.map((outlet) => (
+              {canManageAcrossOutlets && <MuiMenuItem value="all">All Outlets</MuiMenuItem>}
+              {(canManageAcrossOutlets
+                ? outlets
+                : outlets.filter((outlet) => outlet.id === assignedOutletId)
+              ).map((outlet) => (
                 <MuiMenuItem key={outlet.id} value={outlet.id}>
                   {outlet.name}
                 </MuiMenuItem>
@@ -323,9 +355,12 @@ export function UserView() {
               value={newEmployee.role}
               label="Role"
               onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
+              disabled={isOutletScoped}
             >
-              <MuiMenuItem value="owner">Owner</MuiMenuItem>
-              <MuiMenuItem value="outlet_admin">Outlet Admin</MuiMenuItem>
+              {canManageAcrossOutlets && <MuiMenuItem value="owner">Owner</MuiMenuItem>}
+              {canManageAcrossOutlets && (
+                <MuiMenuItem value="outlet_admin">Outlet Admin</MuiMenuItem>
+              )}
               <MuiMenuItem value="sales_rep">Sales Representative</MuiMenuItem>
             </Select>
           </FormControl>
@@ -351,9 +386,12 @@ export function UserView() {
               value={newEmployee.outletId}
               label="Outlet"
               onChange={(e) => setNewEmployee({ ...newEmployee, outletId: e.target.value })}
-              disabled={!isOwner}
+              disabled={!canManageAcrossOutlets}
             >
-              {outlets.map((outlet) => (
+              {(canManageAcrossOutlets
+                ? outlets
+                : outlets.filter((outlet) => outlet.id === assignedOutletId)
+              ).map((outlet) => (
                 <MuiMenuItem key={outlet.id} value={outlet.id}>
                   {outlet.name}
                 </MuiMenuItem>

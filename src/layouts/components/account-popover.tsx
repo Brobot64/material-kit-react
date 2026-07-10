@@ -133,6 +133,14 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
               {option.label}
             </MenuItem>
           ))}
+          {user?.role === 'admin' && (
+            <MenuItem
+              selected={pathname.startsWith('/admin')}
+              onClick={() => handleClickItem('/admin')}
+            >
+              Platform Admin
+            </MenuItem>
+          )}
         </MenuList>
 
         <Divider sx={{ borderStyle: 'dashed' }} />

@@ -31,6 +31,7 @@ import { fCurrency } from 'src/utils/format-number';
 import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
+import { useOffline } from 'src/offline';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
@@ -41,6 +42,7 @@ import { Breadcrumbs } from 'src/components/breadcrumbs';
 // ----------------------------------------------------------------------
 
 export function CustomersView() {
+    const { getOfflineCustomers } = useOffline();
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -86,11 +88,17 @@ export function CustomersView() {
             }));
         } catch (error) {
             console.error('Failed to fetch customers:', error);
-            setSnackbar({ open: true, message: 'Failed to fetch customers', severity: 'error' });
+            const cached = await getOfflineCustomers({ limit: pagination.limit });
+            if (cached.length) {
+                setCustomers(cached as any[]);
+                setPagination((prev) => ({ ...prev, total: cached.length }));
+            } else {
+                setSnackbar({ open: true, message: 'Failed to fetch customers', severity: 'error' });
+            }
         } finally {
             setLoading(false);
         }
-    }, [pagination.page, pagination.limit]);
+    }, [pagination.page, pagination.limit, getOfflineCustomers]);
 
     useEffect(() => {
         fetchCustomers();

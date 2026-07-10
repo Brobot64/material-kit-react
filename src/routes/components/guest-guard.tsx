@@ -13,17 +13,17 @@ type Props = {
 export function GuestGuard({ children }: Props) {
   const router = useRouter();
 
-  const { isAuthenticated, isInitialized } = useAuth();
+  const { isAuthenticated, isInitialized, user } = useAuth();
 
   const [checked, setChecked] = useState(false);
 
   const check = useCallback(() => {
     if (isAuthenticated) {
-      router.replace('/app');
+      router.replace(user?.role === 'admin' ? '/admin' : '/app');
     } else {
       setChecked(true);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, user?.role]);
 
   useEffect(() => {
     if (isInitialized) {

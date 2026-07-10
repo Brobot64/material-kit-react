@@ -41,6 +41,8 @@ export function SignInView() {
 
         if (userData.mustChangePassword) {
           router.push('/change-password');
+        } else if (userData.role === 'admin') {
+          router.push('/admin');
         } else {
           router.push('/app');
         }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
@@ -35,6 +35,7 @@ import { formatError } from 'src/utils/format-error';
 import { fNumber, fCurrency } from 'src/utils/format-number';
 
 import { api } from 'src/services/api';
+import { useOffline } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -59,6 +60,7 @@ const MOVEMENT_TYPE_COLOR: Record<string, 'success' | 'error' | 'warning' | 'inf
 
 export function InventoryView() {
   const { outlets, appData } = useAuth();
+  const { getOfflineProductOutlets } = useOffline();
   const isOwner = appData?.role === 'owner';
   const assignedOutletId = appData?.outletId;
   const businessId = appData?.businessId;
@@ -134,9 +136,18 @@ export function InventoryView() {
       setProducts(data);
       setProdTotal(res?.pagination?.total || data.length);
     } catch {
-      setSnackbar({ open: true, message: 'Failed to load products', severity: 'error' });
+      const cached = await getOfflineProductOutlets({
+        outletId: selectedOutletId,
+        limit: prodLimit,
+      });
+      if (cached.length) {
+        setProducts(cached as any[]);
+        setProdTotal(cached.length);
+      } else {
+        setSnackbar({ open: true, message: 'Failed to load products', severity: 'error' });
+      }
     } finally { setLoadingProducts(false); }
-  }, [selectedOutletId, prodPage, prodLimit]);
+  }, [selectedOutletId, prodPage, prodLimit, getOfflineProductOutlets]);
 
   useEffect(() => { fetchMovements(); }, [fetchMovements]);
   useEffect(() => { fetchProducts(); }, [fetchProducts]);

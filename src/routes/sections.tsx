@@ -9,6 +9,7 @@ import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgr
 
 import { AuthLayout } from 'src/layouts/auth';
 import { DashboardLayout } from 'src/layouts/dashboard';
+import { platformAdminRoutes } from 'src/platform-admin/routes';
 
 import { AuthGuard, GuestGuard, SubscriptionGuard } from './components';
 
@@ -121,6 +122,7 @@ export const routesSection: RouteObject[] = [
       { path: 'audit-logs', element: <AuditLogsPage /> },
     ],
   },
+  platformAdminRoutes,
   {
     path: 'subscription',
     element: (

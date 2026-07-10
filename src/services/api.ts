@@ -179,21 +179,40 @@ export const api = {
     if (params.outletId) query.append('outletId', params.outletId);
     return request<any[]>(`/reporting/category-performance?${query.toString()}`);
   },
-  getFinancialOverview: (params: { startDate?: string; endDate?: string; outletId?: string }) => {        
+  getFinancialOverview: (params: {
+    startDate?: string;
+    endDate?: string;
+    outletId?: string;
+    period?: string;
+    year?: number;
+  }) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) query.append(key, value.toString());
     });
     return request<any>(`/reporting/financial-overview?${query.toString()}`);
   },
-  getIncomeExpenseGraph: (params: { period?: string; outletId?: string }) => {
+  getIncomeExpenseGraph: (params: {
+    startDate?: string;
+    endDate?: string;
+    outletId?: string;
+    period?: string;
+    year?: number;
+    groupBy?: string;
+  }) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) query.append(key, value.toString());
     });
     return request<any[]>(`/reporting/graphs/income-expense?${query.toString()}`);
   },
-  getExpenseBreakdownGraph: (params: { outletId?: string }) => {
+  getExpenseBreakdownGraph: (params: {
+    startDate?: string;
+    endDate?: string;
+    outletId?: string;
+    period?: string;
+    year?: number;
+  }) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) query.append(key, value.toString());
@@ -422,7 +441,13 @@ export const api = {
     businessId: string;
     outletId: string;
   }) => request<any>('/employees', { method: 'POST', body: JSON.stringify(data) }),
-  updateEmployee: (id: string, data: { salary?: number; position?: string }) =>
+  updateEmployee: (id: string, data: {
+    salary?: number;
+    position?: string;
+    role?: string;
+    commissionRate?: number;
+    hireDate?: string;
+  }) =>
     request<any>(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteEmployee: (id: string) => request<any>(`/employees/${id}`, { method: 'DELETE' }),
   updateEmployeeStatus: (data: { userId: string; status: string; isActive: boolean }) =>
@@ -461,7 +486,22 @@ export const api = {
     return request<any>(`/transactions?${query.toString()}`);
   },
 
-  getQuickSummary: () => request<any>('/transactions/quick-summary'),
+  getQuickSummary: (params?: {
+    startDate?: string;
+    endDate?: string;
+    outletId?: string;
+    period?: string;
+    year?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) query.append(key, value.toString());
+      });
+    }
+    const qs = query.toString();
+    return request<any>(`/transactions/quick-summary${qs ? `?${qs}` : ''}`);
+  },
 
   paySalary: (data: {
     employeeId: string;
@@ -623,10 +663,10 @@ export const api = {
   // Swaps
   createSwap: (data: CreateSwapPayload) =>
     request<{ data: Swap }>('/swaps', { method: 'POST', body: JSON.stringify(data) }),
-  getSwaps: (params: { businessId: string; outletId?: string; status?: SwapStatus; customerId?: string; page?: number; limit?: number }) => {
+  getSwaps: (params: { businessId: string; outletId?: string; status?: SwapStatus; customerId?: string; search?: string; page?: number; limit?: number }) => {
     const query = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });        
-    return request<{ data: Swap[]; total: number; page: number; limit: number }>(`/swaps?${query.toString()}`); 
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') query.append(k, v.toString()); });
+    return request<{ data: Swap[]; total: number; page: number; limit: number }>(`/swaps?${query.toString()}`);
   },
   getSwap: (id: string) => request<{ data: Swap }>(`/swaps/${id}`),
   completeSwap: (id: string) =>
@@ -637,9 +677,9 @@ export const api = {
   // Returns
   createReturn: (data: CreateReturnPayload) =>
     request<{ data: ProductReturn }>('/returns', { method: 'POST', body: JSON.stringify(data) }),
-  getReturns: (params: { outletId?: string; status?: ReturnStatus; customerId?: string; page?: number; limit?: number }) => {
+  getReturns: (params: { outletId?: string; status?: ReturnStatus; customerId?: string; search?: string; page?: number; limit?: number }) => {
     const query = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });        
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') query.append(k, v.toString()); });
     return request<{ data: ProductReturn[]; total: number; page: number; limit: number }>(`/returns?${query.toString()}`);
   },
   getReturn: (id: string) => request<{ data: ProductReturn }>(`/returns/${id}`),
@@ -658,9 +698,16 @@ export const api = {
     request<{ data: ProductReturn }>(`/returns/${id}/cancel`, { method: 'POST', body: JSON.stringify(data) }),  
 
   // Bargaining analytics
-  getBargainingAnalytics: (params: { outletId?: string; startDate?: string; endDate?: string }) => {
+  getBargainingAnalytics: (params: {
+    outletId?: string;
+    startDate?: string;
+    endDate?: string;
+    period?: string;
+    year?: number;
+    groupBy?: string;
+  }) => {
     const query = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });        
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
     return request<any>(`/reporting/bargaining-analytics?${query.toString()}`);
   },
 };

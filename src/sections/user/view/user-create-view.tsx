@@ -29,6 +29,10 @@ export function UserCreateView() {
   const router = useRouter();
   const { onboardEmployee, appData, outlets } = useAuth();
 
+  const isOwner = appData?.role === 'owner' || appData?.role === 'system_admin';
+  const isOutletScoped = !isOwner && Boolean(appData?.outletId);
+  const assignedOutletId = appData?.outletId;
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -36,7 +40,7 @@ export function UserCreateView() {
     role: 'sales_rep',
     salary: 0,
     position: '',
-    outletId: appData?.outletId || (outlets.length > 0 ? outlets[0].id : ''),
+    outletId: assignedOutletId || (outlets.length > 0 ? outlets[0].id : ''),
   });
 
   const [error, setError] = useState('');
@@ -81,8 +85,15 @@ export function UserCreateView() {
         throw new Error('Business ID is missing. Please try logging in again.');
       }
 
+      const outletId = isOutletScoped ? assignedOutletId : formData.outletId;
+      if (!outletId) {
+        throw new Error('Outlet is required.');
+      }
+
       await onboardEmployee({
         ...formData,
+        role: isOutletScoped ? 'sales_rep' : formData.role,
+        outletId,
         businessId: appData.businessId,
       });
 
@@ -93,7 +104,7 @@ export function UserCreateView() {
     } finally {
       setLoading(false);
     }
-  }, [formData, onboardEmployee, appData?.businessId, router]);
+  }, [formData, onboardEmployee, appData?.businessId, router, isOutletScoped, assignedOutletId]);
 
   return (
     <DashboardContent>
@@ -173,9 +184,14 @@ export function UserCreateView() {
             />
             <FormControl fullWidth>
               <InputLabel>Role</InputLabel>
-              <Select value={formData.role} label="Role" onChange={handleSelectChange('role')}>
-                <MenuItem value="owner">Owner</MenuItem>
-                <MenuItem value="outlet_admin">Outlet Admin</MenuItem>
+              <Select
+                value={formData.role}
+                label="Role"
+                onChange={handleSelectChange('role')}
+                disabled={isOutletScoped}
+              >
+                {isOwner && <MenuItem value="owner">Owner</MenuItem>}
+                {isOwner && <MenuItem value="outlet_admin">Outlet Admin</MenuItem>}
                 <MenuItem value="sales_rep">Sales Representative</MenuItem>
               </Select>
             </FormControl>
@@ -197,9 +213,13 @@ export function UserCreateView() {
                 value={formData.outletId}
                 label="Outlet"
                 onChange={handleSelectChange('outletId')}
+                disabled={isOutletScoped}
                 required
               >
-                {outlets.map((outlet) => (
+                {(isOwner
+                  ? outlets
+                  : outlets.filter((outlet) => outlet.id === assignedOutletId)
+                ).map((outlet) => (
                   <MenuItem key={outlet.id} value={outlet.id}>
                     {outlet.name}
                   </MenuItem>

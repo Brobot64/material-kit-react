@@ -1,3 +1,5 @@
+import type { TimelineRangeValue } from 'src/utils/timeline-range';
+
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
@@ -11,9 +13,13 @@ import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 
+import { timelineRangeToQuery, createDefaultTimelineRange } from 'src/utils/timeline-range';
+
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+
+import { TimelineFilter } from 'src/components/timeline-filter';
 
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
 import { AnalyticsCurrentVisits } from '../analytics-current-visits';
@@ -28,6 +34,7 @@ export function OverviewAnalyticsView() {
   const assignedOutletId = appData?.outletId;
 
   const [selectedOutletId, setSelectedOutletId] = useState<string>('');
+  const [timeline, setTimeline] = useState<TimelineRangeValue>(() => createDefaultTimelineRange('month'));
 
   const [overview, setOverview] = useState<any>(null);
   const [incomeExpenseData, setIncomeExpenseData] = useState<any[]>([]);
@@ -41,11 +48,17 @@ export function OverviewAnalyticsView() {
     setLoading(true);
     setError(null);
     try {
+      const dateParams = timelineRangeToQuery(timeline);
       const [overviewData, graphData, breakdownData, logsData] = await Promise.all([
-        api.getFinancialOverview({ outletId: selectedOutletId }),
-        api.getIncomeExpenseGraph({ outletId: selectedOutletId }),
-        api.getExpenseBreakdownGraph({ outletId: selectedOutletId }),
-        api.getAuditLogs({ outletId: selectedOutletId, limit: 10 }),
+        api.getFinancialOverview({ outletId: selectedOutletId, ...dateParams }),
+        api.getIncomeExpenseGraph({ outletId: selectedOutletId, ...dateParams }),
+        api.getExpenseBreakdownGraph({ outletId: selectedOutletId, ...dateParams }),
+        api.getAuditLogs({
+          outletId: selectedOutletId,
+          limit: 10,
+          startDate: dateParams.startDate,
+          endDate: dateParams.endDate,
+        }),
       ]);
 
       setOverview(overviewData);
@@ -60,7 +73,7 @@ export function OverviewAnalyticsView() {
     } finally {
       setLoading(false);
     }
-  }, [selectedOutletId]);
+  }, [selectedOutletId, timeline]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -90,23 +103,32 @@ export function OverviewAnalyticsView() {
 
   return (
     <DashboardContent maxWidth="xl">
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: { xs: 3, md: 5 } }}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        alignItems={{ xs: 'stretch', md: 'center' }}
+        justifyContent="space-between"
+        spacing={2}
+        sx={{ mb: { xs: 3, md: 5 } }}
+      >
         <Typography variant="h4">Financial Analytics</Typography>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Select Outlet</InputLabel>
-          <Select
-            value={selectedOutletId}
-            label="Select Outlet"
-            onChange={(e) => setSelectedOutletId(e.target.value)}
-            disabled={!isOwner}
-          >
-            {outlets.map((outlet: any) => (
-              <MenuItem key={outlet.id || outlet._id} value={outlet.id || outlet._id}>
-                {outlet.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <TimelineFilter value={timeline} onChange={setTimeline} />
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Select Outlet</InputLabel>
+            <Select
+              value={selectedOutletId}
+              label="Select Outlet"
+              onChange={(e) => setSelectedOutletId(e.target.value)}
+              disabled={!isOwner}
+            >
+              {outlets.map((outlet: any) => (
+                <MenuItem key={outlet.id || outlet._id} value={outlet.id || outlet._id}>
+                  {outlet.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
       </Stack>
 
       {error && (
@@ -172,7 +194,7 @@ export function OverviewAnalyticsView() {
         <Grid size={{ xs: 12, md: 6, lg: 8 }}>
           <AnalyticsWebsiteVisits
             title="Income vs Expenses"
-            subheader="Performance over time"
+            subheader={`Performance · ${timeline.startDate} to ${timeline.endDate}`}
             chart={{
               categories: incomeExpenseData.map((d) => d.label),
               series: [

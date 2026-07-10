@@ -3,6 +3,13 @@ import type { User, Outlet, Category } from 'src/types';
 import { useState, useEffect, useContext, useCallback, createContext, type ReactNode } from 'react';
 
 import { api } from 'src/services/api';
+import { platformAdminApi } from 'src/platform-admin/api/platform-admin-api';
+import {
+  loadPlatformSession,
+  savePlatformSession,
+  clearPlatformSession,
+  saveImpersonationMeta,
+} from 'src/platform-admin/impersonation';
 
 // ----------------------------------------------------------------------
 
@@ -11,6 +18,7 @@ type AuthContextType = {
   accessToken: string | null;
   isAuthenticated: boolean;
   isInitialized: boolean;
+  isImpersonating: boolean;
   login: (data: any) => Promise<User>;
   register: (data: any) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
@@ -29,6 +37,12 @@ type AuthContextType = {
   refreshOutlets: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   toggleTheme: () => Promise<void>;
+  startImpersonation: (params: {
+    businessId: string;
+    ownerUserId?: string;
+    reason?: string;
+  }) => Promise<void>;
+  exitImpersonation: () => Promise<void>;
   subscriptionStatus: {
     isExpired: boolean;
     isExpiringSoon: boolean;
@@ -84,6 +98,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setCategories(data);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
+        try {
+          const { readOfflineCollection } = await import('src/offline/read-offline');
+          const cached = await readOfflineCollection('categories');
+          if (cached.length) setCategories(cached as any);
+        } catch {
+          /* ignore offline miss */
+        }
       }
     }
   }, [appData?.businessId]);
@@ -95,6 +116,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setOutlets(data.map((o: any) => ({ ...o, id: o._id })));
       } catch (error) {
         console.error('Failed to fetch outlets:', error);
+        try {
+          const { readOfflineCollection } = await import('src/offline/read-offline');
+          const cached = await readOfflineCollection('outlets');
+          if (cached.length) {
+            setOutlets(cached.map((o: any) => ({ ...o, id: o._id || o.id })));
+          }
+        } catch {
+          /* ignore offline miss */
+        }
       }
     }
   }, [appData?.businessId]);
@@ -238,6 +268,76 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('appData');
+    clearPlatformSession();
+  };
+
+  const startImpersonation = async (params: {
+    businessId: string;
+    ownerUserId?: string;
+    reason?: string;
+  }) => {
+    const currentToken = localStorage.getItem('accessToken');
+    const currentUser = localStorage.getItem('user');
+    const currentAppData = localStorage.getItem('appData');
+
+    if (!currentToken || !currentUser) {
+      throw new Error('No platform admin session to preserve');
+    }
+
+    savePlatformSession({
+      accessToken: currentToken,
+      user: JSON.parse(currentUser),
+      appData: currentAppData ? JSON.parse(currentAppData) : null,
+    });
+
+    const result = await platformAdminApi.impersonate(params);
+
+    const mappedUser: User = {
+      ...result.user,
+      id: result.user._id || result.user.id,
+      name: result.user.fullName || result.user.name,
+      avatar: '/assets/images/avatar/avatar-25.webp',
+    };
+
+    setUser(mappedUser);
+    setAccessToken(result.accessToken);
+    setAppData(result.appData);
+    localStorage.setItem('accessToken', result.accessToken);
+    localStorage.setItem('user', JSON.stringify(mappedUser));
+    localStorage.setItem('appData', JSON.stringify(result.appData));
+    saveImpersonationMeta({
+      businessId: result.business.id,
+      businessName: result.business.name,
+      ownerName: result.impersonatedUser.fullName,
+      ownerEmail: result.impersonatedUser.email,
+    });
+  };
+
+  const exitImpersonation = async () => {
+    const snapshot = loadPlatformSession();
+    try {
+      await platformAdminApi.endImpersonation({
+        businessId: appData?.businessId,
+        targetUserId: user?.id || user?._id,
+      });
+    } catch {
+      // Still restore platform session even if audit end fails
+    }
+
+    clearPlatformSession();
+
+    if (!snapshot?.accessToken || !snapshot.user) {
+      logout();
+      return;
+    }
+
+    const restoredUser = snapshot.user as User;
+    setUser(restoredUser);
+    setAccessToken(snapshot.accessToken);
+    setAppData(snapshot.appData);
+    localStorage.setItem('accessToken', snapshot.accessToken);
+    localStorage.setItem('user', JSON.stringify(restoredUser));
+    localStorage.setItem('appData', JSON.stringify(snapshot.appData ?? null));
   };
 
   const toggleTheme = async () => {
@@ -275,6 +375,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   }, []);
 
+  const isImpersonating = Boolean(appData?.impersonating || appData?.impersonatedBy);
+
   return (
     <AuthContext.Provider
       value={{
@@ -282,6 +384,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         accessToken,
         isAuthenticated: !!user,
         isInitialized,
+        isImpersonating,
         login,
         register,
         verifyOtp,
@@ -300,6 +403,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         refreshOutlets,
         refreshProfile,
         toggleTheme,
+        startImpersonation,
+        exitImpersonation,
         subscriptionStatus,
       }}
     >

@@ -8,7 +8,9 @@ import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import { useTheme, useColorScheme } from '@mui/material/styles';
 
+import { OfflineBanner } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
+import { ImpersonationBanner } from 'src/platform-admin/components/ImpersonationBanner';
 
 import { SubscriptionBanner } from 'src/components/subscription/subscription-banner';
 import { NotificationToastStack } from 'src/components/notifications/notification-toast-stack';
@@ -84,9 +86,12 @@ export function DashboardLayout({
 
     const headerSlots: HeaderSectionProps['slots'] = {
       topArea: (
-        <Alert severity="info" sx={{ display: 'none', borderRadius: 0 }}>
-          This is an info Alert.
-        </Alert>
+        <>
+          <ImpersonationBanner />
+          <Alert severity="info" sx={{ display: 'none', borderRadius: 0 }}>
+            This is an info Alert.
+          </Alert>
+        </>
       ),
       leftArea: (
         <>
@@ -142,6 +147,7 @@ export function DashboardLayout({
   return (
     <>
       <NotificationToastStack />
+      <OfflineBanner />
       <LayoutSection
         /** **************************************
          * @Header

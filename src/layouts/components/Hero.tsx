@@ -124,7 +124,7 @@ export default function Hero() {
               variants={fadeUp}
               className="text-lg text-slate-400 leading-relaxed mb-10 max-w-[440px] font-medium"
             >
-              Inventory, negotiation-aware POS, and bulletproof double-entry bookkeeping — in one dashboard built for your market.
+              Inventory, negotiation-aware POS, and double-entry books — with offline sales that sync the moment you reconnect.
             </motion.p>
 
             {/* CTA row */}

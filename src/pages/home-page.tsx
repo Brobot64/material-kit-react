@@ -9,6 +9,7 @@ import Contact from 'src/layouts/components/Contact'
 import Features from 'src/layouts/components/Features'
 import FeatureCards from 'src/layouts/components/FeatureCards'
 import CustomCursor from 'src/layouts/components/CustomCursor'
+import Testimonials from 'src/layouts/components/Testimonials'
 import BarcodeFeatures from 'src/layouts/components/BarcodeFeatures'
 import DescriptionBanner from 'src/layouts/components/DescriptionBanner'
 
@@ -39,7 +40,7 @@ export default function HomePage() {
   useLenis()
 
   return (
-    <div className="bg-[#060a14] min-h-screen overflow-x-hidden">
+    <div className="bg-[#05080f] min-h-screen overflow-x-hidden text-slate-100 antialiased selection:bg-[#a3e635]/30 selection:text-white">
       <CustomCursor />
       <Header />
       <Hero />
@@ -47,6 +48,7 @@ export default function HomePage() {
       <DescriptionBanner />
       <BarcodeFeatures />
       <FeatureCards />
+      <Testimonials />
       <Pricing />
       <FAQ />
       <Contact />

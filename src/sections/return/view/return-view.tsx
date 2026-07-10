@@ -35,6 +35,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import TableContainer from '@mui/material/TableContainer';
 import TimelineConnector from '@mui/lab/TimelineConnector';
 import TimelineSeparator from '@mui/lab/TimelineSeparator';
+import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fCurrency } from 'src/utils/format-number';
@@ -676,20 +677,40 @@ export function ReturnView() {
   const [returns, setReturns] = useState<ProductReturn[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReturnStatus | ''>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
   const [selected, setSelected] = useState<ProductReturn | null>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [statusFilter, debouncedSearch]);
 
   const fetchReturns = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.getReturns({ status: statusFilter || undefined });
-      setReturns(res.data);
+      const res = await api.getReturns({
+        status: statusFilter || undefined,
+        search: debouncedSearch || undefined,
+        page: page + 1,
+        limit: rowsPerPage,
+      });
+      setReturns(res.data || []);
+      setTotal(res.total || 0);
     } catch (err: any) {
       showError(err.message || 'Failed to load returns');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, showError]);
+  }, [statusFilter, debouncedSearch, page, rowsPerPage, showError]);
 
   useEffect(() => { fetchReturns(); }, [fetchReturns]);
 
@@ -707,18 +728,33 @@ export function ReturnView() {
         </Button>
       </Stack>
 
-      {/* Status filter chips */}
-      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
-        {STATUS_FILTERS.map((f) => (
-          <Chip
-            key={f.value}
-            label={f.label}
-            size="small"
-            color={f.value === statusFilter ? 'primary' : 'default'}
-            variant={f.value === statusFilter ? 'filled' : 'outlined'}
-            onClick={() => setStatusFilter(f.value)}
-          />
-        ))}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: 'center' }}>
+        <TextField
+          size="small"
+          placeholder="Search return #, product, customer, S/N…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ minWidth: { sm: 320 }, flexGrow: 1 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Iconify icon="eva:search-fill" width={18} />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Stack direction="row" flexWrap="wrap" gap={1}>
+          {STATUS_FILTERS.map((f) => (
+            <Chip
+              key={f.value}
+              label={f.label}
+              size="small"
+              color={f.value === statusFilter ? 'primary' : 'default'}
+              variant={f.value === statusFilter ? 'filled' : 'outlined'}
+              onClick={() => setStatusFilter(f.value)}
+            />
+          ))}
+        </Stack>
       </Stack>
 
       <Card>
@@ -728,78 +764,96 @@ export function ReturnView() {
           <Box sx={{ py: 8, textAlign: 'center' }}>
             <Iconify icon="solar:restart-bold" width={48} sx={{ color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" color="text.secondary">No returns found</Typography>
-            <Typography variant="body2" color="text.disabled">Returns will appear here when customers bring back products</Typography>
+            <Typography variant="body2" color="text.disabled">
+              {debouncedSearch || statusFilter
+                ? 'Try a different search or status filter'
+                : 'Returns will appear here when customers bring back products'}
+            </Typography>
           </Box>
         ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Return #</TableCell>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Warranty</TableCell>
-                  <TableCell>Distributor</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Date</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {returns.map((ret) => {
-                  const meta = STATUS_META[ret.status];
-                  return (
-                    <TableRow
-                      key={ret._id}
-                      hover
-                      sx={{ cursor: 'pointer' }}
-                      onClick={() => setSelected(ret)}
-                    >
-                      <TableCell>
-                        <Typography variant="caption" fontFamily="monospace" fontWeight={600}>
-                          {ret.returnNumber}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={500}>{ret.productNameSnapshot}</Typography>
-                        {ret.skuSnapshot && <Typography variant="caption" color="text.secondary">{ret.skuSnapshot}</Typography>}
-                        {ret.serialNumber && <><br /><Typography variant="caption" color="text.disabled">S/N: {ret.serialNumber}</Typography></>}
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{ret.customerName || '—'}</Typography>
-                        {ret.customerPhone && <Typography variant="caption" color="text.secondary">{ret.customerPhone}</Typography>}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={WARRANTY_LABELS[ret.warrantyStatus]}
-                          size="small"
-                          variant="outlined"
-                          color={ret.warrantyStatus === 'under_warranty' ? 'success' : ret.warrantyStatus === 'out_of_warranty' ? 'error' : 'default'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {ret.distributorName ? (
-                          <Typography variant="body2">{ret.distributorName}</Typography>
-                        ) : (
-                          <Typography variant="caption" color="text.disabled">—</Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={<Iconify icon={meta.icon} width={14} />}
-                          label={meta.label}
-                          size="small"
-                          color={meta.color}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="caption">{fDate(ret.createdAt)}</Typography>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Return #</TableCell>
+                    <TableCell>Product</TableCell>
+                    <TableCell>Customer</TableCell>
+                    <TableCell>Warranty</TableCell>
+                    <TableCell>Distributor</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Date</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {returns.map((ret) => {
+                    const meta = STATUS_META[ret.status];
+                    return (
+                      <TableRow
+                        key={ret._id}
+                        hover
+                        sx={{ cursor: 'pointer' }}
+                        onClick={() => setSelected(ret)}
+                      >
+                        <TableCell>
+                          <Typography variant="caption" fontFamily="monospace" fontWeight={600}>
+                            {ret.returnNumber}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={500}>{ret.productNameSnapshot}</Typography>
+                          {ret.skuSnapshot && <Typography variant="caption" color="text.secondary">{ret.skuSnapshot}</Typography>}
+                          {ret.serialNumber && <><br /><Typography variant="caption" color="text.disabled">S/N: {ret.serialNumber}</Typography></>}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{ret.customerName || '—'}</Typography>
+                          {ret.customerPhone && <Typography variant="caption" color="text.secondary">{ret.customerPhone}</Typography>}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={WARRANTY_LABELS[ret.warrantyStatus]}
+                            size="small"
+                            variant="outlined"
+                            color={ret.warrantyStatus === 'under_warranty' ? 'success' : ret.warrantyStatus === 'out_of_warranty' ? 'error' : 'default'}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {ret.distributorName ? (
+                            <Typography variant="body2">{ret.distributorName}</Typography>
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">—</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={<Iconify icon={meta.icon} width={14} />}
+                            label={meta.label}
+                            size="small"
+                            color={meta.color}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="caption">{fDate(ret.createdAt)}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              component="div"
+              count={total}
+              page={page}
+              onPageChange={(_, next) => setPage(next)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 20, 50]}
+            />
+          </>
         )}
       </Card>
 

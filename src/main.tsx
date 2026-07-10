@@ -12,11 +12,9 @@ import { AppProviders } from './providers/app-providers';
 const router = createBrowserRouter([
   {
     Component: () => (
-      <AppProviders>
-        <App>
-          <Outlet />
-        </App>
-      </AppProviders>
+      <App>
+        <Outlet />
+      </App>
     ),
     errorElement: <ErrorBoundary />,
     children: routesSection,
@@ -27,6 +25,8 @@ const root = createRoot(document.getElementById('root')!);
 
 root.render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
   </StrictMode>
 );
