@@ -13,12 +13,18 @@ type Props = {
 export function SubscriptionGuard({ children }: Props) {
   const router = useRouter();
 
-  const { subscriptionStatus, isInitialized, isAuthenticated } = useAuth();
+  const { subscriptionStatus, isInitialized, isAuthenticated, isImpersonating } = useAuth();
 
   const [checked, setChecked] = useState(false);
 
   const check = useCallback(() => {
     if (!isInitialized) {
+      return;
+    }
+
+    // Platform admins viewing a tenant should not be bounced to renew.
+    if (isImpersonating) {
+      setChecked(true);
       return;
     }
 
@@ -32,7 +38,7 @@ export function SubscriptionGuard({ children }: Props) {
     }
     
     setChecked(true);
-  }, [isAuthenticated, isInitialized, router, subscriptionStatus.isExpired]);
+  }, [isAuthenticated, isInitialized, isImpersonating, router, subscriptionStatus.isExpired]);
 
   useEffect(() => {
     check();

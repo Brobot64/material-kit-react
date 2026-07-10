@@ -18,6 +18,8 @@ import Grid from '@mui/material/Grid';
 
 import { Iconify } from 'src/components/iconify';
 
+import { useAuth } from 'src/contexts/auth-context';
+
 import { platformAdminApi, type PlatformBusinessDetail } from '../api/platform-admin-api';
 
 function formatDate(value?: string | null) {
@@ -28,6 +30,7 @@ function formatDate(value?: string | null) {
 export default function PlatformBusinessDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { startImpersonation } = useAuth();
   const [data, setData] = useState<PlatformBusinessDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -117,6 +120,23 @@ export default function PlatformBusinessDetailPage() {
         </Button>
         <Button variant="contained" disabled={busy} onClick={() => run(() => platformAdminApi.markPaid(data.id))}>
           Mark paid / renew
+        </Button>
+        <Button
+          variant="contained"
+          color="warning"
+          disabled={busy}
+          onClick={() =>
+            run(async () => {
+              await startImpersonation({
+                businessId: data.id,
+                ownerUserId: data.owner?.id,
+                reason: 'Platform admin support view',
+              });
+              navigate('/app');
+            })
+          }
+        >
+          View as owner
         </Button>
       </Stack>
 

@@ -109,4 +109,24 @@ export const platformAdminApi = {
     }>('/users/stats'),
 
   getPlans: () => platformRequest<any[]>('/plans'),
+
+  impersonate: (body: { businessId: string; ownerUserId?: string; reason?: string }) =>
+    platformRequest<{
+      accessToken: string;
+      expiresIn: string;
+      jti: string;
+      business: { id: string; name: string };
+      impersonatedUser: { id: string; fullName: string; email: string; role: string };
+      appData: any;
+      user: any;
+    }>('/impersonate', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  endImpersonation: (body?: { businessId?: string; targetUserId?: string; reason?: string }) =>
+    platformRequest<{ success: boolean }>('/impersonate/end', {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
 };

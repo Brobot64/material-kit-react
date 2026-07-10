@@ -29,6 +29,8 @@ import Menu from '@mui/material/Menu';
 
 import { Iconify } from 'src/components/iconify';
 
+import { useAuth } from 'src/contexts/auth-context';
+
 import {
   platformAdminApi,
   type PlatformBusinessListItem,
@@ -52,6 +54,7 @@ function statusColor(status: string): 'success' | 'warning' | 'error' | 'default
 
 export default function PlatformBusinessesPage() {
   const navigate = useNavigate();
+  const { startImpersonation } = useAuth();
   const [rows, setRows] = useState<PlatformBusinessListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -258,6 +261,22 @@ export default function PlatformBusinessesPage() {
           }}
         >
           Extend trial
+        </MenuItem>
+        <MenuItem
+          disabled={actionBusy || !selected}
+          onClick={() =>
+            selected &&
+            runAction(async () => {
+              await startImpersonation({
+                businessId: selected.id,
+                ownerUserId: selected.owner?.id,
+                reason: 'Platform admin support view',
+              });
+              navigate('/app');
+            })
+          }
+        >
+          View as owner
         </MenuItem>
         <MenuItem
           disabled={actionBusy || !selected}
