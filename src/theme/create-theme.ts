@@ -28,7 +28,7 @@ export const baseTheme: ThemeOptions = {
   },
   components,
   typography,
-  shape: { borderRadius: 8 },
+  shape: { borderRadius: 12 }, // Whimsical utility radius (dominant)
   cssVariables: themeConfig.cssVariables,
 };
 

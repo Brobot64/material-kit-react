@@ -21,6 +21,7 @@ import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 
 // ----------------------------------------------------------------------
@@ -85,7 +86,13 @@ export function BusinessSettingsView() {
     <DashboardContent>
       <Breadcrumbs
         links={[{ name: 'Dashboard', href: '/app' }, { name: 'Business Settings' }]}
-        sx={{ mb: 3 }}
+        sx={{ mb: 2 }}
+      />
+
+      <PageHeader
+        kicker="Settings"
+        title="Business Settings"
+        subtitle="Branding, store preferences, and inventory features."
       />
 
       <Grid container spacing={3}>

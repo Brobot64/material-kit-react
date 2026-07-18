@@ -8,7 +8,6 @@ import Pricing from 'src/layouts/components/Pricing'
 import Contact from 'src/layouts/components/Contact'
 import Features from 'src/layouts/components/Features'
 import FeatureCards from 'src/layouts/components/FeatureCards'
-import CustomCursor from 'src/layouts/components/CustomCursor'
 import Testimonials from 'src/layouts/components/Testimonials'
 import BarcodeFeatures from 'src/layouts/components/BarcodeFeatures'
 import DescriptionBanner from 'src/layouts/components/DescriptionBanner'
@@ -16,11 +15,9 @@ import DescriptionBanner from 'src/layouts/components/DescriptionBanner'
 function useLenis() {
   useEffect(() => {
     let rafId: number
-     
     let lenis: any = null
 
     import('lenis').then(({ default: Lenis }) => {
-       
       lenis = new (Lenis as any)({ lerp: 0.09, smoothWheel: true, touchMultiplier: 1.5 })
       const raf = (time: number) => {
         lenis.raf(time)
@@ -40,8 +37,7 @@ export default function HomePage() {
   useLenis()
 
   return (
-    <div className="bg-[#05080f] min-h-screen overflow-x-hidden text-slate-100 antialiased selection:bg-[#a3e635]/30 selection:text-white">
-      <CustomCursor />
+    <div className="min-h-screen overflow-x-hidden bg-[#f5f4f5] text-[#250835] antialiased selection:bg-[#e9bded] selection:text-[#250835]">
       <Header />
       <Hero />
       <Features />

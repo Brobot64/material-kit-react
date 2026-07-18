@@ -15,6 +15,65 @@ import { SvgColor } from 'src/components/svg-color';
 import { Chart, useChart } from 'src/components/chart';
 
 // ----------------------------------------------------------------------
+// KPI cards keep the original Minimal glass / gradient color schemes
+// (independent of the Whimsical app chrome palette).
+// ----------------------------------------------------------------------
+
+const KPI_COLORS: Record<
+  PaletteColorKey,
+  { lighter: string; light: string; main: string; dark: string; darker: string }
+> = {
+  primary: {
+    lighter: '#D0ECFE',
+    light: '#73BAFB',
+    main: '#1877F2',
+    dark: '#0C44AE',
+    darker: '#042174',
+  },
+  secondary: {
+    lighter: '#EFD6FF',
+    light: '#C684FF',
+    main: '#8E33FF',
+    dark: '#5119B7',
+    darker: '#27097A',
+  },
+  info: {
+    lighter: '#CAFDF5',
+    light: '#61F3F3',
+    main: '#00B8D9',
+    dark: '#006C9C',
+    darker: '#003768',
+  },
+  success: {
+    lighter: '#D3FCD2',
+    light: '#77ED8B',
+    main: '#22C55E',
+    dark: '#118D57',
+    darker: '#065E49',
+  },
+  warning: {
+    lighter: '#FFF5CC',
+    light: '#FFD666',
+    main: '#FFAB00',
+    dark: '#B76E00',
+    darker: '#7A4100',
+  },
+  error: {
+    lighter: '#FFE9D5',
+    light: '#FFAC82',
+    main: '#FF5630',
+    dark: '#B71D18',
+    darker: '#7A0916',
+  },
+};
+
+function hexToChannel(hex: string): string {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  return `${r} ${g} ${b}`;
+}
 
 type Props = CardProps & {
   title: string;
@@ -40,8 +99,9 @@ export function AnalyticsWidgetSummary({
   ...other
 }: Props) {
   const theme = useTheme();
+  const kpi = KPI_COLORS[color] ?? KPI_COLORS.primary;
 
-  const chartColors = [theme.palette[color].dark];
+  const chartColors = [kpi.dark];
 
   const chartOptions = useChart({
     chart: { sparkline: { enabled: true } },
@@ -86,14 +146,16 @@ export function AnalyticsWidgetSummary({
   return (
     <Card
       sx={[
-        () => ({
+        {
           p: 3,
           boxShadow: 'none',
           position: 'relative',
-          color: `${color}.darker`,
-          backgroundColor: 'common.white',
-          backgroundImage: `linear-gradient(135deg, ${varAlpha(theme.vars.palette[color].lighterChannel, 0.48)}, ${varAlpha(theme.vars.palette[color].lightChannel, 0.48)})`,
-        }),
+          color: kpi.darker,
+          backgroundColor: theme.palette.common.white,
+          backgroundImage: `linear-gradient(135deg, ${varAlpha(hexToChannel(kpi.lighter), 0.48)}, ${varAlpha(hexToChannel(kpi.light), 0.48)})`,
+          border: 'none',
+          borderRadius: 2,
+        },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       {...other}
@@ -134,7 +196,7 @@ export function AnalyticsWidgetSummary({
           height: 240,
           opacity: 0.24,
           position: 'absolute',
-          color: `${color}.main`,
+          color: kpi.main,
         }}
       />
     </Card>

@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
@@ -23,6 +21,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 
 // ----------------------------------------------------------------------
@@ -68,16 +67,13 @@ export function ReceivablesView() {
 
   return (
     <DashboardContent>
-      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Receivables' }]} sx={{ mb: 3 }} />
+      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Receivables' }]} sx={{ mb: 2 }} />
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={4}>
-        <Box>
-          <Typography variant="h4">Receivables</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Track outstanding customer balances
-          </Typography>
-        </Box>
-      </Stack>
+      <PageHeader
+        kicker="Finance"
+        title="Receivables"
+        subtitle="Track outstanding customer balances."
+      />
 
       {/* Summary cards */}
       <Grid container spacing={3} mb={4}>

@@ -135,7 +135,7 @@ export function SignInView() {
         fullWidth
         size="large"
         type="submit"
-        color="inherit"
+        color="primary"
         variant="contained"
         disabled={loading}
       >
@@ -156,8 +156,16 @@ export function SignInView() {
           textAlign: 'center',
         }}
       >
-        <Typography variant="h5">Sign in</Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        <Typography variant="overline" sx={{ color: 'primary.main' }}>
+          Welcome back
+        </Typography>
+        <Typography
+          variant="h4"
+          sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700 }}
+        >
+          Sign in
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
           Don&apos;t have an account?
           <Link
             variant="subtitle2"

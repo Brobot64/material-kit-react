@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
 const FAQS = [
   {
     q: 'Do I need accounting knowledge to use ShopMaster?',
@@ -42,43 +44,46 @@ export default function FAQ() {
   const [open, setOpen] = useState<number | null>(0)
 
   return (
-    <section id="faq" className="bg-[#08101c] py-28 relative overflow-hidden">
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent mb-24" />
-
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute bottom-0 right-0 w-[400px] h-[300px] rounded-full blur-[120px] bg-[#60a5fa]/[0.03]" />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-[1fr_1.6fr] gap-20 items-start">
+    <section id="faq" className="bg-[#ffffff] py-20 sm:py-28">
+      <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
+        <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.6fr] lg:gap-20">
 
           {/* Left: heading */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.7, ease: EASE }}
             viewport={{ once: true, margin: '-60px' }}
             className="lg:sticky lg:top-28"
           >
-            <p className="text-[#a3e635] text-xs font-black uppercase tracking-[0.22em] mb-4">FAQ</p>
-            <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tighter leading-[0.92] mb-6">
+            <p className="w-kicker mb-3">FAQ</p>
+            <h2
+              className="w-display text-[clamp(32px,5vw,48px)] leading-[1.1] mb-5"
+            >
               Questions &<br />Answers
             </h2>
-            <p className="text-slate-400 font-medium leading-relaxed mb-8">
+            <p className="text-base font-medium leading-relaxed text-[#250835]/70 mb-8">
               Everything you need to know about ShopMaster. Can&apos;t find your answer?{' '}
-              <a href="#contact" className="text-[#a3e635] hover:underline font-bold">Talk to us.</a>
+              <a href="#contact" className="font-bold text-[#250835] underline decoration-[#e9bded] underline-offset-2 hover:decoration-[#250835]">
+                Talk to us.
+              </a>
             </p>
 
             {/* Stats */}
-            <div className="bg-[#0b1120] border border-white/[0.08] rounded-2xl p-5 space-y-4">
+            <div className="w-card-flat bg-[#efe3ed] !p-5 space-y-4">
               {[
                 { label: 'Avg setup time', value: '< 30 min' },
                 { label: 'Free trial', value: '14 days' },
                 { label: 'Support response', value: '< 4 hrs' },
               ].map((s) => (
                 <div key={s.label} className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{s.label}</span>
-                  <span className="text-sm font-black text-[#a3e635]">{s.value}</span>
+                  <span className="w-kicker opacity-70">{s.label}</span>
+                  <span
+                    className="text-sm font-bold text-[#250835]"
+                    style={{ fontFamily: 'var(--w-font-display)' }}
+                  >
+                    {s.value}
+                  </span>
                 </div>
               ))}
             </div>
@@ -88,37 +93,49 @@ export default function FAQ() {
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.7, delay: 0.1, ease: EASE }}
             viewport={{ once: true, margin: '-60px' }}
-            className="space-y-2"
+            className="space-y-3"
           >
             {FAQS.map((faq, i) => (
               <div
                 key={i}
-                className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
+                className={`overflow-hidden rounded-[12px] border transition-all duration-300 ${
                   open === i
-                    ? 'bg-[#0b1120] border-[#a3e635]/25'
-                    : 'bg-[#0b1120] border-white/[0.07] hover:border-white/[0.13]'
+                    ? 'border-[#e9bded] bg-[#efe3ed]/40 shadow-[var(--w-shadow-low)]'
+                    : 'border-[#250835]/8 bg-white shadow-[var(--w-shadow-low)] hover:border-[#e9bded]'
                 }`}
               >
                 <button
-                  className="w-full flex items-center justify-between px-7 py-5 text-left gap-4"
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left sm:px-6 sm:py-5"
                   onClick={() => setOpen(open === i ? null : i)}
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="text-[11px] font-black text-slate-600 tabular-nums w-5 shrink-0">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <span className="w-kicker w-5 shrink-0 tabular-nums opacity-50">
                       {String(i + 1).padStart(2, '0')}
                     </span>
-                    <span className={`font-black text-base transition-colors ${open === i ? 'text-[#a3e635]' : 'text-white'}`}>
+                    <span
+                      className={`text-[15px] font-bold leading-snug transition-colors sm:text-base ${
+                        open === i ? 'text-[#250835]' : 'text-[#250835]/90'
+                      }`}
+                      style={{ fontFamily: 'var(--w-font-display)' }}
+                    >
                       {faq.q}
                     </span>
                   </div>
-                  <div className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 transition-all duration-300 ${
-                    open === i ? 'border-[#a3e635]/40 bg-[#a3e635]/10' : 'border-white/[0.1]'
-                  }`}>
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border transition-all duration-300 ${
+                      open === i
+                        ? 'border-[#250835]/20 bg-[#250835] text-white'
+                        : 'border-[#250835]/10 bg-[#f5f4f5] text-[#250835]/50'
+                    }`}
+                  >
                     <svg
-                      className={`w-3.5 h-3.5 transition-transform duration-300 ${open === i ? 'rotate-180 text-[#a3e635]' : 'text-slate-500'}`}
-                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      className={`h-3.5 w-3.5 transition-transform duration-300 ${open === i ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                     </svg>
@@ -131,11 +148,11 @@ export default function FAQ() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                      transition={{ duration: 0.35, ease: EASE }}
                       className="overflow-hidden"
                     >
-                      <div className="px-7 pb-6 pl-[4.25rem]">
-                        <p className="text-slate-400 text-sm font-medium leading-relaxed">{faq.a}</p>
+                      <div className="px-5 pb-5 pl-[2.75rem] sm:px-6 sm:pb-6 sm:pl-[4.25rem]">
+                        <p className="text-sm font-medium leading-relaxed text-[#250835]/70">{faq.a}</p>
                       </div>
                     </motion.div>
                   )}

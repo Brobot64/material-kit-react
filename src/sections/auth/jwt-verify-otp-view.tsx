@@ -125,7 +125,7 @@ export function JwtVerifyOtpView() {
         size="large"
         type="submit"
         variant="contained"
-        color="inherit"
+        color="primary"
         loading={loading}
       >
         Verify
@@ -134,7 +134,7 @@ export function JwtVerifyOtpView() {
       <Button
         fullWidth
         size="large"
-        color="inherit"
+        color="primary"
         variant="outlined"
         onClick={() => router.push('/sign-in')}
         disabled={loading}

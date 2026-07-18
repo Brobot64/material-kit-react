@@ -87,31 +87,31 @@ export const common = createPaletteChannel(themeConfig.palette.common);
 // Grey color
 export const grey = createPaletteChannel(themeConfig.palette.grey);
 
-// Text color
+// Text color — deep plum ink on cream
 export const text = {
   light: createPaletteChannel({
-    primary: grey[800],
+    primary: '#250835',
     secondary: grey[600],
     disabled: grey[500],
   }),
   dark: createPaletteChannel({
     primary: '#FFFFFF',
-    secondary: grey[500],
+    secondary: grey[400],
     disabled: grey[600],
   }),
 };
 
-// Background color
+// Background color — white paper, warm off-white canvas, lilac neutral
 export const background = {
   light: createPaletteChannel({
     paper: '#FFFFFF',
-    default: grey[100],
-    neutral: grey[200],
+    default: '#f5f4f5',
+    neutral: '#efe3ed',
   }),
   dark: createPaletteChannel({
-    paper: grey[800],
-    default: '#141A21',
-    neutral: '#1C252E',
+    paper: '#1a0526',
+    default: '#0f0318',
+    neutral: '#250835',
   }),
 };
 

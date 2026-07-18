@@ -2,13 +2,15 @@
 
 import { motion } from 'framer-motion'
 
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
 const TESTIMONIALS = [
   {
     quote: "The negotiation-aware POS alone has saved us from countless below-cost sales. Results beyond our expectations.",
     name: 'Alhaji Musa Tanko',
     role: 'Tanko Electronics, Kano',
     avatar: 'MT',
-    color: '#a3e635',
+    tint: '#efe3ed',
     stars: 5,
   },
   {
@@ -16,7 +18,7 @@ const TESTIMONIALS = [
     name: 'Mrs Chidinma Okafor',
     role: 'Chidi Gadgets, Lagos Island',
     avatar: 'CO',
-    color: '#60a5fa',
+    tint: '#dcecff',
     stars: 5,
   },
   {
@@ -24,7 +26,7 @@ const TESTIMONIALS = [
     name: 'Ibrahim Sule',
     role: 'ISL Stores, Abuja',
     avatar: 'IS',
-    color: '#f472b6',
+    tint: '#d8f3e8',
     stars: 5,
   },
   {
@@ -32,7 +34,7 @@ const TESTIMONIALS = [
     name: 'Blessing Nwosu',
     role: 'BN Appliances, Port Harcourt',
     avatar: 'BN',
-    color: '#fbbf24',
+    tint: '#ffe8fb',
     stars: 5,
   },
   {
@@ -40,7 +42,7 @@ const TESTIMONIALS = [
     name: 'Emeka Eze',
     role: 'EziTech Store, Enugu',
     avatar: 'EE',
-    color: '#34d399',
+    tint: '#e9bded',
     stars: 5,
   },
   {
@@ -48,44 +50,47 @@ const TESTIMONIALS = [
     name: 'Fatima Abdullahi',
     role: 'FA Electronics, Kaduna',
     avatar: 'FA',
-    color: '#a78bfa',
+    tint: '#bbcfe4',
     stars: 5,
   },
 ]
 
 function TestimonialCard({ t }: { t: typeof TESTIMONIALS[0] }) {
   return (
-    <div className="relative flex-shrink-0 w-[360px] bg-[#0b1120] border border-white/[0.07] rounded-2xl p-7 mx-3 hover:border-white/[0.13] transition-colors duration-300 group overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl"
-        style={{ background: `radial-gradient(200px at 50% 0%, ${t.color}07, transparent)` }}
-      />
-
+    <div
+      className="relative mx-3 w-[min(360px,calc(100vw-2rem))] flex-shrink-0 overflow-hidden rounded-[12px] p-6 shadow-[var(--w-shadow-low)] transition-transform duration-300 hover:-translate-y-0.5 sm:p-7"
+      style={{ background: t.tint }}
+    >
       {/* Stars */}
-      <div className="flex gap-1 mb-5">
+      <div className="mb-5 flex gap-1">
         {Array.from({ length: t.stars }).map((_, i) => (
-          <svg key={i} className="w-4 h-4" fill={t.color} viewBox="0 0 24 24">
+          <svg key={i} className="h-4 w-4 text-[#250835]/40" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
         ))}
       </div>
 
       {/* Quote */}
-      <blockquote className="text-[15px] text-slate-300 font-medium leading-relaxed mb-6 relative z-10">
+      <blockquote className="relative z-10 mb-6 text-[15px] font-medium leading-relaxed text-[#250835]/80">
         &ldquo;{t.quote}&rdquo;
       </blockquote>
 
       {/* Author */}
       <div className="flex items-center gap-3">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shrink-0"
-          style={{ background: `${t.color}18`, color: t.color }}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white/70 text-xs font-bold text-[#250835]"
+          style={{ fontFamily: 'var(--w-font-display)' }}
         >
           {t.avatar}
         </div>
         <div>
-          <div className="text-white font-black text-sm">{t.name}</div>
-          <div className="text-slate-500 text-xs font-medium">{t.role}</div>
+          <div
+            className="text-sm font-bold text-[#250835]"
+            style={{ fontFamily: 'var(--w-font-display)' }}
+          >
+            {t.name}
+          </div>
+          <div className="text-xs font-medium text-[#250835]/55">{t.role}</div>
         </div>
       </div>
     </div>
@@ -97,28 +102,26 @@ export default function BarcodeFeature() {
   const row2 = [...TESTIMONIALS.slice(3), ...TESTIMONIALS.slice(0, 3), ...TESTIMONIALS.slice(3), ...TESTIMONIALS.slice(0, 3)]
 
   return (
-    <section id="testimonials" className="bg-[#060a14] py-28 overflow-hidden">
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent mb-24" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8">
+    <section className="overflow-hidden bg-[#f5f4f5] py-20 sm:py-28">
+      <div className="mx-auto mb-12 max-w-[1320px] px-4 sm:mb-16 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.7, ease: EASE }}
             viewport={{ once: true, margin: '-60px' }}
           >
-            <p className="text-[#a3e635] text-xs font-black uppercase tracking-[0.22em] mb-4">Client Testimonials</p>
-            <h2 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-black text-white tracking-tighter leading-[0.92]">
+            <p className="w-kicker mb-3">Client Testimonials</p>
+            <h2 className="w-display text-[clamp(32px,5vw,56px)] leading-[1.05]">
               Satisfied Retailers<br />
-              <span className="text-[#a3e635]">Across Nigeria</span>
+              <span className="text-[#ba59ff]">Across Nigeria</span>
             </h2>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.7, delay: 0.1, ease: EASE }}
             viewport={{ once: true, margin: '-60px' }}
             className="flex items-center gap-4"
           >
@@ -127,16 +130,21 @@ export default function BarcodeFeature() {
               {TESTIMONIALS.slice(0, 4).map((t) => (
                 <div
                   key={t.name}
-                  className="w-9 h-9 rounded-full border-2 border-[#060a14] flex items-center justify-center text-[10px] font-black"
-                  style={{ background: `${t.color}1a`, color: t.color }}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#f5f4f5] text-[10px] font-bold text-[#250835]"
+                  style={{ background: t.tint }}
                 >
                   {t.avatar}
                 </div>
               ))}
             </div>
             <div>
-              <div className="text-white font-black text-sm">500+ retailers</div>
-              <div className="text-slate-500 text-xs">love ShopMaster</div>
+              <div
+                className="text-sm font-bold text-[#250835]"
+                style={{ fontFamily: 'var(--w-font-display)' }}
+              >
+                500+ retailers
+              </div>
+              <div className="text-xs font-medium text-[#250835]/55">love ShopMaster</div>
             </div>
           </motion.div>
         </div>
@@ -147,12 +155,12 @@ export default function BarcodeFeature() {
         {/* Row 1 — scrolls left */}
         <div className="relative">
           <div
-            className="absolute left-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
-            style={{ background: 'linear-gradient(to right, #060a14, transparent)' }}
+            className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-16 sm:w-32"
+            style={{ background: 'linear-gradient(to right, #f5f4f5, transparent)' }}
           />
           <div
-            className="absolute right-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
-            style={{ background: 'linear-gradient(to left, #060a14, transparent)' }}
+            className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-16 sm:w-32"
+            style={{ background: 'linear-gradient(to left, #f5f4f5, transparent)' }}
           />
           <div className="flex animate-marquee">
             {row1.map((t, i) => (
@@ -164,12 +172,12 @@ export default function BarcodeFeature() {
         {/* Row 2 — scrolls right */}
         <div className="relative">
           <div
-            className="absolute left-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
-            style={{ background: 'linear-gradient(to right, #060a14, transparent)' }}
+            className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-16 sm:w-32"
+            style={{ background: 'linear-gradient(to right, #f5f4f5, transparent)' }}
           />
           <div
-            className="absolute right-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
-            style={{ background: 'linear-gradient(to left, #060a14, transparent)' }}
+            className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-16 sm:w-32"
+            style={{ background: 'linear-gradient(to left, #f5f4f5, transparent)' }}
           />
           <div className="flex animate-marquee-reverse">
             {row2.map((t, i) => (

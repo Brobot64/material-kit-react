@@ -32,11 +32,13 @@ import { formatError } from 'src/utils/format-error';
 import { api } from 'src/services/api';
 import { useOffline } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
+import { appPanelSx, appProductTileSx } from 'src/theme/app-surface';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { NumericInput } from 'src/components/numeric-input';
 import { ReceiptPreviewModal } from 'src/components/receipt-preview/ReceiptPreviewModal';
 
@@ -402,79 +404,147 @@ export function SaleView() {
 
   return (
     <DashboardContent maxWidth="xl">
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">New Sale</Typography>
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Outlet</InputLabel>
-          <Select value={selectedOutletId} label="Outlet" onChange={(e) => setSelectedOutletId(e.target.value)} disabled={!isOwner}>
-            {outlets.map((o: any) => <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>)}
-          </Select>
-        </FormControl>
-      </Stack>
+      <PageHeader
+        kicker="Point of sale"
+        title="New sale"
+        subtitle="Search products, build a cart, and checkout — works online or offline."
+        action={
+          <FormControl sx={{ minWidth: { xs: 1, sm: 200 } }} size="small">
+            <InputLabel>Outlet</InputLabel>
+            <Select value={selectedOutletId} label="Outlet" onChange={(e) => setSelectedOutletId(e.target.value)} disabled={!isOwner}>
+              {outlets.map((o: any) => <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+        }
+      />
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         <Grid size={{ xs: 12, md: 7 }}>
-          <Card sx={{ p: 2, height: '100%' }}>
-            <TextField fullWidth placeholder="Search products..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{ startAdornment: (<InputAdornment position="start"><Iconify icon="eva:search-fill" /></InputAdornment>) }} sx={{ mb: 2 }} />
-            <Scrollbar sx={{ maxHeight: 560 }}>
-              <Grid container spacing={2}>
-                {loadingProducts ? <CircularProgress sx={{ mx: 'auto', my: 5 }} /> : products.map((p) => {
-                  const outlet = p.outlets?.find((o: any) => {
-                    const oId = typeof o.outletId === 'object' ? o.outletId?._id || o.outletId?.id : o.outletId;
-                    return oId === selectedOutletId;
-                  }) || p.outlets?.[0];
-                  const availableQty = outlet?.availableQuantity ?? outlet?.quantity ?? p.availableQuantity ?? p.quantity ?? 0;
-                  const isOutOfStock = availableQty <= 0;
-                  const guidePrice = outlet?.guidePrice ?? outlet?.defaultSalePrice ?? outlet?.sellingPrice ?? p.guidePrice ?? p.defaultSalePrice ?? p.sellingPrice ?? 0;
-                  const floorPrice = outlet?.floorPrice ?? p.floorPrice ?? 0;
-                  
-                  return (
-                    <Grid size={{ xs: 12, sm: 6 }} key={p._id}>
-                      <Paper 
-                        variant="outlined" 
-                        sx={{ 
-                          p: 1.5, 
-                          cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                          opacity: isOutOfStock ? 0.5 : 1,
-                          '&:hover': { bgcolor: isOutOfStock ? 'transparent' : 'action.hover' }
-                        }} 
-                        onClick={() => !isOutOfStock && addToCart(p)}
-                      >
-                        <Typography variant="subtitle2" noWrap fontWeight="bold">
-                          {p.name || p.productId?.name}
-                        </Typography>
-                        
-                        <Stack direction="row" justifyContent="space-between" alignItems="flex-end" mt={1}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Stock: {availableQty}
-                            </Typography>
-                            {isOutOfStock && <Label variant="soft" color="error" sx={{ mt: 0.5 }}>OUT OF STOCK</Label>}
-                          </Box>
-                          
-                          <Box textAlign="right">
-                            <Typography variant="subtitle2" color="primary.main">
-                              Guide: {fCurrency(guidePrice)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Floor: {fCurrency(floorPrice)}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </Paper>
-                    </Grid>
-                  );
-                })}
+          <Card sx={[{ p: { xs: 2, sm: 2.5 }, height: '100%' }, appPanelSx]}>
+            <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 1.5 }}>
+              Catalog
+            </Typography>
+            <TextField
+              fullWidth
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Iconify icon="eva:search-fill" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 2 }}
+            />
+            <Scrollbar sx={{ maxHeight: { xs: 360, md: 560 } }}>
+              <Grid container spacing={1.5}>
+                {loadingProducts ? (
+                  <CircularProgress sx={{ mx: 'auto', my: 5 }} />
+                ) : (
+                  products.map((p) => {
+                    const outlet =
+                      p.outlets?.find((o: any) => {
+                        const oId =
+                          typeof o.outletId === 'object'
+                            ? o.outletId?._id || o.outletId?.id
+                            : o.outletId;
+                        return oId === selectedOutletId;
+                      }) || p.outlets?.[0];
+                    const availableQty =
+                      outlet?.availableQuantity ??
+                      outlet?.quantity ??
+                      p.availableQuantity ??
+                      p.quantity ??
+                      0;
+                    const isOutOfStock = availableQty <= 0;
+                    const guidePrice =
+                      outlet?.guidePrice ??
+                      outlet?.defaultSalePrice ??
+                      outlet?.sellingPrice ??
+                      p.guidePrice ??
+                      p.defaultSalePrice ??
+                      p.sellingPrice ??
+                      0;
+                    const floorPrice = outlet?.floorPrice ?? p.floorPrice ?? 0;
+
+                    return (
+                      <Grid size={{ xs: 12, sm: 6 }} key={p._id}>
+                        <Paper
+                          elevation={0}
+                          sx={appProductTileSx(isOutOfStock)}
+                          onClick={() => !isOutOfStock && addToCart(p)}
+                        >
+                          <Typography variant="subtitle2" noWrap fontWeight={700}>
+                            {p.name || p.productId?.name}
+                          </Typography>
+
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="flex-end"
+                            mt={1.25}
+                          >
+                            <Box>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Stock: {availableQty}
+                              </Typography>
+                              {isOutOfStock && (
+                                <Label variant="soft" color="error" sx={{ mt: 0.5 }}>
+                                  OUT OF STOCK
+                                </Label>
+                              )}
+                            </Box>
+
+                            <Box textAlign="right">
+                              <Typography variant="subtitle2" color="primary.main" fontWeight={700}>
+                                Guide: {fCurrency(guidePrice)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Floor: {fCurrency(floorPrice)}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Paper>
+                      </Grid>
+                    );
+                  })
+                )}
               </Grid>
             </Scrollbar>
-            <TablePagination component="div" count={totalProducts} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))} /> 
+            <TablePagination
+              component="div"
+              count={totalProducts}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))}
+            />
           </Card>
         </Grid>
 
         <Grid size={{ xs: 12, md: 5 }}>
-          <Card sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>Current Sale</Typography>
+          <Card
+            sx={[
+              {
+                p: { xs: 2, sm: 2.5 },
+                position: { md: 'sticky' },
+                top: { md: 88 },
+              },
+              appPanelSx,
+            ]}
+          >
+            <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.75 }}>
+              Cart
+            </Typography>
+            <Typography
+              variant="h6"
+              mb={2}
+              sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700 }}
+            >
+              Current sale
+            </Typography>
             <TableContainer sx={{ maxHeight: 380 }}><Table size="small">
               <TableHead><TableRow><TableCell>Item</TableCell><TableCell align="center">Qty</TableCell><TableCell align="right">Price</TableCell><TableCell /></TableRow></TableHead>
               <TableBody>{cart.map((i) => {
@@ -532,7 +602,17 @@ export function SaleView() {
               <NumericInput fullWidth label="Amount Paid" value={amountPaid} onChangeValue={(v) => setAmountPaid(v)} />
               <TextField fullWidth label="Phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
               <TextField fullWidth label="Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} disabled={!!resolvedCustomer} />
-              <LoadingButton fullWidth size="large" variant="contained" loading={isSubmitting} onClick={handleSubmitSale}>Complete - {fCurrency(total)}</LoadingButton>
+              <LoadingButton
+                fullWidth
+                size="large"
+                variant="contained"
+                color="primary"
+                loading={isSubmitting}
+                onClick={handleSubmitSale}
+                sx={{ minHeight: 48, borderRadius: '12px' }}
+              >
+                Complete — {fCurrency(total)}
+              </LoadingButton>
             </Stack>
           </Card>
         </Grid>

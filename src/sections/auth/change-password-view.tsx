@@ -128,7 +128,7 @@ export function ChangePasswordView() {
         size="large"
         type="submit"
         variant="contained"
-        color="inherit"
+        color="primary"
         loading={loading}
       >
         Change Password

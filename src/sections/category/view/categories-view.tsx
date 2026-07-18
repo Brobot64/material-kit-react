@@ -38,6 +38,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 
 // ----------------------------------------------------------------------
@@ -152,19 +153,25 @@ export function CategoriesView() {
 
   return (
     <DashboardContent>
-      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Categories' }]} sx={{ mb: 5 }} />
+      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Categories' }]} sx={{ mb: 2 }} />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
-        <Typography variant="h4">Categories</Typography>
-        <Button
-          variant="contained"
-          color="inherit"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={handleOpenModal}
-        >
-          New Category
-        </Button>
-      </Box>
+      <PageHeader
+        kicker="Catalog"
+        title="Categories"
+        subtitle="Organize products with categories and parent groups."
+        action={
+          <Button
+            variant="contained"
+            color="inherit"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={handleOpenModal}
+            fullWidth
+            sx={{ width: { xs: 1, sm: 'auto' } }}
+          >
+            New Category
+          </Button>
+        }
+      />
 
       <Card>
         <Box sx={{ p: 2.5, pb: 0 }}>

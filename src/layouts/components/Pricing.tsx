@@ -1,15 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 const PLANS = [
   {
     name: 'Starter',
     tagline: 'Single store, full power',
-    monthly: 15000, annual: 12000,
-    highlight: false, badge: null,
+    monthly: 15000,
+    annual: 12000,
+    highlight: false,
     features: [
       '1 outlet',
       'Up to 3 staff accounts',
@@ -20,14 +23,15 @@ const PLANS = [
       'PDF receipts',
       'Email support',
     ],
-    cta: 'Start Free Trial',
+    cta: 'Start free trial',
     ctaLink: '/register',
   },
   {
     name: 'Growth',
     tagline: 'For expanding businesses',
-    monthly: 35000, annual: 29000,
-    highlight: true, badge: 'Most Popular',
+    monthly: 35000,
+    annual: 29000,
+    highlight: true,
     features: [
       'Up to 5 outlets',
       'Up to 15 staff accounts',
@@ -39,14 +43,15 @@ const PLANS = [
       'Custom receipt branding',
       'Priority support',
     ],
-    cta: 'Start Free Trial',
+    cta: 'Start free trial',
     ctaLink: '/register',
   },
   {
     name: 'Enterprise',
     tagline: 'Unlimited scale, dedicated care',
-    monthly: null, annual: null,
-    highlight: false, badge: null,
+    monthly: null,
+    annual: null,
+    highlight: false,
     features: [
       'Unlimited outlets',
       'Unlimited staff',
@@ -57,7 +62,7 @@ const PLANS = [
       'SLA guarantee',
       'Advanced financial reports',
     ],
-    cta: 'Contact Sales',
+    cta: 'Contact sales',
     ctaLink: '#contact',
   },
 ]
@@ -66,179 +71,94 @@ export default function Pricing() {
   const [annual, setAnnual] = useState(false)
 
   return (
-    <section id="pricing" className="bg-[#060a14] py-28 relative overflow-hidden">
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent mb-24" />
-
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full blur-[150px] bg-[#a3e635]/[0.025]" />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        {/* Header */}
+    <section id="pricing" className="bg-[#f5f4f5] py-20 sm:py-28">
+      <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          viewport={{ once: true, margin: '-60px' }}
-          className="text-center mb-14"
+          transition={{ duration: 0.7, ease: EASE }}
+          viewport={{ once: true }}
+          className="mb-12 text-center"
         >
-          <p className="text-[#a3e635] text-xs font-black uppercase tracking-[0.22em] mb-4">Pricing</p>
-          <h2 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-black text-white tracking-tighter leading-[0.92] mb-5">
-            Invest in Your<br />
-            <span className="text-[#a3e635]">Business Growth</span>
+          <p className="w-kicker mb-3">Pricing</p>
+          <h2 className="w-display text-[clamp(32px,5vw,48px)] leading-[1.1]">
+            Simple plans in Naira
           </h2>
-          <p className="text-lg text-slate-400 font-medium max-w-sm mx-auto mb-10">
-            Start free for 14 days. No credit card required.
+          <p className="mx-auto mt-4 max-w-lg text-base font-medium text-[#250835]/70">
+            Start free. Upgrade when your shop grows. Prices in NGN.
           </p>
 
-          {/* Toggle */}
-          <div className="inline-flex items-center gap-1 bg-[#0b1120] border border-white/[0.08] rounded-xl p-1.5">
-            {(['Monthly', 'Annual'] as const).map((label, i) => {
-              const active = (i === 0) ? !annual : annual
-              return (
-                <button
-                  key={label}
-                  onClick={() => setAnnual(i === 1)}
-                  className={`relative px-5 py-2.5 rounded-lg text-sm font-black transition-all duration-300 ${
-                    active ? 'text-[#060a14]' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {active && (
-                    <motion.div
-                      layoutId="pricingToggle"
-                      className="absolute inset-0 bg-[#a3e635] rounded-lg shadow-lg shadow-[#a3e635]/20"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10">{label}</span>
-                  {label === 'Annual' && (
-                    <span className={`relative z-10 ml-1.5 text-[10px] font-black px-2 py-0.5 rounded-full ${
-                      active ? 'bg-[#060a14]/20 text-[#060a14]' : 'bg-[#a3e635]/12 text-[#a3e635]'
-                    }`}>
-                      −17%
-                    </span>
-                  )}
-                </button>
-              )
-            })}
+          <div className="mt-6 inline-flex rounded-[12px] bg-white p-1 shadow-[var(--w-shadow-low)]">
+            <button
+              type="button"
+              onClick={() => setAnnual(false)}
+              className={`rounded-[10px] px-4 py-2 text-[13px] font-bold ${!annual ? 'bg-[#250835] text-white' : 'text-[#250835]/70'}`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnnual(true)}
+              className={`rounded-[10px] px-4 py-2 text-[13px] font-bold ${annual ? 'bg-[#250835] text-white' : 'text-[#250835]/70'}`}
+            >
+              Annual
+            </button>
           </div>
         </motion.div>
 
-        {/* Plans grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-          {PLANS.map((plan, idx) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 32 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: idx * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              viewport={{ once: true, margin: '-40px' }}
-              className={`relative flex flex-col rounded-2xl border transition-all duration-400 ${
-                plan.highlight
-                  ? 'bg-[#0b1120] border-[#a3e635]/35 shadow-2xl shadow-[#a3e635]/[0.06] lg:scale-[1.03] z-10'
-                  : 'bg-[#0b1120] border-white/[0.07] hover:border-white/[0.13]'
-              }`}
-            >
-              {/* Featured glow */}
-              {plan.highlight && (
-                <div className="absolute inset-0 rounded-2xl pointer-events-none overflow-hidden">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[150px] bg-[#a3e635]/[0.06] blur-[60px]" />
-                </div>
-              )}
-
-              <div className="p-8 flex-1 flex flex-col relative z-10">
-                {plan.badge && (
-                  <div className="mb-5">
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-[#a3e635]/[0.12] text-[#a3e635] border border-[#a3e635]/25 px-3 py-1.5 rounded-full">
-                      ✦ {plan.badge}
-                    </span>
-                  </div>
+        <div className="grid gap-5 lg:grid-cols-3">
+          {PLANS.map((plan, i) => {
+            const price = plan.monthly == null ? null : annual ? plan.annual : plan.monthly
+            return (
+              <motion.article
+                key={plan.name}
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: i * 0.08, ease: EASE }}
+                viewport={{ once: true }}
+                className={`w-card-flat flex flex-col ${plan.highlight ? 'ring-2 ring-[#250835]' : ''}`}
+              >
+                {plan.highlight && (
+                  <span className="mb-3 inline-flex w-fit rounded-full bg-[#e9bded] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[1.35px] text-[#250835]">
+                    Most popular
+                  </span>
                 )}
-
-                <h3 className="text-2xl font-black text-white mb-1 tracking-tight">{plan.name}</h3>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-7">{plan.tagline}</p>
-
-                {/* Price */}
-                <div className="mb-8">
-                  {plan.monthly ? (
-                    <>
-                      <div className="flex items-baseline gap-1">
-                        <AnimatePresence mode="wait">
-                          <motion.span
-                            key={annual ? 'annual' : 'monthly'}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{ duration: 0.2 }}
-                            className="text-4xl font-black text-white tracking-tighter"
-                          >
-                            ₦{((annual ? plan.annual : plan.monthly) ?? 0).toLocaleString()}
-                          </motion.span>
-                        </AnimatePresence>
-                        <span className="text-slate-500 text-sm font-bold">/mo</span>
-                      </div>
-                      {annual && (
-                        <p className="text-xs text-[#a3e635] font-bold mt-1">
-                          Save ₦{(((plan.monthly ?? 0) - (plan.annual ?? 0)) * 12).toLocaleString()}/yr
-                        </p>
-                      )}
-                    </>
+                <h3
+                  className="text-2xl font-bold text-[#250835]"
+                  style={{ fontFamily: 'var(--w-font-display)' }}
+                >
+                  {plan.name}
+                </h3>
+                <p className="mt-1 text-sm font-semibold text-[#250835]/65">{plan.tagline}</p>
+                <div className="mt-5 mb-6">
+                  {price == null ? (
+                    <p className="text-3xl font-bold text-[#250835]" style={{ fontFamily: 'var(--w-font-display)' }}>
+                      Custom
+                    </p>
                   ) : (
-                    <div>
-                      <div className="text-4xl font-black text-white tracking-tighter">Custom</div>
-                      <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-wider">Tailored to your scale</p>
-                    </div>
+                    <p className="text-3xl font-bold text-[#250835]" style={{ fontFamily: 'var(--w-font-display)' }}>
+                      ₦{price.toLocaleString()}
+                      <span className="text-sm font-semibold text-[#250835]/55">/mo</span>
+                    </p>
                   )}
                 </div>
-
-                {/* Features */}
-                <ul className="space-y-3 mb-10 flex-1">
+                <ul className="mb-8 flex-1 space-y-2.5">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm font-medium text-slate-400">
-                      <svg
-                        className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#a3e635]"
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      {f}
+                    <li key={f} className="flex gap-2 text-sm font-semibold text-[#250835]/80">
+                      <span className="text-[#ba59ff]">✓</span> {f}
                     </li>
                   ))}
                 </ul>
-
                 <Link
                   to={plan.ctaLink}
-                  className={`block text-center font-black text-sm py-4 rounded-xl transition-all duration-300 ${
-                    plan.highlight
-                      ? 'bg-[#a3e635] hover:bg-[#bef264] text-[#060a14] shadow-lg shadow-[#a3e635]/20 hover:-translate-y-0.5'
-                      : 'bg-white/[0.05] hover:bg-white/[0.09] text-white border border-white/[0.1] hover:border-white/[0.2]'
-                  }`}
+                  className={plan.highlight ? 'w-btn-primary w-full' : 'w-btn-secondary w-full border border-[#e9bded]'}
                 >
                   {plan.cta}
                 </Link>
-              </div>
-            </motion.div>
-          ))}
+              </motion.article>
+            )
+          })}
         </div>
-
-        {/* Guarantee strip */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          viewport={{ once: true, margin: '-40px' }}
-          className="mt-12 flex flex-wrap items-center justify-center gap-8 text-xs font-bold text-slate-500 uppercase tracking-widest"
-        >
-          {['14-day free trial', 'No credit card required', 'Cancel anytime', '99.9% uptime SLA'].map((item) => (
-            <div key={item} className="flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 text-[#a3e635]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              {item}
-            </div>
-          ))}
-        </motion.div>
       </div>
     </section>
   )

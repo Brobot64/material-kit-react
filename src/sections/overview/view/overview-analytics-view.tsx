@@ -17,8 +17,10 @@ import { timelineRangeToQuery, createDefaultTimelineRange } from 'src/utils/time
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
+import { appPanelSx, appStatTileSx } from 'src/theme/app-surface';
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { PageHeader } from 'src/components/page-header';
 import { TimelineFilter } from 'src/components/timeline-filter';
 
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
@@ -103,42 +105,46 @@ export function OverviewAnalyticsView() {
 
   return (
     <DashboardContent maxWidth="xl">
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        alignItems={{ xs: 'stretch', md: 'center' }}
-        justifyContent="space-between"
-        spacing={2}
-        sx={{ mb: { xs: 3, md: 5 } }}
-      >
-        <Typography variant="h4">Financial Analytics</Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
-          <TimelineFilter value={timeline} onChange={setTimeline} />
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Select Outlet</InputLabel>
-            <Select
-              value={selectedOutletId}
-              label="Select Outlet"
-              onChange={(e) => setSelectedOutletId(e.target.value)}
-              disabled={!isOwner}
-            >
-              {outlets.map((outlet: any) => (
-                <MenuItem key={outlet.id || outlet._id} value={outlet.id || outlet._id}>
-                  {outlet.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
-      </Stack>
+      <PageHeader
+        kicker="Overview"
+        title="Financial analytics"
+        subtitle="Income, expenses, and activity for the selected outlet."
+        action={
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            sx={{ width: { xs: 1, sm: 'auto' } }}
+          >
+            <TimelineFilter value={timeline} onChange={setTimeline} />
+            <FormControl size="small" sx={{ minWidth: { xs: 1, sm: 200 } }}>
+              <InputLabel>Select Outlet</InputLabel>
+              <Select
+                value={selectedOutletId}
+                label="Select Outlet"
+                onChange={(e) => setSelectedOutletId(e.target.value)}
+                disabled={!isOwner}
+              >
+                {outlets.map((outlet: any) => (
+                  <MenuItem key={outlet.id || outlet._id} value={outlet.id || outlet._id}>
+                    {outlet.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
+        }
+      />
 
       {error && (
-        <Card sx={{ p: 3, mb: 3, bgcolor: 'error.lighter', color: 'error.darker' }}>
+        <Card sx={[{ p: 3, mb: 3, bgcolor: 'error.lighter', color: 'error.darker' }, appPanelSx]}>
           <Typography variant="subtitle1">Dashboard Error</Typography>
           <Typography variant="body2">{error}</Typography>
         </Card>
       )}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
+        {/* KPI widgets — glass icons + original color schemes preserved */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
             title="Total Income"
@@ -195,6 +201,7 @@ export function OverviewAnalyticsView() {
           <AnalyticsWebsiteVisits
             title="Income vs Expenses"
             subheader={`Performance · ${timeline.startDate} to ${timeline.endDate}`}
+            sx={appPanelSx}
             chart={{
               categories: incomeExpenseData.map((d) => d.label),
               series: [
@@ -208,6 +215,7 @@ export function OverviewAnalyticsView() {
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <AnalyticsCurrentVisits
             title="Expense Breakdown"
+            sx={appPanelSx}
             chart={{
               series: expenseBreakdown.map((item) => ({
                 label: item.label,
@@ -218,33 +226,47 @@ export function OverviewAnalyticsView() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6, lg: 8 }}>
-          <Card sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" sx={{ mb: 3 }}>Outlet Financial Status</Typography>
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Cash Balance</Typography>
-                  <Typography variant="h4">₦{(overview?.cashBalance || 0).toLocaleString()}</Typography>
-                </Box>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Bank Balance</Typography>
-                  <Typography variant="h4">₦{(overview?.bankBalance || 0).toLocaleString()}</Typography>
-                </Box>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Inventory Value</Typography>
-                  <Typography variant="h4">₦{(overview?.inventoryValue || 0).toLocaleString()}</Typography>
-                </Box>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Total Payables</Typography>
-                  <Typography variant="h4">₦{(overview?.totalPayables || 0).toLocaleString()}</Typography>
-                </Box>
-              </Grid>
+          <Card sx={[{ p: { xs: 2.5, md: 3 }, height: '100%' }, appPanelSx]}>
+            <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.75 }}>
+              Balances
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{
+                mb: 3,
+                fontFamily: (t) => t.typography.fontSecondaryFamily,
+                fontWeight: 700,
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Outlet financial status
+            </Typography>
+            <Grid container spacing={2}>
+              {[
+                { label: 'Cash Balance', value: overview?.cashBalance },
+                { label: 'Bank Balance', value: overview?.bankBalance },
+                { label: 'Inventory Value', value: overview?.inventoryValue },
+                { label: 'Total Payables', value: overview?.totalPayables },
+              ].map((tile) => (
+                <Grid key={tile.label} size={{ xs: 12, sm: 6 }}>
+                  <Box sx={appStatTileSx}>
+                    <Typography variant="overline" sx={{ color: 'text.secondary', display: 'block' }}>
+                      {tile.label}
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        mt: 0.75,
+                        fontFamily: (t) => t.typography.fontSecondaryFamily,
+                        fontWeight: 700,
+                        fontSize: { xs: 22, md: 28 },
+                      }}
+                    >
+                      ₦{(tile.value || 0).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Grid>
+              ))}
             </Grid>
           </Card>
         </Grid>
@@ -252,6 +274,7 @@ export function OverviewAnalyticsView() {
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <AnalyticsOrderTimeline
             title="Outlet Activities"
+            sx={appPanelSx}
             list={auditLogs.map((log) => ({
               id: log._id,
               title: log.description || log.action,

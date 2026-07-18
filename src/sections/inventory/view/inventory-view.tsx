@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Tab from '@mui/material/Tab';
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Tabs from '@mui/material/Tabs';
 import Grid from '@mui/material/Grid';
@@ -37,11 +38,13 @@ import { fNumber, fCurrency } from 'src/utils/format-number';
 import { api } from 'src/services/api';
 import { useOffline } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
+import { appPanelSx } from 'src/theme/app-surface';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 import { NumericInput } from 'src/components/numeric-input';
 
@@ -192,28 +195,32 @@ export function InventoryView() {
 
   return (
     <DashboardContent>
-      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Inventory' }]} sx={{ mb: 3 }} /> 
+      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Inventory' }]} sx={{ mb: 2 }} />
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Inventory</Typography>
-        <Stack direction="row" spacing={1.5}>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Outlet</InputLabel>
-            <Select
-              value={selectedOutletId}
-              label="Outlet"
-              onChange={(e) => setSelectedOutletId(e.target.value)}
-              disabled={!isOwner}
-            >
-              {outlets.map((o: any) => (
-                <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />} onClick={() => setReceiveOpen(true)} disabled={!selectedOutletId}>Receive Stock</Button>
-          <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:settings-bold-duotone" />} onClick={() => setAdjustOpen(true)} disabled={!selectedOutletId}>Adjust Stock</Button>
-        </Stack>
-      </Stack>
+      <PageHeader
+        kicker="Stock"
+        title="Inventory"
+        subtitle="Quantities, valuations, and stock movements by outlet."
+        action={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+            <FormControl size="small" sx={{ minWidth: { xs: 1, sm: 160 } }}>
+              <InputLabel>Outlet</InputLabel>
+              <Select
+                value={selectedOutletId}
+                label="Outlet"
+                onChange={(e) => setSelectedOutletId(e.target.value)}
+                disabled={!isOwner}
+              >
+                {outlets.map((o: any) => (
+                  <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />} onClick={() => setReceiveOpen(true)} disabled={!selectedOutletId}>Receive Stock</Button>
+            <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:settings-bold-duotone" />} onClick={() => setAdjustOpen(true)} disabled={!selectedOutletId}>Adjust Stock</Button>
+          </Stack>
+        }
+      />
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab label="Stock Levels" />
@@ -222,7 +229,18 @@ export function InventoryView() {
 
       {tab === 0 && (
         <>
-          <Card>
+          <Card sx={appPanelSx}>
+            <Box sx={{ px: { xs: 2, sm: 2.5 }, pt: { xs: 2, sm: 2.5 } }}>
+              <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.75 }}>
+                Levels
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700, mb: 2 }}
+              >
+                Stock levels
+              </Typography>
+            </Box>
             <Scrollbar>
               <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
                 <Table>
@@ -281,7 +299,18 @@ export function InventoryView() {
 
       {tab === 1 && (
         <>
-          <Card>
+          <Card sx={appPanelSx}>
+            <Box sx={{ px: { xs: 2, sm: 2.5 }, pt: { xs: 2, sm: 2.5 } }}>
+              <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.75 }}>
+                History
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700, mb: 2 }}
+              >
+                Movement history
+              </Typography>
+            </Box>
             <Scrollbar>
               <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
                 <Table>

@@ -33,10 +33,12 @@ import { formatError } from 'src/utils/format-error';
 import { api } from 'src/services/api';
 import { useOffline } from 'src/offline';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { appPanelSx, appFilterBarSx } from 'src/theme/app-surface';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 
 // ----------------------------------------------------------------------
@@ -215,21 +217,27 @@ export function CustomersView() {
 
     return (
         <DashboardContent>
-            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Customers' }]} sx={{ mb: 5 }} />
+            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Customers' }]} sx={{ mb: 2 }} />
 
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
-                <Typography variant="h4">Customers</Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<Iconify icon="mingcute:add-line" />}
-                    onClick={() => handleOpenModal()}
-                >
-                    New Customer
-                </Button>
-            </Stack>
+            <PageHeader
+                kicker="CRM"
+                title="Customers"
+                subtitle="Search, add, and manage customer profiles."
+                action={
+                    <Button
+                        variant="contained"
+                        startIcon={<Iconify icon="mingcute:add-line" />}
+                        onClick={() => handleOpenModal()}
+                        fullWidth
+                        sx={{ width: { xs: 1, sm: 'auto' } }}
+                    >
+                        New Customer
+                    </Button>
+                }
+            />
 
-            <Card>
-                <Box sx={{ p: 2.5 }}>
+            <Card sx={appPanelSx}>
+                <Box sx={appFilterBarSx}>
                     <TextField
                         fullWidth
                         placeholder="Search customers by name or phone..."

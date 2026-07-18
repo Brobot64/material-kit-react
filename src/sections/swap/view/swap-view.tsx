@@ -35,6 +35,7 @@ import { useAuth } from 'src/contexts/auth-context';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
+import { PageHeader } from 'src/components/page-header';
 
 // ----------------------------------------------------------------------
 
@@ -392,16 +393,22 @@ export function SwapView() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-        <Typography variant="h4">Swaps</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={() => setDialogOpen(true)}
-        >
-          New Swap
-        </Button>
-      </Stack>
+      <PageHeader
+        kicker="Operations"
+        title="Swaps"
+        subtitle="Trade-in exchanges and product swap transactions."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => setDialogOpen(true)}
+            fullWidth
+            sx={{ width: { xs: 1, sm: 'auto' } }}
+          >
+            New Swap
+          </Button>
+        }
+      />
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: 'center' }}>
         <TextField

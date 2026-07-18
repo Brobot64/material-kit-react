@@ -46,6 +46,7 @@ import { useAuth } from 'src/contexts/auth-context';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
+import { PageHeader } from 'src/components/page-header';
 
 // ----------------------------------------------------------------------
 
@@ -721,12 +722,22 @@ export function ReturnView() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-        <Typography variant="h4">Returns & Warranty</Typography>
-        <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={() => setNewOpen(true)}>
-          Record Return
-        </Button>
-      </Stack>
+      <PageHeader
+        kicker="Operations"
+        title="Returns & Warranty"
+        subtitle="Track defective items through distributor repair workflows."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => setNewOpen(true)}
+            fullWidth
+            sx={{ width: { xs: 1, sm: 'auto' } }}
+          >
+            Record Return
+          </Button>
+        }
+      />
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: 'center' }}>
         <TextField

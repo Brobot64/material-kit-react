@@ -128,7 +128,7 @@ export function ResetPasswordView() {
         size="large"
         type="submit"
         variant="contained"
-        color="inherit"
+        color="primary"
         loading={loading}
       >
         Reset Password
@@ -137,7 +137,7 @@ export function ResetPasswordView() {
       <Button
         fullWidth
         size="large"
-        color="inherit"
+        color="primary"
         variant="outlined"
         onClick={() => router.push('/sign-in')}
         disabled={loading}
