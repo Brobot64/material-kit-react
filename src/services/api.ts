@@ -36,10 +36,25 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
     if (response.status === 403) {
       const errorData = await response.json().catch(() => ({}));
-      if (errorData.message?.toLowerCase().includes('subscription') || errorData.message?.toLowerCase().includes('expired')) {
-        const businessId = errorData.data?.businessId || '';
-        const userId = errorData.data?.userId || '';
-        window.location.href = `/subscription/renew?businessId=${businessId}&userId=${userId}`;
+      const msg = (errorData.message || '').toLowerCase();
+      const isSubExpired =
+        msg.includes('subscription') ||
+        msg.includes('expired') ||
+        errorData.code === 'SUBSCRIPTION_EXPIRED' ||
+        errorData.code === 'SUBSCRIPTION_EXPIRED_STAFF';
+      if (isSubExpired) {
+        let role: string | undefined;
+        try {
+          role = JSON.parse(localStorage.getItem('appData') || 'null')?.role;
+        } catch {
+          role = undefined;
+        }
+        // Only owners may use the renew page; staff stay on sign-in with the error.
+        if (role === 'owner' || role === 'system_admin') {
+          const businessId = errorData.data?.businessId || '';
+          const userId = errorData.data?.userId || '';
+          window.location.href = `/subscription/renew?businessId=${businessId}&userId=${userId}`;
+        }
       }
       throw new Error(errorData.message || `Access Denied: ${response.statusText}`);
     }
@@ -509,6 +524,30 @@ export const api = {
     paymentMethod: string;
     notes?: string;
   }) => request<any>('/expenditures/salaries', { method: 'POST', body: JSON.stringify(data) }),
+  getEmployeeSalaryStatus: (employeeId: string, params?: { month?: number; year?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.month) query.append('month', String(params.month));
+    if (params?.year) query.append('year', String(params.year));
+    const qs = query.toString();
+    return request<{
+      employeeId: string;
+      month: number;
+      year: number;
+      salaryCap: number;
+      paidSoFar: number;
+      remaining: number;
+      monthLocked: boolean;
+      payments: Array<{
+        id: string;
+        amount: number;
+        type: string;
+        monthLocked: boolean;
+        paymentMethod: string;
+        paidAt: string;
+        notes?: string;
+      }>;
+    }>(`/employees/${employeeId}/salary-status${qs ? `?${qs}` : ''}`);
+  },
   createExpenditure: (data: {
     source: string;
     amount: number;
@@ -574,6 +613,32 @@ export const api = {
   },
   updateLotExpiry: (lotId: string, data: { expiryDate: string }) =>
     request<any>(`/inventory/expiry/${lotId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  /** Spec §5A: off-record clearance / manual cashflow (not linked to product/sale) */
+  recordCashflowManualAdjustment: (data: {
+    type?: 'credit' | 'debit';
+    amount: number;
+    description: string;
+    paymentMethod?: string;
+    outletId?: string;
+  }) =>
+    request<any>('/cashflow/manual-adjustment', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getCashflowEntries: (params?: {
+    outletId?: string;
+    source?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined) query.append(key, value.toString());
+    });
+    const qs = query.toString();
+    return request<{ data: any[]; total: number }>(`/cashflow${qs ? `?${qs}` : ''}`);
+  },
 
   // Receipt
   getReceiptData: (saleId: string, businessId: string) =>

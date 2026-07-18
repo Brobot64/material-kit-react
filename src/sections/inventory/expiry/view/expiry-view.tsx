@@ -60,6 +60,8 @@ export function ExpiryView() {
   const [editItem, setEditItem] = useState<any>(null);
   const [newExpiryDate, setNewExpiryDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [clearanceOpen, setClearanceOpen] = useState(false);
+  const [clearance, setClearance] = useState({ amount: '', description: '', paymentMethod: 'cash' });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
 
   const fetchExpiry = useCallback(async () => {
@@ -102,6 +104,44 @@ export function ExpiryView() {
     }
   };
 
+  const handleClearance = async () => {
+    const amount = Number(clearance.amount);
+    const description = clearance.description.trim();
+    if (!amount || amount <= 0) {
+      setSnackbar({ open: true, message: 'Enter a valid clearance amount', severity: 'error' });
+      return;
+    }
+    if (description.length < 10 || description.length > 500) {
+      setSnackbar({
+        open: true,
+        message: 'Description is required (10–500 characters)',
+        severity: 'error',
+      });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.recordCashflowManualAdjustment({
+        type: 'credit',
+        amount,
+        description,
+        paymentMethod: clearance.paymentMethod,
+        outletId: selectedOutletId,
+      });
+      setSnackbar({
+        open: true,
+        message: 'Clearance cashflow recorded (off-record — not linked to product/sale).',
+        severity: 'success',
+      });
+      setClearanceOpen(false);
+      setClearance({ amount: '', description: '', paymentMethod: 'cash' });
+    } catch (e: any) {
+      setSnackbar({ open: true, message: e.message || 'Clearance failed', severity: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <DashboardContent>
       <Breadcrumbs
@@ -113,22 +153,38 @@ export function ExpiryView() {
         sx={{ mb: 3 }}
       />
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5} flexWrap="wrap" gap={2}>
         <Typography variant="h4">Expiry Management</Typography>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Outlet</InputLabel>
-          <Select
-            value={selectedOutletId}
-            label="Outlet"
-            onChange={(e) => setSelectedOutletId(e.target.value)}
-            disabled={!isOwner}
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Button
+            variant="outlined"
+            startIcon={<Iconify icon="solar:wallet-money-bold" />}
+            onClick={() => setClearanceOpen(true)}
           >
-            {outlets.map((o: any) => (
-              <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            Record clearance cash
+          </Button>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Outlet</InputLabel>
+            <Select
+              value={selectedOutletId}
+              label="Outlet"
+              onChange={(e) => setSelectedOutletId(e.target.value)}
+              disabled={!isOwner}
+            >
+              {outlets.map((o: any) => (
+                <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
       </Stack>
+
+      {tab === 'EXPIRED' && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Expired lots are removed from sellable stock. If you sold them physically, record the cash here as a
+          manual credit — it is not linked to a product or sale.
+        </Alert>
+      )}
 
       <Tabs 
         value={tab} 
@@ -230,6 +286,59 @@ export function ExpiryView() {
         <DialogActions>
           <Button onClick={() => setEditItem(null)} color="inherit">Cancel</Button>
           <LoadingButton variant="contained" loading={submitting} onClick={handleUpdateExpiry}>Update</LoadingButton>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={clearanceOpen} onClose={() => setClearanceOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Record clearance cash (off-record)</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Use this when expired stock is sold outside tracked POS. Cash is posted as a manual adjustment —
+              not tied to inventory lots or sales.
+            </Typography>
+            <TextField
+              label="Amount"
+              type="number"
+              fullWidth
+              value={clearance.amount}
+              onChange={(e) => setClearance({ ...clearance, amount: e.target.value })}
+              inputProps={{ min: 0.01, step: 0.01 }}
+            />
+            <FormControl fullWidth>
+              <InputLabel>Payment method</InputLabel>
+              <Select
+                label="Payment method"
+                value={clearance.paymentMethod}
+                onChange={(e) => setClearance({ ...clearance, paymentMethod: e.target.value })}
+              >
+                <MenuItem value="cash">Cash</MenuItem>
+                <MenuItem value="bank">Bank</MenuItem>
+                <MenuItem value="card">Card</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Description"
+              required
+              fullWidth
+              multiline
+              minRows={2}
+              value={clearance.description}
+              onChange={(e) => setClearance({ ...clearance, description: e.target.value.slice(0, 500) })}
+              helperText={`${clearance.description.trim().length}/500 (min 10 characters)`}
+              error={
+                clearance.description.length > 0 && clearance.description.trim().length < 10
+              }
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClearanceOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <LoadingButton variant="contained" loading={submitting} onClick={handleClearance}>
+            Record credit
+          </LoadingButton>
         </DialogActions>
       </Dialog>
 

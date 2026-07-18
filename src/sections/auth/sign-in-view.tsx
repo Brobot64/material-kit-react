@@ -38,11 +38,21 @@ export function SignInView() {
 
       try {
         const userData = await login({ email, password, app: 'shop_master' });
+        const storedAppData = JSON.parse(localStorage.getItem('appData') || 'null');
+        const mustRenew =
+          storedAppData?.mustRenewSubscription ||
+          storedAppData?.isExpired ||
+          (storedAppData?.subscriptionEnd &&
+            new Date(storedAppData.subscriptionEnd) < new Date());
+        const isOwner =
+          storedAppData?.role === 'owner' || storedAppData?.role === 'system_admin';
 
         if (userData.mustChangePassword) {
           router.push('/change-password');
         } else if (userData.role === 'admin') {
           router.push('/admin');
+        } else if (mustRenew && isOwner) {
+          router.push('/subscription/renew');
         } else {
           router.push('/app');
         }

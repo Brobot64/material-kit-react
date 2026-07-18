@@ -38,7 +38,7 @@ const DEFAULTS: Omit<BusinessSettings, 'businessId'> = {
     enableLowStockAlerts: true,
     lowStockThreshold: 5,
     enableExpiryTracking: false,
-    defaultExpiryNotificationDays: 30,
+    defaultExpiryNotificationDays: undefined,
   } as any,
 };
 
@@ -67,6 +67,18 @@ export function BusinessSettingsView() {
 
   const handleSave = async () => {
     if (!businessId) return;
+    const features = form.features as any;
+    if (features?.enableExpiryTracking) {
+      const lead = Number(features.defaultExpiryNotificationDays);
+      if (!Number.isFinite(lead) || lead < 1 || lead > 365) {
+        setSnack({
+          open: true,
+          msg: 'Set alert days before expiry (1–365) when enabling product expiry tracking.',
+          severity: 'error',
+        });
+        return;
+      }
+    }
     setSaving(true);
     try {
       await api.upsertBusinessSettings({ ...form, businessId });
@@ -257,11 +269,22 @@ export function BusinessSettingsView() {
                     label="Alert Days Before Expiry"
                     size="small"
                     type="number"
-                    value={(form.features as any)?.defaultExpiryNotificationDays ?? 30}
-                    onChange={(e) => setFeature('defaultExpiryNotificationDays', Number(e.target.value))}
+                    required
+                    value={(form.features as any)?.defaultExpiryNotificationDays ?? ''}
+                    onChange={(e) =>
+                      setFeature(
+                        'defaultExpiryNotificationDays',
+                        e.target.value === '' ? undefined : Number(e.target.value)
+                      )
+                    }
                     sx={{ maxWidth: 200 }}
-                    helperText="Days prior to notification"
+                    helperText="Required when expiry tracking is on (1–365 days)"
+                    error={
+                      !(form.features as any)?.defaultExpiryNotificationDays ||
+                      Number((form.features as any)?.defaultExpiryNotificationDays) < 1
+                    }
                     disabled={!isOwner}
+                    inputProps={{ min: 1, max: 365 }}
                   />
                 )}
               </Stack>

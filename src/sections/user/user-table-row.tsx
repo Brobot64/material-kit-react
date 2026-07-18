@@ -1,8 +1,9 @@
 import type { Employee } from 'src/types';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
 import Popover from '@mui/material/Popover';
 import TableRow from '@mui/material/TableRow';
@@ -11,6 +12,7 @@ import MenuList from '@mui/material/MenuList';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
+import CircularProgress from '@mui/material/CircularProgress';
 import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 import {
   Modal,
@@ -78,6 +80,15 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
     paymentMethod: 'bank_transfer',
     notes: '',
   });
+  const [salaryStatus, setSalaryStatus] = useState<{
+    salaryCap: number;
+    paidSoFar: number;
+    remaining: number;
+    monthLocked: boolean;
+    month: number;
+    year: number;
+  } | null>(null);
+  const [loadingSalaryStatus, setLoadingSalaryStatus] = useState(false);
 
   const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setOpenPopover(event.currentTarget);
@@ -147,7 +158,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
 
       await api.updateEmployee(row._id, payload);
 
-      if (editData.status !== row.userId?.status) {
+      if (isOwner && editData.status !== row.userId?.status) {
         await api.updateEmployeeStatus({
           userId: row.userId._id,
           status: editData.status,
@@ -165,22 +176,65 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
     }
   }, [row._id, row.userId, editData, onRefresh, isOwner, showError, showSuccess]);
 
+  useEffect(() => {
+    if (!openPayModal) return undefined;
+    let cancelled = false;
+    setLoadingSalaryStatus(true);
+    api
+      .getEmployeeSalaryStatus(row._id)
+      .then((status) => {
+        if (cancelled) return;
+        setSalaryStatus({
+          salaryCap: status.salaryCap,
+          paidSoFar: status.paidSoFar,
+          remaining: status.remaining,
+          monthLocked: status.monthLocked,
+          month: status.month,
+          year: status.year,
+        });
+        setPayData((prev) => ({
+          ...prev,
+          amount: status.monthLocked ? 0 : status.remaining || prev.amount,
+        }));
+      })
+      .catch((error) => {
+        if (!cancelled) showError(formatError(error));
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSalaryStatus(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openPayModal, row._id, showError]);
+
   const handlePaySalary = useCallback(async () => {
-    if (!isOwner) return;
+    if (!isOwner && !isOutletAdmin) return;
+    if (salaryStatus?.monthLocked) {
+      showError('Salary for this month is fully paid — further payments are locked.');
+      return;
+    }
+    if (salaryStatus && payData.amount > salaryStatus.remaining) {
+      showError(
+        `Amount exceeds remaining salary this month (₦${salaryStatus.remaining.toLocaleString()} left).`
+      );
+      return;
+    }
     setPayingSalary(true);
     try {
-      await api.paySalary({
+      const result = await api.paySalary({
         employeeId: row._id,
         ...payData,
       });
       setOpenPayModal(false);
-      showSuccess('Salary payment recorded successfully.');
+      const lockedNote = result?.monthLocked ? ' Month is now locked.' : '';
+      showSuccess(`Salary payment recorded.${lockedNote}`);
     } catch (error) {
       showError(formatError(error));
     } finally {
       setPayingSalary(false);
     }
-  }, [row._id, payData, isOwner, showError, showSuccess]);
+  }, [row._id, payData, isOwner, isOutletAdmin, salaryStatus, showError, showSuccess]);
 
   return (
     <>
@@ -256,7 +310,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
             {isOutletAdmin ? 'Edit employee' : 'Edit'}
           </MenuItem>
 
-          {isOwner && (
+          {(isOwner || isOutletAdmin) && (
             <MenuItem
               onClick={() => {
                 setOpenPayModal(true);
@@ -268,14 +322,14 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
             </MenuItem>
           )}
 
-          {row.userId.status !== 'active' && (
+          {isOwner && row.userId.status !== 'active' && (
             <MenuItem onClick={() => handleUpdateStatus('active')}>
               <Iconify icon="solar:check-circle-bold" />
               Activate
             </MenuItem>
           )}
 
-          {row.userId.status !== 'suspended' && (
+          {isOwner && row.userId.status !== 'suspended' && (
             <MenuItem onClick={() => handleUpdateStatus('suspended')}>
               <Iconify icon="solar:minus-circle-bold" />
               Suspend
@@ -341,23 +395,25 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
             </FormControl>
           )}
 
-          <FormControl fullWidth>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={editData.status}
-              label="Status"
-              onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-            >
-              <MuiMenuItem value="active">Active</MuiMenuItem>
-              <MuiMenuItem value="suspended">Suspended</MuiMenuItem>
-              <MuiMenuItem value="pending">Pending</MuiMenuItem>
-            </Select>
-          </FormControl>
+          {isOwner && (
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={editData.status}
+                label="Status"
+                onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+              >
+                <MuiMenuItem value="active">Active</MuiMenuItem>
+                <MuiMenuItem value="suspended">Suspended</MuiMenuItem>
+                <MuiMenuItem value="pending">Pending</MuiMenuItem>
+              </Select>
+            </FormControl>
+          )}
 
           {isOutletAdmin && (
             <Typography variant="caption" color="text.secondary">
-              You can update salary, position, and status for staff in your outlet only. Role changes
-              require the business owner.
+              You can update salary and position for staff in your outlet. Suspend/activate and role
+              changes require the business owner.
             </Typography>
           )}
 
@@ -391,18 +447,43 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
             }}
           >
             <Typography variant="h6">Pay Salary</Typography>
+            {loadingSalaryStatus ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={28} />
+              </Box>
+            ) : salaryStatus ? (
+              <Alert severity={salaryStatus.monthLocked ? 'warning' : 'info'}>
+                {salaryStatus.month}/{salaryStatus.year}: paid ₦
+                {salaryStatus.paidSoFar.toLocaleString()} of ₦
+                {salaryStatus.salaryCap.toLocaleString()}
+                {salaryStatus.monthLocked
+                  ? ' — month locked (no further payments).'
+                  : ` — ₦${salaryStatus.remaining.toLocaleString()} remaining.`}
+              </Alert>
+            ) : null}
             <TextField
               fullWidth
               label="Amount"
               type="number"
               value={payData.amount}
+              disabled={Boolean(salaryStatus?.monthLocked)}
               onChange={(e) => setPayData({ ...payData, amount: Number(e.target.value) })}
+              helperText={
+                salaryStatus && !salaryStatus.monthLocked
+                  ? `Max this month: ₦${salaryStatus.remaining.toLocaleString()}`
+                  : undefined
+              }
+              inputProps={{
+                min: 0.01,
+                max: salaryStatus?.remaining ?? undefined,
+              }}
             />
             <FormControl fullWidth>
               <InputLabel>Payment Method</InputLabel>
               <Select
                 value={payData.paymentMethod}
                 label="Payment Method"
+                disabled={Boolean(salaryStatus?.monthLocked)}
                 onChange={(e) => setPayData({ ...payData, paymentMethod: e.target.value })}
               >
                 <MuiMenuItem value="bank_transfer">Bank Transfer</MuiMenuItem>
@@ -416,6 +497,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
               multiline
               rows={2}
               value={payData.notes}
+              disabled={Boolean(salaryStatus?.monthLocked)}
               onChange={(e) => setPayData({ ...payData, notes: e.target.value })}
             />
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
@@ -426,6 +508,7 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
                 variant="contained"
                 color="primary"
                 loading={payingSalary}
+                disabled={Boolean(salaryStatus?.monthLocked) || loadingSalaryStatus}
                 onClick={handlePaySalary}
               >
                 Confirm Payment

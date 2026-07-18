@@ -32,6 +32,7 @@ import { fCurrency } from 'src/utils/format-number';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
+import { DashboardContent } from 'src/layouts/dashboard';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
@@ -392,7 +393,7 @@ export function SwapView() {
   };
 
   return (
-    <Box>
+    <DashboardContent>
       <PageHeader
         kicker="Operations"
         title="Swaps"
@@ -561,6 +562,6 @@ export function SwapView() {
         onClose={() => setDialogOpen(false)}
         onCreated={fetchSwaps}
       />
-    </Box>
+    </DashboardContent>
   );
 }

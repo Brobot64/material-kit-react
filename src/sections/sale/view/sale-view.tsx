@@ -63,10 +63,19 @@ function getPricingLabel(item: CartItem): { label: string; color: any } {
   return { label: 'Below Guide', color: 'warning' };
 }
 
+const OVERRIDE_REASON_MIN = 20;
+const OVERRIDE_REASON_MAX = 200;
+
 export function SaleView() {
   const { outlets, appData } = useAuth();
   const { status: offlineStatus, mutate, getOfflineCustomers, getOfflineProductOutlets } = useOffline();
   const isOwner = appData?.role === 'owner';
+  const canApproveBelowFloor =
+    appData?.role === 'owner' ||
+    appData?.role === 'outlet_admin' ||
+    appData?.role === 'store_executive' ||
+    appData?.role === 'system_admin';
+  const isSalesRep = appData?.role === 'sales_rep';
   const assignedOutletId = appData?.outletId;
 
   const [selectedOutletId, setSelectedOutletId] = useState<string>('');
@@ -216,16 +225,20 @@ export function SaleView() {
   const updateUnitPrice = (pid: string, up: number) => {
     setCart(cart.map((i) => {
       if (i.productId !== pid) return i;
-      const belowFloor = i.floorPrice > 0 && up < i.floorPrice;
+      // Sales reps cannot go below floor — clamp instead of allowing override UI
+      const clamped =
+        isSalesRep && i.floorPrice > 0 && up < i.floorPrice ? i.floorPrice : up;
+      const belowFloor = i.floorPrice > 0 && clamped < i.floorPrice;
       let warn: string | undefined;
-      if (belowFloor) warn = `Below floor (\u20A6${i.floorPrice})`;
-      else if (up < i.guidePrice) warn = `Below guide (\u20A6${i.guidePrice})`;
+      if (isSalesRep && up < i.floorPrice && i.floorPrice > 0) {
+        warn = `Price cannot go below floor (\u20A6${i.floorPrice})`;
+      } else if (belowFloor) warn = `Below floor (\u20A6${i.floorPrice})`;
+      else if (clamped < i.guidePrice) warn = `Below guide (\u20A6${i.guidePrice})`;
       return {
         ...i,
-        unitPrice: up,
+        unitPrice: clamped,
         pricingWarning: warn,
-        // Clear reason once the price is no longer below floor
-        overrideReason: belowFloor ? i.overrideReason : undefined,
+        overrideReason: belowFloor && canApproveBelowFloor ? i.overrideReason : undefined,
       };
     }));
   };
@@ -247,13 +260,27 @@ export function SaleView() {
       setSnackbar({ open: true, message: 'Customer info required for credit', severity: 'error' });
       return;
     }
-    const missingFloorReasons = cart.filter(
-      (i) => i.floorPrice > 0 && i.unitPrice < i.floorPrice && !i.overrideReason?.trim()
-    );
-    if (missingFloorReasons.length > 0) {
+    if (isSalesRep) {
+      const belowFloor = cart.filter((i) => i.floorPrice > 0 && i.unitPrice < i.floorPrice);
+      if (belowFloor.length > 0) {
+        setSnackbar({
+          open: true,
+          message: 'Sales representatives cannot sell below floor price.',
+          severity: 'error',
+        });
+        return;
+      }
+    }
+
+    const invalidFloorReasons = cart.filter((i) => {
+      if (!(i.floorPrice > 0 && i.unitPrice < i.floorPrice)) return false;
+      const len = i.overrideReason?.trim().length || 0;
+      return len < OVERRIDE_REASON_MIN || len > OVERRIDE_REASON_MAX;
+    });
+    if (invalidFloorReasons.length > 0) {
       setSnackbar({
         open: true,
-        message: `Add a reason for below-floor price: ${missingFloorReasons.map((i) => i.name).join(', ')}`,
+        message: `Below-floor reason must be ${OVERRIDE_REASON_MIN}–${OVERRIDE_REASON_MAX} characters: ${invalidFloorReasons.map((i) => i.name).join(', ')}`,
         severity: 'error',
       });
       return;
@@ -559,7 +586,7 @@ export function SaleView() {
                           {i.pricingWarning}
                         </Typography>
                       )}
-                      {belowFloor && (
+                      {belowFloor && canApproveBelowFloor && (
                         <TextField
                           size="small"
                           fullWidth
@@ -568,11 +595,20 @@ export function SaleView() {
                           minRows={1}
                           maxRows={3}
                           label="Below-floor reason"
-                          placeholder="Why is this sold below floor?"
+                          placeholder="Why is this sold below floor? (20–200 chars)"
                           value={i.overrideReason || ''}
-                          onChange={(e) => updateOverrideReason(i.productId, e.target.value)}
-                          error={!i.overrideReason?.trim()}
-                          helperText={!i.overrideReason?.trim() ? 'Required for below-floor sales' : ' '}
+                          onChange={(e) => updateOverrideReason(i.productId, e.target.value.slice(0, OVERRIDE_REASON_MAX))}
+                          error={
+                            !i.overrideReason?.trim() ||
+                            (i.overrideReason?.trim().length || 0) < OVERRIDE_REASON_MIN
+                          }
+                          helperText={
+                            !i.overrideReason?.trim()
+                              ? 'Required for below-floor sales'
+                              : (i.overrideReason?.trim().length || 0) < OVERRIDE_REASON_MIN
+                                ? `${OVERRIDE_REASON_MIN - (i.overrideReason?.trim().length || 0)} more characters needed`
+                                : `${i.overrideReason.trim().length}/${OVERRIDE_REASON_MAX}`
+                          }
                           sx={{ mt: 1, minWidth: 160 }}
                         />
                       )}
@@ -584,7 +620,19 @@ export function SaleView() {
                         <IconButton size="small" onClick={() => updateQuantity(i.productId, i.quantity + 1)}><Iconify icon="solar:plus-circle-bold" /></IconButton>
                       </Stack>
                     </TableCell>
-                    <TableCell align="right"><NumericInput size="small" value={i.unitPrice} onChangeValue={(v) => updateUnitPrice(i.productId, v)} sx={{ width: 100 }} /></TableCell>
+                    <TableCell align="right">
+                      <NumericInput
+                        size="small"
+                        value={i.unitPrice}
+                        onChangeValue={(v) => updateUnitPrice(i.productId, v)}
+                        sx={{ width: 100 }}
+                        inputProps={
+                          isSalesRep && i.floorPrice > 0
+                            ? { min: i.floorPrice }
+                            : undefined
+                        }
+                      />
+                    </TableCell>
                     <TableCell><IconButton size="small" color="error" onClick={() => removeFromCart(i.productId)}><Iconify icon="solar:trash-bin-trash-bold" /></IconButton></TableCell>
                   </TableRow>
                 );

@@ -43,6 +43,7 @@ import { fDate, fDateTime } from 'src/utils/format-time';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
+import { DashboardContent } from 'src/layouts/dashboard';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
@@ -721,7 +722,7 @@ export function ReturnView() {
   };
 
   return (
-    <Box>
+    <DashboardContent>
       <PageHeader
         kicker="Operations"
         title="Returns & Warranty"
@@ -876,6 +877,6 @@ export function ReturnView() {
           onUpdated={handleUpdated}
         />
       )}
-    </Box>
+    </DashboardContent>
   );
 }
