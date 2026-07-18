@@ -20,9 +20,11 @@ import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
+import { appPanelSx, appFilterBarSx } from 'src/theme/app-surface';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 
 import { emptyRows } from '../utils';
@@ -179,29 +181,29 @@ export function UserView() {
           { name: 'User', href: '/app/user' },
           { name: 'List' },
         ]}
+        sx={{ mb: 2 }}
       />
-      <Box
-        sx={{
-          mb: 5,
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <Typography variant="h4" sx={{ flexGrow: 1 }}>
-          Employees
-        </Typography>
-        <Button
-          variant="contained"
-          color="inherit"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={() => setOpenCreateModal(true)}
-        >
-          New employee
-        </Button>
-      </Box>
 
-      <Card>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2.5, py: 2 }}>
+      <PageHeader
+        kicker="Team"
+        title="Employees"
+        subtitle="Onboard staff, assign outlets, and manage roles."
+        action={
+          <Button
+            variant="contained"
+            color="inherit"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => setOpenCreateModal(true)}
+            fullWidth
+            sx={{ width: { xs: 1, sm: 'auto' } }}
+          >
+            New employee
+          </Button>
+        }
+      />
+
+      <Card sx={appPanelSx}>
+        <Box sx={appFilterBarSx}>
           <Tabs
             value={statusFilter}
             onChange={handleFilterStatus}

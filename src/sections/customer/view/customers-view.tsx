@@ -33,16 +33,18 @@ import { formatError } from 'src/utils/format-error';
 import { api } from 'src/services/api';
 import { useOffline } from 'src/offline';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { appPanelSx, appFilterBarSx } from 'src/theme/app-surface';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 
 // ----------------------------------------------------------------------
 
 export function CustomersView() {
-    const { getOfflineCustomers } = useOffline();
+    const { getOfflineCustomers, mutate, status: offlineStatus } = useOffline();
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -71,7 +73,7 @@ export function CustomersView() {
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
-        severity: 'success' as 'success' | 'error',
+        severity: 'success' as 'success' | 'error' | 'warning' | 'info',
     });
 
     const fetchCustomers = useCallback(async () => {
@@ -165,6 +167,30 @@ export function CustomersView() {
                     isActive: customerData.isActive,
                 });
                 setSnackbar({ open: true, message: 'Customer updated successfully', severity: 'success' });
+            } else if (!offlineStatus.online || !navigator.onLine) {
+                const localCustomerId =
+                    typeof crypto !== 'undefined' && crypto.randomUUID
+                        ? crypto.randomUUID()
+                        : `cust-${Date.now()}`;
+                await mutate({
+                    collection: 'customers',
+                    entityId: localCustomerId,
+                    patch: {
+                        fullName: customerData.fullName,
+                        phone: customerData.phone,
+                        email: customerData.email || undefined,
+                        notes: customerData.notes || undefined,
+                        tags: customerData.tags,
+                        _pending: true,
+                        clientCustomerId: localCustomerId,
+                        createdAt: new Date().toISOString(),
+                    },
+                });
+                setSnackbar({
+                    open: true,
+                    message: 'Customer saved offline — will sync when you are back online',
+                    severity: 'warning',
+                });
             } else {
                 await api.createCustomer({
                     fullName: customerData.fullName,
@@ -215,21 +241,27 @@ export function CustomersView() {
 
     return (
         <DashboardContent>
-            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Customers' }]} sx={{ mb: 5 }} />
+            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Customers' }]} sx={{ mb: 2 }} />
 
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
-                <Typography variant="h4">Customers</Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<Iconify icon="mingcute:add-line" />}
-                    onClick={() => handleOpenModal()}
-                >
-                    New Customer
-                </Button>
-            </Stack>
+            <PageHeader
+                kicker="CRM"
+                title="Customers"
+                subtitle="Search, add, and manage customer profiles."
+                action={
+                    <Button
+                        variant="contained"
+                        startIcon={<Iconify icon="mingcute:add-line" />}
+                        onClick={() => handleOpenModal()}
+                        fullWidth
+                        sx={{ width: { xs: 1, sm: 'auto' } }}
+                    >
+                        New Customer
+                    </Button>
+                }
+            />
 
-            <Card>
-                <Box sx={{ p: 2.5 }}>
+            <Card sx={appPanelSx}>
+                <Box sx={appFilterBarSx}>
                     <TextField
                         fullWidth
                         placeholder="Search customers by name or phone..."

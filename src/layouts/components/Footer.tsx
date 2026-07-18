@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion'
 
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
 const LINKS = {
   Product: [
     { label: 'Features',     href: '#features' },
@@ -65,38 +67,31 @@ const SOCIALS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-[#040810] border-t border-white/[0.05] relative overflow-hidden">
+    <footer className="relative overflow-hidden bg-[#ffffff] border-t border-[#250835]/6">
       {/* Top CTA banner */}
-      <div className="relative overflow-hidden bg-[#0b1120] border-b border-white/[0.05]">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[120px] bg-[#a3e635]/[0.06] rounded-full blur-[80px]" />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-center relative z-10">
+      <div className="relative overflow-hidden bg-[#efe3ed] border-b border-[#250835]/6">
+        <div className="relative z-10 mx-auto max-w-[1320px] px-4 py-14 text-center sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.7, ease: EASE }}
             viewport={{ once: true, margin: '-40px' }}
           >
-            <p className="text-xs font-black text-slate-500 uppercase tracking-[0.22em] mb-4">
+            <p className="w-kicker mb-4 opacity-70">
               Start for free today
             </p>
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tighter mb-6">
+            <h3
+              className="w-display mb-6 text-[clamp(28px,4vw,48px)] leading-[1.1]"
+            >
               Ready to run your store
               <br />
-              <span className="text-[#a3e635]">like a boss?</span>
+              <span className="text-[#ba59ff]">like a boss?</span>
             </h3>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <a
-                href="/register"
-                className="bg-[#a3e635] hover:bg-[#bef264] text-[#060a14] font-black px-8 py-3.5 rounded-xl transition-all duration-300 text-sm shadow-xl shadow-[#a3e635]/25 hover:-translate-y-0.5"
-              >
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+              <a href="/register" className="w-btn-primary px-8">
                 Get Started Free →
               </a>
-              <a
-                href="#contact"
-                className="text-slate-400 hover:text-white font-semibold text-sm border border-white/[0.1] hover:border-white/[0.2] px-8 py-3.5 rounded-xl transition-all duration-300"
-              >
+              <a href="#contact" className="w-btn-secondary border border-[#e9bded] px-8">
                 Talk to Sales
               </a>
             </div>
@@ -105,28 +100,33 @@ export default function Footer() {
       </div>
 
       {/* Main footer content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-14">
+      <div className="mx-auto max-w-[1320px] px-4 py-14 sm:px-6 lg:px-8 sm:py-16">
+        <div className="mb-12 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5 lg:gap-12 lg:mb-14">
 
           {/* Brand */}
           <div className="lg:col-span-2">
-            <a href="#" className="flex items-center gap-3 mb-7 w-fit">
-              <div className="w-9 h-9 bg-[#a3e635] rounded-xl flex items-center justify-center shadow-lg shadow-[#a3e635]/20">
-                <svg className="w-5 h-5 text-[#060a14]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <a href="#" className="mb-7 flex w-fit items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[#250835] shadow-[var(--w-shadow-low)]">
+                <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614" />
                 </svg>
               </div>
               <div className="leading-none">
-                <div className="text-white font-black text-lg tracking-tight">ShopMaster</div>
-                <div className="text-[9px] text-[#a3e635]/60 font-bold tracking-[0.2em] uppercase">by Tajarah</div>
+                <div
+                  className="text-lg font-bold tracking-tight text-[#250835]"
+                  style={{ fontFamily: 'var(--w-font-display)' }}
+                >
+                  ShopMaster
+                </div>
+                <div className="w-kicker mt-1 opacity-60">by Tajarah</div>
               </div>
             </a>
 
-            <p className="text-sm text-slate-500 font-medium leading-relaxed mb-7 max-w-xs">
+            <p className="mb-7 max-w-xs text-sm font-medium leading-relaxed text-[#250835]/65">
               The next-generation retail ERP built for the unique challenges of the Nigerian market. Inventory, POS, bookkeeping — all in one.
             </p>
 
-            <p className="text-xs text-slate-600 font-semibold mb-5">hello@tajarah.com</p>
+            <p className="mb-5 text-xs font-semibold text-[#250835]/50">hello@tajarah.com</p>
 
             <div className="flex gap-2.5">
               {SOCIALS.map((s) => (
@@ -134,7 +134,7 @@ export default function Footer() {
                   key={s.label}
                   href={s.href}
                   aria-label={s.label}
-                  className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-slate-400 hover:text-[#a3e635] hover:border-[#a3e635]/30 hover:bg-[#a3e635]/[0.06] transition-all duration-200"
+                  className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[#250835]/8 bg-[#f5f4f5] text-[#250835]/50 transition-all duration-200 hover:border-[#e9bded] hover:bg-[#efe3ed] hover:text-[#250835]"
                 >
                   {s.icon}
                 </a>
@@ -145,13 +145,13 @@ export default function Footer() {
           {/* Link columns */}
           {Object.entries(LINKS).map(([heading, links]) => (
             <div key={heading}>
-              <h4 className="text-xs font-black text-white uppercase tracking-[0.18em] mb-6">{heading}</h4>
+              <h4 className="w-kicker mb-5 sm:mb-6">{heading}</h4>
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link.label}>
                     <a
                       href={link.href}
-                      className="text-sm text-slate-500 font-semibold hover:text-white transition-colors duration-200 hover:translate-x-1 inline-block"
+                      className="inline-block text-sm font-semibold text-[#250835]/60 transition-colors duration-200 hover:text-[#250835]"
                     >
                       {link.label}
                     </a>
@@ -162,18 +162,18 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/[0.05]">
-          <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-[#250835]/8 pt-8 sm:flex-row">
+          <p className="w-kicker opacity-50">
             © {new Date().getFullYear()} Tajarah Technologies Ltd. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-widest">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#a3e635] inline-block animate-pulse" />
-              Built for Nigeria
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#ba59ff]" />
+              <span className="w-kicker opacity-50">Built for Nigeria</span>
             </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-widest">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
-              99.9% Uptime
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#3ca1ff]" />
+              <span className="w-kicker opacity-50">99.9% Uptime</span>
             </div>
           </div>
         </div>

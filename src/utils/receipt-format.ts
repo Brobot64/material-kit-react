@@ -3,14 +3,8 @@
  * shared by preview UI and client PDF export.
  */
 
-/** Title-case each word: "ada lovelace" → "Ada Lovelace" */
-export function toTitleCase(value: unknown): string {
-  if (value == null) return '';
-  return String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/\b([a-zà-öø-ÿ])/g, (ch) => ch.toUpperCase());
-}
+export { toTitleCase } from './format-text';
+import { toTitleCase } from './format-text';
 
 export function formatNgn(n: number): string {
   const abs = Math.abs(n ?? 0);

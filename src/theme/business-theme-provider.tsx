@@ -37,8 +37,8 @@ export function BusinessThemeProvider({ children }: Props) {
   const { settings } = useBusinessSettings();
 
   const themeOverrides = useMemo(() => {
-    const primary = settings?.brandPrimaryColor ?? '#2563eb';
-    const secondary = settings?.brandSecondaryColor ?? '#7c3aed';
+    const primary = settings?.brandPrimaryColor ?? '#250835';
+    const secondary = settings?.brandSecondaryColor ?? '#ba59ff';
 
     return {
       colorSchemes: {

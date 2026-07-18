@@ -332,11 +332,11 @@ export function SignUpView() {
           </Button>
         )}
         {activeStep < STEPS.length - 1 ? (
-          <Button fullWidth size="large" variant="contained" color="inherit" onClick={handleNext} disabled={loading}>
+          <Button fullWidth size="large" variant="contained" color="primary" onClick={handleNext} disabled={loading}>
             Next
           </Button>
         ) : (
-          <LoadingButton fullWidth size="large" variant="contained" color="inherit" loading={loading} onClick={handleSignUp}>
+          <LoadingButton fullWidth size="large" variant="contained" color="primary" loading={loading} onClick={handleSignUp}>
             Sign up
           </LoadingButton>
         )}
@@ -356,7 +356,15 @@ export function SignUpView() {
           textAlign: 'center',
         }}
       >
-        <Typography variant="h5">Sign up</Typography>
+        <Typography variant="overline" sx={{ color: 'primary.main' }}>
+          Get started
+        </Typography>
+        <Typography
+          variant="h4"
+          sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700 }}
+        >
+          Sign up
+        </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Already have an account?
           <Link

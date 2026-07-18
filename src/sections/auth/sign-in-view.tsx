@@ -38,11 +38,21 @@ export function SignInView() {
 
       try {
         const userData = await login({ email, password, app: 'shop_master' });
+        const storedAppData = JSON.parse(localStorage.getItem('appData') || 'null');
+        const mustRenew =
+          storedAppData?.mustRenewSubscription ||
+          storedAppData?.isExpired ||
+          (storedAppData?.subscriptionEnd &&
+            new Date(storedAppData.subscriptionEnd) < new Date());
+        const isOwner =
+          storedAppData?.role === 'owner' || storedAppData?.role === 'system_admin';
 
         if (userData.mustChangePassword) {
           router.push('/change-password');
         } else if (userData.role === 'admin') {
           router.push('/admin');
+        } else if (mustRenew && isOwner) {
+          router.push('/subscription/renew');
         } else {
           router.push('/app');
         }
@@ -135,7 +145,7 @@ export function SignInView() {
         fullWidth
         size="large"
         type="submit"
-        color="inherit"
+        color="primary"
         variant="contained"
         disabled={loading}
       >
@@ -156,8 +166,16 @@ export function SignInView() {
           textAlign: 'center',
         }}
       >
-        <Typography variant="h5">Sign in</Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        <Typography variant="overline" sx={{ color: 'primary.main' }}>
+          Welcome back
+        </Typography>
+        <Typography
+          variant="h4"
+          sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700 }}
+        >
+          Sign in
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
           Don&apos;t have an account?
           <Link
             variant="subtitle2"

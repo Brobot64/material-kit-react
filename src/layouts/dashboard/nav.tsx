@@ -65,7 +65,11 @@ export function NavDesktop({
         flexDirection: 'column',
         zIndex: 'var(--layout-nav-zIndex)',
         width: 'var(--layout-nav-vertical-width)',
-        borderRight: `1px solid ${varAlpha(theme.vars.palette.grey['500Channel'], 0.12)}`,
+        borderRight: `1px solid ${varAlpha(theme.vars.palette.primary.mainChannel, 0.08)}`,
+        bgcolor: theme.vars.palette.common.white,
+        ...theme.applyStyles('dark', {
+          bgcolor: theme.vars.palette.background.paper,
+        }),
         [theme.breakpoints.up(layoutQuery)]: {
           display: 'flex',
         },
@@ -161,19 +165,27 @@ export function NavContent({
                   py: 1,
                   gap: collapsed ? 0 : 2,
                   pr: collapsed ? 1.5 : 1.5,
-                  borderRadius: 0.75,
-                  typography: 'body2',
-                  fontWeight: 'fontWeightMedium',
+                  borderRadius: '12px',
+                  typography: 'button',
+                  fontWeight: 600,
                   color: theme.vars.palette.text.secondary,
                   minHeight: 44,
                   justifyContent: collapsed ? 'center' : 'flex-start',
                   cursor: hasChildren ? 'pointer' : 'default',
-                  ...((isActive || isParentActive) && {
-                    fontWeight: 'fontWeightSemiBold',
+                  transition: theme.transitions.create(['background-color', 'color'], {
+                    duration: 160,
+                  }),
+                  '&:hover': {
+                    bgcolor: theme.vars.palette.background.neutral,
                     color: theme.vars.palette.primary.main,
-                    bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.08),
+                  },
+                  ...((isActive || isParentActive) && {
+                    fontWeight: 700,
+                    color: theme.vars.palette.common.white,
+                    bgcolor: theme.vars.palette.primary.main,
                     '&:hover': {
-                      bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.16),
+                      bgcolor: theme.vars.palette.primary.dark,
+                      color: theme.vars.palette.common.white,
                     },
                   }),
                 }),

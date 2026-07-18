@@ -37,10 +37,12 @@ import { formatError } from 'src/utils/format-error';
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { appPanelSx, appFilterBarSx } from 'src/theme/app-surface';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 import { NumericInput } from 'src/components/numeric-input';
 
@@ -444,27 +446,31 @@ export function ProductListView() {
         ]}
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>        
-        <Typography variant="h4">Product List</Typography>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            color="inherit"
-            startIcon={<Iconify icon="eva:cloud-upload-fill" />}
-            onClick={() => setOpenUploadDialog(true)}
-          >
-            Import CSV
-          </Button>
-          <Button
-            variant="contained"
-            color="inherit"
-            startIcon={<Iconify icon="mingcute:add-line" />}
-            onClick={handleOpenModal}
-          >
-            New Product
-          </Button>
-        </Stack>
-      </Box>
+      <PageHeader
+        kicker="Catalog"
+        title="Product list"
+        subtitle="Manage products, pricing, and barcodes for your outlets."
+        action={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: 1, sm: 'auto' } }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+              onClick={() => setOpenUploadDialog(true)}
+            >
+              Import CSV
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Iconify icon="mingcute:add-line" />}
+              onClick={handleOpenModal}
+            >
+              New Product
+            </Button>
+          </Stack>
+        }
+      />
 
       <ProductUploadDialog
         open={openUploadDialog}
@@ -472,8 +478,8 @@ export function ProductListView() {
         onSuccess={fetchProducts}
       />
 
-      <Card>
-        <Box sx={{ p: 2.5, display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center' }}>
+      <Card sx={appPanelSx}>
+        <Box sx={appFilterBarSx}>
           <TextField
             fullWidth
             placeholder="Search products..."
@@ -561,10 +567,10 @@ export function ProductListView() {
                             {product.name.charAt(0)}
                           </Avatar>
                           <Box>
-                            <Typography variant="subtitle2" noWrap>
+                            <Typography variant="subtitle2" noWrap className="sm-name">
                               {product.name}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap className="sm-name">
                               {product.categoryName ||
                                 categories.find((c) => c._id === product.categoryId)?.name ||
                                 'No Category'}

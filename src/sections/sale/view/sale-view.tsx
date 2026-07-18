@@ -33,10 +33,12 @@ import { api } from 'src/services/api';
 import { useOffline } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { appPanelSx, appProductTileSx } from 'src/theme/app-surface';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { NumericInput } from 'src/components/numeric-input';
 import { ReceiptPreviewModal } from 'src/components/receipt-preview/ReceiptPreviewModal';
 
@@ -61,10 +63,19 @@ function getPricingLabel(item: CartItem): { label: string; color: any } {
   return { label: 'Below Guide', color: 'warning' };
 }
 
+const OVERRIDE_REASON_MIN = 20;
+const OVERRIDE_REASON_MAX = 200;
+
 export function SaleView() {
   const { outlets, appData } = useAuth();
   const { status: offlineStatus, mutate, getOfflineCustomers, getOfflineProductOutlets } = useOffline();
   const isOwner = appData?.role === 'owner';
+  const canApproveBelowFloor =
+    appData?.role === 'owner' ||
+    appData?.role === 'outlet_admin' ||
+    appData?.role === 'store_executive' ||
+    appData?.role === 'system_admin';
+  const isSalesRep = appData?.role === 'sales_rep';
   const assignedOutletId = appData?.outletId;
 
   const [selectedOutletId, setSelectedOutletId] = useState<string>('');
@@ -214,16 +225,20 @@ export function SaleView() {
   const updateUnitPrice = (pid: string, up: number) => {
     setCart(cart.map((i) => {
       if (i.productId !== pid) return i;
-      const belowFloor = i.floorPrice > 0 && up < i.floorPrice;
+      // Sales reps cannot go below floor — clamp instead of allowing override UI
+      const clamped =
+        isSalesRep && i.floorPrice > 0 && up < i.floorPrice ? i.floorPrice : up;
+      const belowFloor = i.floorPrice > 0 && clamped < i.floorPrice;
       let warn: string | undefined;
-      if (belowFloor) warn = `Below floor (\u20A6${i.floorPrice})`;
-      else if (up < i.guidePrice) warn = `Below guide (\u20A6${i.guidePrice})`;
+      if (isSalesRep && up < i.floorPrice && i.floorPrice > 0) {
+        warn = `Price cannot go below floor (\u20A6${i.floorPrice})`;
+      } else if (belowFloor) warn = `Below floor (\u20A6${i.floorPrice})`;
+      else if (clamped < i.guidePrice) warn = `Below guide (\u20A6${i.guidePrice})`;
       return {
         ...i,
-        unitPrice: up,
+        unitPrice: clamped,
         pricingWarning: warn,
-        // Clear reason once the price is no longer below floor
-        overrideReason: belowFloor ? i.overrideReason : undefined,
+        overrideReason: belowFloor && canApproveBelowFloor ? i.overrideReason : undefined,
       };
     }));
   };
@@ -245,13 +260,27 @@ export function SaleView() {
       setSnackbar({ open: true, message: 'Customer info required for credit', severity: 'error' });
       return;
     }
-    const missingFloorReasons = cart.filter(
-      (i) => i.floorPrice > 0 && i.unitPrice < i.floorPrice && !i.overrideReason?.trim()
-    );
-    if (missingFloorReasons.length > 0) {
+    if (isSalesRep) {
+      const belowFloor = cart.filter((i) => i.floorPrice > 0 && i.unitPrice < i.floorPrice);
+      if (belowFloor.length > 0) {
+        setSnackbar({
+          open: true,
+          message: 'Sales representatives cannot sell below floor price.',
+          severity: 'error',
+        });
+        return;
+      }
+    }
+
+    const invalidFloorReasons = cart.filter((i) => {
+      if (!(i.floorPrice > 0 && i.unitPrice < i.floorPrice)) return false;
+      const len = i.overrideReason?.trim().length || 0;
+      return len < OVERRIDE_REASON_MIN || len > OVERRIDE_REASON_MAX;
+    });
+    if (invalidFloorReasons.length > 0) {
       setSnackbar({
         open: true,
-        message: `Add a reason for below-floor price: ${missingFloorReasons.map((i) => i.name).join(', ')}`,
+        message: `Below-floor reason must be ${OVERRIDE_REASON_MIN}–${OVERRIDE_REASON_MAX} characters: ${invalidFloorReasons.map((i) => i.name).join(', ')}`,
         severity: 'error',
       });
       return;
@@ -402,79 +431,147 @@ export function SaleView() {
 
   return (
     <DashboardContent maxWidth="xl">
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">New Sale</Typography>
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Outlet</InputLabel>
-          <Select value={selectedOutletId} label="Outlet" onChange={(e) => setSelectedOutletId(e.target.value)} disabled={!isOwner}>
-            {outlets.map((o: any) => <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>)}
-          </Select>
-        </FormControl>
-      </Stack>
+      <PageHeader
+        kicker="Point of sale"
+        title="New sale"
+        subtitle="Search products, build a cart, and checkout — works online or offline."
+        action={
+          <FormControl sx={{ minWidth: { xs: 1, sm: 200 } }} size="small">
+            <InputLabel>Outlet</InputLabel>
+            <Select value={selectedOutletId} label="Outlet" onChange={(e) => setSelectedOutletId(e.target.value)} disabled={!isOwner}>
+              {outlets.map((o: any) => <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+        }
+      />
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         <Grid size={{ xs: 12, md: 7 }}>
-          <Card sx={{ p: 2, height: '100%' }}>
-            <TextField fullWidth placeholder="Search products..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{ startAdornment: (<InputAdornment position="start"><Iconify icon="eva:search-fill" /></InputAdornment>) }} sx={{ mb: 2 }} />
-            <Scrollbar sx={{ maxHeight: 560 }}>
-              <Grid container spacing={2}>
-                {loadingProducts ? <CircularProgress sx={{ mx: 'auto', my: 5 }} /> : products.map((p) => {
-                  const outlet = p.outlets?.find((o: any) => {
-                    const oId = typeof o.outletId === 'object' ? o.outletId?._id || o.outletId?.id : o.outletId;
-                    return oId === selectedOutletId;
-                  }) || p.outlets?.[0];
-                  const availableQty = outlet?.availableQuantity ?? outlet?.quantity ?? p.availableQuantity ?? p.quantity ?? 0;
-                  const isOutOfStock = availableQty <= 0;
-                  const guidePrice = outlet?.guidePrice ?? outlet?.defaultSalePrice ?? outlet?.sellingPrice ?? p.guidePrice ?? p.defaultSalePrice ?? p.sellingPrice ?? 0;
-                  const floorPrice = outlet?.floorPrice ?? p.floorPrice ?? 0;
-                  
-                  return (
-                    <Grid size={{ xs: 12, sm: 6 }} key={p._id}>
-                      <Paper 
-                        variant="outlined" 
-                        sx={{ 
-                          p: 1.5, 
-                          cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                          opacity: isOutOfStock ? 0.5 : 1,
-                          '&:hover': { bgcolor: isOutOfStock ? 'transparent' : 'action.hover' }
-                        }} 
-                        onClick={() => !isOutOfStock && addToCart(p)}
-                      >
-                        <Typography variant="subtitle2" noWrap fontWeight="bold">
-                          {p.name || p.productId?.name}
-                        </Typography>
-                        
-                        <Stack direction="row" justifyContent="space-between" alignItems="flex-end" mt={1}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Stock: {availableQty}
-                            </Typography>
-                            {isOutOfStock && <Label variant="soft" color="error" sx={{ mt: 0.5 }}>OUT OF STOCK</Label>}
-                          </Box>
-                          
-                          <Box textAlign="right">
-                            <Typography variant="subtitle2" color="primary.main">
-                              Guide: {fCurrency(guidePrice)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Floor: {fCurrency(floorPrice)}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </Paper>
-                    </Grid>
-                  );
-                })}
+          <Card sx={[{ p: { xs: 2, sm: 2.5 }, height: '100%' }, appPanelSx]}>
+            <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 1.5 }}>
+              Catalog
+            </Typography>
+            <TextField
+              fullWidth
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Iconify icon="eva:search-fill" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 2 }}
+            />
+            <Scrollbar sx={{ maxHeight: { xs: 360, md: 560 } }}>
+              <Grid container spacing={1.5}>
+                {loadingProducts ? (
+                  <CircularProgress sx={{ mx: 'auto', my: 5 }} />
+                ) : (
+                  products.map((p) => {
+                    const outlet =
+                      p.outlets?.find((o: any) => {
+                        const oId =
+                          typeof o.outletId === 'object'
+                            ? o.outletId?._id || o.outletId?.id
+                            : o.outletId;
+                        return oId === selectedOutletId;
+                      }) || p.outlets?.[0];
+                    const availableQty =
+                      outlet?.availableQuantity ??
+                      outlet?.quantity ??
+                      p.availableQuantity ??
+                      p.quantity ??
+                      0;
+                    const isOutOfStock = availableQty <= 0;
+                    const guidePrice =
+                      outlet?.guidePrice ??
+                      outlet?.defaultSalePrice ??
+                      outlet?.sellingPrice ??
+                      p.guidePrice ??
+                      p.defaultSalePrice ??
+                      p.sellingPrice ??
+                      0;
+                    const floorPrice = outlet?.floorPrice ?? p.floorPrice ?? 0;
+
+                    return (
+                      <Grid size={{ xs: 12, sm: 6 }} key={p._id}>
+                        <Paper
+                          elevation={0}
+                          sx={appProductTileSx(isOutOfStock)}
+                          onClick={() => !isOutOfStock && addToCart(p)}
+                        >
+                          <Typography variant="subtitle2" noWrap fontWeight={700}>
+                            <Box component="span" className="sm-name">{p.name || p.productId?.name}</Box>
+                          </Typography>
+
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="flex-end"
+                            mt={1.25}
+                          >
+                            <Box>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Stock: {availableQty}
+                              </Typography>
+                              {isOutOfStock && (
+                                <Label variant="soft" color="error" sx={{ mt: 0.5 }}>
+                                  OUT OF STOCK
+                                </Label>
+                              )}
+                            </Box>
+
+                            <Box textAlign="right">
+                              <Typography variant="subtitle2" color="primary.main" fontWeight={700}>
+                                Guide: {fCurrency(guidePrice)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Floor: {fCurrency(floorPrice)}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Paper>
+                      </Grid>
+                    );
+                  })
+                )}
               </Grid>
             </Scrollbar>
-            <TablePagination component="div" count={totalProducts} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))} /> 
+            <TablePagination
+              component="div"
+              count={totalProducts}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))}
+            />
           </Card>
         </Grid>
 
         <Grid size={{ xs: 12, md: 5 }}>
-          <Card sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>Current Sale</Typography>
+          <Card
+            sx={[
+              {
+                p: { xs: 2, sm: 2.5 },
+                position: { md: 'sticky' },
+                top: { md: 88 },
+              },
+              appPanelSx,
+            ]}
+          >
+            <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.75 }}>
+              Cart
+            </Typography>
+            <Typography
+              variant="h6"
+              mb={2}
+              sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700 }}
+            >
+              Current sale
+            </Typography>
             <TableContainer sx={{ maxHeight: 380 }}><Table size="small">
               <TableHead><TableRow><TableCell>Item</TableCell><TableCell align="center">Qty</TableCell><TableCell align="right">Price</TableCell><TableCell /></TableRow></TableHead>
               <TableBody>{cart.map((i) => {
@@ -482,28 +579,53 @@ export function SaleView() {
                 return (
                   <TableRow key={i.productId} sx={{ verticalAlign: 'top' }}>
                     <TableCell sx={{ minWidth: 140 }}>
-                      <Typography variant="body2" noWrap>{i.name}</Typography>
+                      <Typography variant="body2" noWrap className="sm-name">{i.name}</Typography>
                       <Label color={getPricingLabel(i).color} variant="soft">{getPricingLabel(i).label}</Label>
                       {i.pricingWarning && (
                         <Typography variant="caption" color="warning.main" display="block" sx={{ mt: 0.5 }}>
                           {i.pricingWarning}
                         </Typography>
                       )}
-                      {belowFloor && (
+                      {belowFloor && canApproveBelowFloor && (
                         <TextField
                           size="small"
                           fullWidth
                           required
-                          multiline
-                          minRows={1}
-                          maxRows={3}
-                          label="Below-floor reason"
-                          placeholder="Why is this sold below floor?"
+                          placeholder="Below-floor reason (20–200 chars)"
                           value={i.overrideReason || ''}
-                          onChange={(e) => updateOverrideReason(i.productId, e.target.value)}
-                          error={!i.overrideReason?.trim()}
-                          helperText={!i.overrideReason?.trim() ? 'Required for below-floor sales' : ' '}
-                          sx={{ mt: 1, minWidth: 160 }}
+                          onChange={(e) => updateOverrideReason(i.productId, e.target.value.slice(0, OVERRIDE_REASON_MAX))}
+                          error={
+                            !i.overrideReason?.trim() ||
+                            (i.overrideReason?.trim().length || 0) < OVERRIDE_REASON_MIN
+                          }
+                          helperText={
+                            !i.overrideReason?.trim()
+                              ? 'Required for below-floor sales'
+                              : (i.overrideReason?.trim().length || 0) < OVERRIDE_REASON_MIN
+                                ? `${OVERRIDE_REASON_MIN - (i.overrideReason?.trim().length || 0)} more characters needed`
+                                : `${i.overrideReason.trim().length}/${OVERRIDE_REASON_MAX}`
+                          }
+                          inputProps={{ 'aria-label': 'Below-floor reason' }}
+                          sx={{
+                            mt: 1,
+                            minWidth: 160,
+                            '& .MuiOutlinedInput-root': {
+                              height: 30,
+                              maxHeight: 30,
+                            },
+                            '& .MuiInputBase-input': {
+                              py: 0,
+                              px: 1,
+                              fontSize: 12,
+                              height: 30,
+                              boxSizing: 'border-box',
+                            },
+                            '& .MuiFormHelperText-root': {
+                              mt: 0.25,
+                              mx: 0,
+                              fontSize: 11,
+                            },
+                          }}
                         />
                       )}
                     </TableCell>
@@ -514,7 +636,19 @@ export function SaleView() {
                         <IconButton size="small" onClick={() => updateQuantity(i.productId, i.quantity + 1)}><Iconify icon="solar:plus-circle-bold" /></IconButton>
                       </Stack>
                     </TableCell>
-                    <TableCell align="right"><NumericInput size="small" value={i.unitPrice} onChangeValue={(v) => updateUnitPrice(i.productId, v)} sx={{ width: 100 }} /></TableCell>
+                    <TableCell align="right">
+                      <NumericInput
+                        size="small"
+                        value={i.unitPrice}
+                        onChangeValue={(v) => updateUnitPrice(i.productId, v)}
+                        sx={{ width: 100 }}
+                        inputProps={
+                          isSalesRep && i.floorPrice > 0
+                            ? { min: i.floorPrice }
+                            : undefined
+                        }
+                      />
+                    </TableCell>
                     <TableCell><IconButton size="small" color="error" onClick={() => removeFromCart(i.productId)}><Iconify icon="solar:trash-bin-trash-bold" /></IconButton></TableCell>
                   </TableRow>
                 );
@@ -532,7 +666,17 @@ export function SaleView() {
               <NumericInput fullWidth label="Amount Paid" value={amountPaid} onChangeValue={(v) => setAmountPaid(v)} />
               <TextField fullWidth label="Phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
               <TextField fullWidth label="Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} disabled={!!resolvedCustomer} />
-              <LoadingButton fullWidth size="large" variant="contained" loading={isSubmitting} onClick={handleSubmitSale}>Complete - {fCurrency(total)}</LoadingButton>
+              <LoadingButton
+                fullWidth
+                size="large"
+                variant="contained"
+                color="primary"
+                loading={isSubmitting}
+                onClick={handleSubmitSale}
+                sx={{ minHeight: 48, borderRadius: '12px' }}
+              >
+                Complete — {fCurrency(total)}
+              </LoadingButton>
             </Stack>
           </Card>
         </Grid>

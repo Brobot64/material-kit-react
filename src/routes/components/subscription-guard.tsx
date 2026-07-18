@@ -13,7 +13,13 @@ type Props = {
 export function SubscriptionGuard({ children }: Props) {
   const router = useRouter();
 
-  const { subscriptionStatus, isInitialized, isAuthenticated, isImpersonating } = useAuth();
+  const {
+    subscriptionStatus,
+    isInitialized,
+    isAuthenticated,
+    isImpersonating,
+    appData,
+  } = useAuth();
 
   const [checked, setChecked] = useState(false);
 
@@ -28,17 +34,32 @@ export function SubscriptionGuard({ children }: Props) {
       return;
     }
 
-    if (isAuthenticated && subscriptionStatus.isExpired) {
-      // Only redirect if we're not already on a subscription-related page
+    const isOwner =
+      appData?.role === 'owner' || appData?.role === 'system_admin';
+
+    // Only owners may enter the renew flow; staff are blocked at login.
+    if (
+      isAuthenticated &&
+      isOwner &&
+      (subscriptionStatus.isExpired || appData?.mustRenewSubscription)
+    ) {
       const isSubscriptionPage = window.location.pathname.startsWith('/subscription');
       if (!isSubscriptionPage) {
         router.replace('/subscription/renew');
         return;
       }
     }
-    
+
     setChecked(true);
-  }, [isAuthenticated, isInitialized, isImpersonating, router, subscriptionStatus.isExpired]);
+  }, [
+    isAuthenticated,
+    isInitialized,
+    isImpersonating,
+    router,
+    subscriptionStatus.isExpired,
+    appData?.role,
+    appData?.mustRenewSubscription,
+  ]);
 
   useEffect(() => {
     check();

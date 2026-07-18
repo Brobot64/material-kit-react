@@ -24,6 +24,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 
 // ----------------------------------------------------------------------
@@ -102,23 +103,24 @@ export function OutletsView() {
 
   return (
     <DashboardContent>
-      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Outlets' }]} sx={{ mb: 3 }} />
+      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Outlets' }]} sx={{ mb: 2 }} />
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={4}>
-        <Box>
-          <Typography variant="h4">Outlets</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage your physical store locations
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={openCreate}
-        >
-          New Outlet
-        </Button>
-      </Stack>
+      <PageHeader
+        kicker="Locations"
+        title="Outlets"
+        subtitle="Manage your physical store locations."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={openCreate}
+            fullWidth
+            sx={{ width: { xs: 1, sm: 'auto' } }}
+          >
+            New Outlet
+          </Button>
+        }
+      />
 
       <Grid container spacing={3}>
         {outlets.map((outlet: any) => (
@@ -127,7 +129,7 @@ export function OutletsView() {
               <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
                 <Box>
                   <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-                    <Typography variant="subtitle1" fontWeight="bold">{outlet.name}</Typography>
+                    <Typography variant="subtitle1" fontWeight="bold" className="sm-name">{outlet.name}</Typography>
                     {outlet.isMain && (
                       <Label color="primary" variant="soft">Main</Label>
                     )}

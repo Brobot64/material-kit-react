@@ -8,6 +8,8 @@ import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { PageHeader } from 'src/components/page-header';
+
 import { platformAdminApi, type PlatformDashboard } from '../api/platform-admin-api';
 
 function formatNgn(value: number) {
@@ -72,12 +74,11 @@ export default function PlatformOverviewPage() {
 
   return (
     <Stack spacing={3}>
-      <Box>
-        <Typography variant="h4">Overview</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Platform health across all ShopMaster tenants
-        </Typography>
-      </Box>
+      <PageHeader
+        kicker="Platform"
+        title="Overview"
+        subtitle="Platform health across all ShopMaster tenants."
+      />
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>

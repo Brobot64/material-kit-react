@@ -28,6 +28,7 @@ import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
 import { Chart, useChart } from 'src/components/chart';
+import { PageHeader } from 'src/components/page-header';
 import { TimelineFilter } from 'src/components/timeline-filter';
 
 // ----------------------------------------------------------------------
@@ -134,17 +135,12 @@ export function BargainingAnalyticsView() {
 
   return (
     <Box>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        alignItems={{ xs: 'stretch', md: 'center' }}
-        justifyContent="space-between"
-        sx={{ mb: 3 }}
-        flexWrap="wrap"
-        gap={2}
-      >
-        <Typography variant="h4">Bargaining Analytics</Typography>
-        <TimelineFilter value={timeline} onChange={setTimeline} />
-      </Stack>
+      <PageHeader
+        kicker="Analytics"
+        title="Bargaining Analytics"
+        subtitle="Price overrides, discounts, and margin impact by period."
+        action={<TimelineFilter value={timeline} onChange={setTimeline} />}
+      />
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 4 }}>
@@ -237,7 +233,7 @@ export function BargainingAnalyticsView() {
                   {(data?.topNegotiatedProducts ?? []).map((p: any) => (
                     <TableRow key={p._id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={500}>{p.productName || 'Unknown'}</Typography>
+                        <Typography variant="body2" fontWeight={500} className="sm-name">{p.productName || 'Unknown'}</Typography>
                         {p.sku && <Typography variant="caption" color="text.secondary">{p.sku}</Typography>}
                       </TableCell>
                       <TableCell align="right">{p.overrideCount}</TableCell>

@@ -4,6 +4,9 @@ import type { ThemeCssVariables } from './types';
 import type { PaletteColorNoChannels } from './core/palette';
 
 // ----------------------------------------------------------------------
+// Whimsical design tokens → ShopMaster theme
+// Source: whimsical.design.md
+// ----------------------------------------------------------------------
 
 type ThemeConfig = {
   classesPrefix: string;
@@ -25,40 +28,40 @@ export const themeConfig: ThemeConfig = {
   /** **************************************
    * Base
    *************************************** */
-  classesPrefix: 'minimal',
+  classesPrefix: 'shopmaster',
   /** **************************************
-   * Typography
+   * Typography — Manrope (chrome) + Montserrat (display / Agrandir substitute)
    *************************************** */
   fontFamily: {
-    primary: 'DM Sans Variable',
-    secondary: 'Barlow',
+    primary: 'Manrope',
+    secondary: 'Montserrat',
   },
   /** **************************************
-   * Palette
+   * Palette — deep plum primary, lilac surfaces
    *************************************** */
   palette: {
     primary: {
-      lighter: '#D0ECFE',
-      light: '#73BAFB',
-      main: '#1877F2',
-      dark: '#0C44AE',
-      darker: '#042174',
+      lighter: '#efe3ed', // surface-lilac
+      light: '#e9bded', // primary-pale
+      main: '#250835', // deep plum
+      dark: '#1a0526',
+      darker: '#0f0318',
       contrastText: '#FFFFFF',
     },
     secondary: {
-      lighter: '#EFD6FF',
-      light: '#C684FF',
-      main: '#8E33FF',
-      dark: '#5119B7',
-      darker: '#27097A',
+      lighter: '#f5e6ff',
+      light: '#d4a0ff',
+      main: '#ba59ff', // primary-light
+      dark: '#8a2fd4',
+      darker: '#5c1899',
       contrastText: '#FFFFFF',
     },
     info: {
-      lighter: '#CAFDF5',
-      light: '#61F3F3',
-      main: '#00B8D9',
-      dark: '#006C9C',
-      darker: '#003768',
+      lighter: '#e3f0ff',
+      light: '#8fc4ff',
+      main: '#3ca1ff', // accent-aqua
+      dark: '#1a6fc4',
+      darker: '#0d457a',
       contrastText: '#FFFFFF',
     },
     success: {
@@ -86,16 +89,16 @@ export const themeConfig: ThemeConfig = {
       contrastText: '#FFFFFF',
     },
     grey: {
-      '50': '#FCFDFD',
-      '100': '#F9FAFB',
-      '200': '#F4F6F8',
-      '300': '#DFE3E8',
-      '400': '#C4CDD5',
-      '500': '#919EAB',
-      '600': '#637381',
-      '700': '#454F5B',
-      '800': '#1C252E',
-      '900': '#141A21',
+      '50': '#fdfcfd',
+      '100': '#f5f4f5', // warm off-white canvas
+      '200': '#efe3ed', // surface-lilac
+      '300': '#e0d4de',
+      '400': '#c4b0c2',
+      '500': '#9a8498',
+      '600': '#6b5569',
+      '700': '#453544',
+      '800': '#250835', // plum as ink
+      '900': '#14041c',
     },
     common: { black: '#000000', white: '#FFFFFF' },
   },

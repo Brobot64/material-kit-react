@@ -218,6 +218,8 @@ export class SyncEngine {
 
     try {
       await this.flushPendingSalesToOrigin();
+      await this.flushPendingStockToOrigin();
+      await this.flushPendingCustomersToOrigin();
       await this.pushOutbox();
       await this.pullRemote();
       this.lastSyncedAt = Date.now();
@@ -289,6 +291,117 @@ export class SyncEngine {
         });
       } catch (err) {
         console.warn('[SyncEngine] pending sale flush deferred', clientSaleId, err);
+      }
+    }
+  }
+
+  /**
+   * Flush offline stock receive/transfer intents to Express.
+   * Docs in `stock_intents` with `_pending` are created by inventory mutate paths.
+   */
+  private async flushPendingStockToOrigin(): Promise<void> {
+    if (!this.businessId || !this.token) return;
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
+    const pending = (await this.listDocs('stock_intents')).filter(
+      (doc) => doc._pending === true
+    );
+
+    for (const intent of pending) {
+      const intentId = String(intent.id || intent.clientIntentId || '');
+      if (!intentId) continue;
+      try {
+        const kind = String(intent.kind || 'receive');
+        const path = kind === 'transfer' ? '/stock/transfer' : '/stock/receive';
+        const body =
+          kind === 'transfer'
+            ? {
+                businessId: intent.businessId || this.businessId,
+                fromOutletId: intent.fromOutletId,
+                toOutletId: intent.toOutletId,
+                productId: intent.productId,
+                quantity: intent.quantity,
+                notes: intent.notes,
+              }
+            : {
+                businessId: intent.businessId || this.businessId,
+                outletId: intent.outletId,
+                productId: intent.productId,
+                quantity: intent.quantity,
+                unitCost: intent.unitCost || 0,
+                notes: intent.notes,
+                expiryDate: intent.expiryDate,
+              };
+
+        const res = await fetch(`${apiBase}${path}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.token}`,
+          },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok && res.status !== 409) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`Stock flush failed: ${res.status} ${text}`);
+        }
+        await this.mutate({
+          collection: 'stock_intents',
+          entityId: intentId,
+          patch: { ...intent, _pending: false, status: 'synced', syncedAt: new Date().toISOString() },
+          skipSync: true,
+        });
+      } catch (err) {
+        console.warn('[SyncEngine] pending stock flush deferred', intentId, err);
+      }
+    }
+  }
+
+  /** Flush offline-created customers to Express. */
+  private async flushPendingCustomersToOrigin(): Promise<void> {
+    if (!this.businessId || !this.token) return;
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
+    const pending = (await this.listDocs('customers')).filter(
+      (doc) => doc._pending === true
+    );
+
+    for (const customer of pending) {
+      const clientId = String(customer.id || customer.clientCustomerId || '');
+      if (!clientId) continue;
+      try {
+        const res = await fetch(`${apiBase}/customers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.token}`,
+          },
+          body: JSON.stringify({
+            fullName: customer.fullName,
+            phone: customer.phone,
+            email: customer.email,
+            notes: customer.notes,
+            tags: customer.tags,
+            clientCustomerId: clientId,
+          }),
+        });
+        if (!res.ok && res.status !== 409) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`Customer flush failed: ${res.status} ${text}`);
+        }
+        const payload = res.ok ? await res.json().catch(() => ({})) : {};
+        await this.mutate({
+          collection: 'customers',
+          entityId: clientId,
+          patch: {
+            ...customer,
+            _pending: false,
+            status: 'synced',
+            serverCustomerId: (payload as any)?._id || (payload as any)?.data?._id,
+            syncedAt: new Date().toISOString(),
+          },
+          skipSync: true,
+        });
+      } catch (err) {
+        console.warn('[SyncEngine] pending customer flush deferred', clientId, err);
       }
     }
   }

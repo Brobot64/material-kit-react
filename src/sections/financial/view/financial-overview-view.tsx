@@ -1,8 +1,10 @@
+import type { Theme } from '@mui/material/styles';
 import type { TimelineRangeValue } from 'src/utils/timeline-range';
 
 import { useState, useEffect, useCallback } from 'react';
 
 import Grid from '@mui/material/Grid';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import {
@@ -32,17 +34,27 @@ import { formatError } from 'src/utils/format-error';
 import { timelineRangeToQuery, createDefaultTimelineRange } from 'src/utils/timeline-range';
 
 import { api } from 'src/services/api';
+import { appPanelSx } from 'src/theme/app-surface';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { TimelineFilter } from 'src/components/timeline-filter';
 
 import { AnalyticsWidgetSummary } from '../../overview/analytics-widget-summary';
 import { AnalyticsWebsiteVisits } from '../../overview/analytics-website-visits';
 import { AnalyticsCurrentVisits } from '../../overview/analytics-current-visits';
+
+const appChartPanelSx = (theme: Theme) => ({
+  ...appPanelSx(theme),
+  '& .MuiCardHeader-title': {
+    fontFamily: theme.typography.fontSecondaryFamily,
+    fontWeight: 700,
+  },
+});
 
 // ----------------------------------------------------------------------
 
@@ -216,48 +228,50 @@ export function FinancialOverviewView() {
 
   return (
     <DashboardContent maxWidth="xl">
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: { xs: 'stretch', md: 'center' },
-          flexDirection: { xs: 'column', md: 'row' },
-          mb: { xs: 3, md: 5 },
-          gap: 2,
-        }}
-      >
-        <Typography variant="h4" sx={{ flexGrow: 1 }}>
-          Financial Overview
-        </Typography>
-
-        <TimelineFilter value={timeline} onChange={setTimeline} />
-
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Outlet</InputLabel>
-          <Select
-            value={selectedOutlet}
-            label="Outlet"
-            onChange={(e) => {
-              setSelectedOutlet(e.target.value);
-              setPage(0);
-            }}
+      <PageHeader
+        kicker="Finance"
+        title="Financial Overview"
+        subtitle="Track income, expenses, and cash flow across outlets."
+        action={
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            sx={{ width: { xs: 1, sm: 'auto' } }}
           >
-            <MenuItem value="all">All Outlets</MenuItem>
-            {outlets.map((outlet) => (
-              <MenuItem key={outlet._id} value={outlet._id}>
-                {outlet.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            <TimelineFilter value={timeline} onChange={setTimeline} />
 
-        <Button
-          variant="contained"
-          startIcon={<Iconify icon={"mingcute:add-line" as any} />}
-          onClick={handleOpenModal}
-        >
-          Add Transaction
-        </Button>
-      </Box>
+            <FormControl size="small" sx={{ minWidth: { xs: 1, sm: 200 } }}>
+              <InputLabel>Outlet</InputLabel>
+              <Select
+                value={selectedOutlet}
+                label="Outlet"
+                onChange={(e) => {
+                  setSelectedOutlet(e.target.value);
+                  setPage(0);
+                }}
+              >
+                <MenuItem value="all">All Outlets</MenuItem>
+                {outlets.map((outlet) => (
+                  <MenuItem key={outlet._id} value={outlet._id}>
+                    {outlet.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Button
+              variant="contained"
+              startIcon={<Iconify icon={"mingcute:add-line" as any} />}
+              onClick={handleOpenModal}
+              fullWidth
+              sx={{ width: { xs: 1, sm: 'auto' } }}
+            >
+              Add Transaction
+            </Button>
+          </Stack>
+        }
+      />
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -307,6 +321,7 @@ export function FinancialOverviewView() {
           <AnalyticsWebsiteVisits
             title="Income vs Expenses"
             subheader={`${timeline.startDate} to ${timeline.endDate}`}
+            sx={appChartPanelSx}
             chart={{
               categories: incomeExpenseData.map((item) => item.label),
               series: [
@@ -329,6 +344,7 @@ export function FinancialOverviewView() {
         <Grid size={{ xs: 12, md: 4 }}>
           <AnalyticsCurrentVisits
             title="Expense Breakdown"
+            sx={appChartPanelSx}
             chart={{
               series:
                 expenseBreakdown.length > 0
@@ -339,46 +355,62 @@ export function FinancialOverviewView() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 3, textAlign: 'center' }}>
+          <Card sx={appPanelSx}>
+            <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Total Credit (Money In)
             </Typography>
             <Typography variant="h4">{formatCurrency(quickSummary?.totalCreditTransactions || 0)}</Typography>
+            </Box>
           </Card>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 3, textAlign: 'center' }}>
+          <Card sx={appPanelSx}>
+            <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Total Debit (Money Out)
             </Typography>
             <Typography variant="h4">{formatCurrency(quickSummary?.totalDebitTransactions || 0)}</Typography>
+            </Box>
           </Card>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 3, textAlign: 'center' }}>
+          <Card sx={appPanelSx}>
+            <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Inventory Value
             </Typography>
             <Typography variant="h4">{formatCurrency(quickSummary?.inventoryValue || 0)}</Typography>
+            </Box>
           </Card>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 3, textAlign: 'center' }}>
+          <Card sx={appPanelSx}>
+            <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Total Receivables
             </Typography>
             <Typography variant="h4">{formatCurrency(quickSummary?.totalReceivables || 0)}</Typography>
+            </Box>
           </Card>
         </Grid>
 
         {/* Transactions Table */}
-        <Grid size={{ xs: 12 }}>
-          <Card sx={{ mt: 3 }}>
+        <Grid size={{ xs: 12 }} sx={{ mt: 3 }}>
+          <Card sx={appPanelSx}>
             <Box sx={{ p: 3, pb: 0 }}>
-              <Typography variant="h6">Recent Transactions & Expenses</Typography>
+              <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.75 }}>
+                Ledger
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700 }}
+              >
+                Recent Transactions & Expenses
+              </Typography>
             </Box>
 
             <Scrollbar>

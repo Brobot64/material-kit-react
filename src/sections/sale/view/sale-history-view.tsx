@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
-import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -34,10 +35,12 @@ import { formatError } from 'src/utils/format-error';
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { appPanelSx, appFilterBarSx } from 'src/theme/app-surface';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 import { ReceiptPreviewModal } from 'src/components/receipt-preview/ReceiptPreviewModal';
 
@@ -208,86 +211,98 @@ export function SaleHistoryView() {
 
     return (
         <DashboardContent>
-            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Sales', href: '/app/sales' }, { name: 'History' }]} sx={{ mb: 5 }} />
+            <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Sales', href: '/app/sales' }, { name: 'History' }]} sx={{ mb: 2 }} />
 
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-                <Typography variant="h4">Sales History</Typography>
-                <Stack direction="row" spacing={2}>
-                    <TextField
-                        select
-                        size="small"
-                        label="Outlet"
-                        value={selectedOutletId}
-                        onChange={(e) => setSelectedOutletId(e.target.value)}
-                        sx={{ minWidth: 150 }}
-                        disabled={!isOwner}
-                    >
-                        {outlets.map((o: any) => (
-                            <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
-                        ))}
-                    </TextField>
-                    <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} href="/app/sales">
-                        New Sale
-                    </Button>
-                </Stack>
-            </Stack>
+            <PageHeader
+                kicker="Sales"
+                title="Sales History"
+                subtitle="Browse past sales, record payments, and view receipts."
+                action={
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: 1, sm: 'auto' } }}>
+                        <TextField
+                            select
+                            size="small"
+                            label="Outlet"
+                            value={selectedOutletId}
+                            onChange={(e) => setSelectedOutletId(e.target.value)}
+                            sx={{ minWidth: { xs: 1, sm: 150 } }}
+                            disabled={!isOwner}
+                        >
+                            {outlets.map((o: any) => (
+                                <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
+                            ))}
+                        </TextField>
+                        <Button
+                            variant="contained"
+                            startIcon={<Iconify icon="mingcute:add-line" />}
+                            href="/app/sales"
+                            fullWidth
+                            sx={{ width: { xs: 1, sm: 'auto' } }}
+                        >
+                            New Sale
+                        </Button>
+                    </Stack>
+                }
+            />
 
             {/* Search + Filter bar */}
-            <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
-                <TextField
-                    size="small"
-                    placeholder="Search by customer, cashier, sale ID…"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    sx={{ flexGrow: 1 }}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
-                            </InputAdornment>
-                        ),
-                        endAdornment: keyword ? (
-                            <InputAdornment position="end">
-                                <IconButton size="small" onClick={() => setKeyword('')}>
-                                    <Iconify icon="eva:close-fill" width={16} />
-                                </IconButton>
-                            </InputAdornment>
-                        ) : null,
-                    }}
-                />
-                <Button
-                    size="small"
-                    variant={showFilters ? 'contained' : 'outlined'}
-                    startIcon={<Iconify icon="ic:round-filter-list" />}
-                    onClick={() => setShowFilters((v) => !v)}
-                    endIcon={
-                        activeFilterCount > 0 ? (
-                            <Chip label={activeFilterCount} size="small" color="error" sx={{ height: 18, fontSize: 11 }} />
-                        ) : null
-                    }
-                >
-                    Filters
-                </Button>
-                {activeFilterCount > 0 && (
-                    <Button
+            <Card sx={appPanelSx}>
+                <Box sx={appFilterBarSx}>
+                    <TextField
                         size="small"
-                        color="inherit"
-                        onClick={() => {
-                            setStartDate('');
-                            setEndDate('');
-                            setStatusFilter('');
-                            setMinAmount('');
-                            setMaxAmount('');
+                        placeholder="Search by customer, cashier, sale ID…"
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        sx={{ flexGrow: 1 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+                                </InputAdornment>
+                            ),
+                            endAdornment: keyword ? (
+                                <InputAdornment position="end">
+                                    <IconButton size="small" onClick={() => setKeyword('')}>
+                                        <Iconify icon="eva:close-fill" width={16} />
+                                    </IconButton>
+                                </InputAdornment>
+                            ) : null,
                         }}
-                    >
-                        Clear
-                    </Button>
-                )}
-            </Stack>
+                    />
+                    <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+                        <Button
+                            size="small"
+                            variant={showFilters ? 'contained' : 'outlined'}
+                            startIcon={<Iconify icon="ic:round-filter-list" />}
+                            onClick={() => setShowFilters((v) => !v)}
+                            endIcon={
+                                activeFilterCount > 0 ? (
+                                    <Chip label={activeFilterCount} size="small" color="error" sx={{ height: 18, fontSize: 11 }} />
+                                ) : null
+                            }
+                        >
+                            Filters
+                        </Button>
+                        {activeFilterCount > 0 && (
+                            <Button
+                                size="small"
+                                color="inherit"
+                                onClick={() => {
+                                    setStartDate('');
+                                    setEndDate('');
+                                    setStatusFilter('');
+                                    setMinAmount('');
+                                    setMaxAmount('');
+                                }}
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </Stack>
+                </Box>
 
-            <Collapse in={showFilters}>
-                <Card sx={{ p: 2, mb: 2 }}>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
+                <Collapse in={showFilters}>
+                    <Box sx={{ ...appFilterBarSx, pt: 0, borderTop: 1, borderStyle: 'dashed', borderColor: 'divider' }}>
                         <TextField
                             size="small"
                             label="From date"
@@ -336,11 +351,9 @@ export function SaleHistoryView() {
                             onChange={(e) => setMaxAmount(e.target.value)}
                             sx={{ minWidth: 140 }}
                         />
-                    </Stack>
-                </Card>
-            </Collapse>
+                    </Box>
+                </Collapse>
 
-            <Card>
                 <Scrollbar>
                     <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
                         <Table sx={{ minWidth: 900 }}>
@@ -393,14 +406,14 @@ export function SaleHistoryView() {
                                                 </Tooltip>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell className="sm-name">
                                                 {sale.customerName
                                                     || sale.customerId?.fullName
                                                     || sale.customerId?.name
                                                     || 'Walk-in'}
                                             </TableCell>
 
-                                            <TableCell>{sale.cashierName || '—'}</TableCell>
+                                            <TableCell className="sm-name">{sale.cashierName || '—'}</TableCell>
 
                                             <TableCell>{fCurrency(sale.total)}</TableCell>
                                             <TableCell>{fCurrency(sale.amountPaid)}</TableCell>
@@ -546,7 +559,12 @@ export function SaleHistoryView() {
                             ].map(({ label, value }) => (
                                 <Stack key={label} direction="row" justifyContent="space-between">
                                     <Typography variant="subtitle2">{label}:</Typography>
-                                    <Typography variant="body2">{value}</Typography>
+                                    <Typography
+                                      variant="body2"
+                                      className={label === 'Customer' || label === 'Cashier' ? 'sm-name' : undefined}
+                                    >
+                                      {value}
+                                    </Typography>
                                 </Stack>
                             ))}
                             <Stack direction="row" justifyContent="space-between">

@@ -25,9 +25,10 @@ export interface ProductReturn {
   returnNumber: string;
   originalSaleId: string | { _id: string; saleNumber?: string; total?: number; createdAt?: string };
   originalSaleItemId: string;
-  customerId?: string | { _id: string; fullName?: string; phone?: string };
+  customerId?: string | { _id: string; fullName?: string; phone?: string; email?: string };
   customerName?: string;
   customerPhone?: string;
+  customerEmail?: string;
   productId: string | { _id: string; name: string; sku?: string };
   productNameSnapshot: string;
   skuSnapshot?: string;

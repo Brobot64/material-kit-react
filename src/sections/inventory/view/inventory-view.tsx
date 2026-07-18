@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Tab from '@mui/material/Tab';
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Tabs from '@mui/material/Tabs';
 import Grid from '@mui/material/Grid';
@@ -36,12 +37,14 @@ import { fNumber, fCurrency } from 'src/utils/format-number';
 
 import { api } from 'src/services/api';
 import { useOffline } from 'src/offline';
+import { appPanelSx } from 'src/theme/app-surface';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { PageHeader } from 'src/components/page-header';
 import { Breadcrumbs } from 'src/components/breadcrumbs';
 import { NumericInput } from 'src/components/numeric-input';
 
@@ -60,7 +63,7 @@ const MOVEMENT_TYPE_COLOR: Record<string, 'success' | 'error' | 'warning' | 'inf
 
 export function InventoryView() {
   const { outlets, appData } = useAuth();
-  const { getOfflineProductOutlets } = useOffline();
+  const { getOfflineProductOutlets, mutate, status: offlineStatus } = useOffline();
   const isOwner = appData?.role === 'owner';
   const assignedOutletId = appData?.outletId;
   const businessId = appData?.businessId;
@@ -105,8 +108,30 @@ export function InventoryView() {
     reasonCode: '', notes: '', unitCost: 0,
   });
 
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferForm, setTransferForm] = useState({
+    productId: '',
+    toOutletId: '',
+    quantity: 0,
+    notes: '',
+  });
+
   const [submitting, setSubmitting] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });     
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
+  const [discrepancies, setDiscrepancies] = useState<any[]>([]);
+
+  const fetchDiscrepancies = useCallback(async () => {
+    if (!selectedOutletId || !navigator.onLine) return;
+    try {
+      const res = await api.getStockDiscrepancies({
+        outletId: selectedOutletId,
+        status: 'open',
+      });
+      setDiscrepancies(res.data || []);
+    } catch {
+      setDiscrepancies([]);
+    }
+  }, [selectedOutletId]);
 
   const fetchMovements = useCallback(async () => {
     if (!businessId) return;
@@ -151,13 +176,50 @@ export function InventoryView() {
 
   useEffect(() => { fetchMovements(); }, [fetchMovements]);
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  useEffect(() => { fetchDiscrepancies(); }, [fetchDiscrepancies]);
 
   useEffect(() => { setProdPage(0); setMovPage(0); }, [selectedOutletId]);
+
+  const syncStale =
+    typeof offlineStatus.lastSyncedAt === 'number' &&
+    Date.now() - offlineStatus.lastSyncedAt > 6 * 60 * 60 * 1000;
 
   const handleReceiveStock = async () => {
     if (!receiveForm.productId || receiveForm.quantity <= 0) return;
     setSubmitting(true);
     try {
+      if (!offlineStatus.online || !navigator.onLine) {
+        const intentId =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `recv-${Date.now()}`;
+        await mutate({
+          collection: 'stock_intents',
+          entityId: intentId,
+          patch: {
+            kind: 'receive',
+            businessId,
+            outletId: selectedOutletId,
+            productId: receiveForm.productId,
+            quantity: receiveForm.quantity,
+            unitCost: receiveForm.unitCost,
+            notes: receiveForm.notes,
+            expiryDate: receiveForm.expiryDate || undefined,
+            _pending: true,
+            clientIntentId: intentId,
+            createdAt: new Date().toISOString(),
+          },
+        });
+        setSnackbar({
+          open: true,
+          message: 'Receive queued offline — will sync when back online',
+          severity: 'warning',
+        });
+        setReceiveOpen(false);
+        setReceiveForm({ productId: '', quantity: 0, unitCost: 0, notes: '', expiryDate: '' });
+        return;
+      }
+
       await api.receiveStock({
         businessId: businessId!, outletId: selectedOutletId,
         productId: receiveForm.productId, quantity: receiveForm.quantity,
@@ -167,9 +229,79 @@ export function InventoryView() {
       setSnackbar({ open: true, message: 'Stock received successfully', severity: 'success' });
       setReceiveOpen(false);
       setReceiveForm({ productId: '', quantity: 0, unitCost: 0, notes: '', expiryDate: '' });
-      fetchMovements(); fetchProducts();
+      fetchMovements(); fetchProducts(); fetchDiscrepancies();
     } catch (e: any) { setSnackbar({ open: true, message: formatError(e), severity: 'error' }); }
     finally { setSubmitting(false); }
+  };
+
+  const handleTransferStock = async () => {
+    if (!transferForm.productId || !transferForm.toOutletId || transferForm.quantity <= 0) return;
+    if (transferForm.toOutletId === selectedOutletId) {
+      setSnackbar({ open: true, message: 'Pick a different destination outlet', severity: 'error' });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      if (!offlineStatus.online || !navigator.onLine) {
+        const intentId =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `xfer-${Date.now()}`;
+        await mutate({
+          collection: 'stock_intents',
+          entityId: intentId,
+          patch: {
+            kind: 'transfer',
+            businessId,
+            fromOutletId: selectedOutletId,
+            toOutletId: transferForm.toOutletId,
+            productId: transferForm.productId,
+            quantity: transferForm.quantity,
+            notes: transferForm.notes || undefined,
+            _pending: true,
+            clientIntentId: intentId,
+            createdAt: new Date().toISOString(),
+          },
+        });
+        setSnackbar({
+          open: true,
+          message: 'Transfer queued offline — will sync when back online',
+          severity: 'warning',
+        });
+        setTransferOpen(false);
+        setTransferForm({ productId: '', toOutletId: '', quantity: 0, notes: '' });
+        return;
+      }
+
+      await api.transferStock({
+        businessId: businessId!,
+        fromOutletId: selectedOutletId,
+        toOutletId: transferForm.toOutletId,
+        productId: transferForm.productId,
+        quantity: transferForm.quantity,
+        notes: transferForm.notes || undefined,
+      });
+      setSnackbar({ open: true, message: 'Stock transferred successfully', severity: 'success' });
+      setTransferOpen(false);
+      setTransferForm({ productId: '', toOutletId: '', quantity: 0, notes: '' });
+      fetchMovements();
+      fetchProducts();
+      fetchDiscrepancies();
+    } catch (e: any) {
+      setSnackbar({ open: true, message: formatError(e), severity: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResolveDiscrepancy = async (id: string) => {
+    try {
+      await api.resolveStockDiscrepancy(id, { notes: 'Resolved from inventory' });
+      setSnackbar({ open: true, message: 'Discrepancy resolved', severity: 'success' });
+      fetchDiscrepancies();
+    } catch (e: any) {
+      setSnackbar({ open: true, message: formatError(e), severity: 'error' });
+    }
   };
 
   const handleAdjustStock = async () => {
@@ -192,28 +324,68 @@ export function InventoryView() {
 
   return (
     <DashboardContent>
-      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Inventory' }]} sx={{ mb: 3 }} /> 
+      <Breadcrumbs links={[{ name: 'Dashboard', href: '/app' }, { name: 'Inventory' }]} sx={{ mb: 2 }} />
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Inventory</Typography>
-        <Stack direction="row" spacing={1.5}>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Outlet</InputLabel>
-            <Select
-              value={selectedOutletId}
-              label="Outlet"
-              onChange={(e) => setSelectedOutletId(e.target.value)}
-              disabled={!isOwner}
+      <PageHeader
+        kicker="Stock"
+        title="Inventory"
+        subtitle="Quantities, valuations, and stock movements by outlet."
+        action={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+            <FormControl size="small" sx={{ minWidth: { xs: 1, sm: 160 } }}>
+              <InputLabel>Outlet</InputLabel>
+              <Select
+                value={selectedOutletId}
+                label="Outlet"
+                onChange={(e) => setSelectedOutletId(e.target.value)}
+                disabled={!isOwner}
+              >
+                {outlets.map((o: any) => (
+                  <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />} onClick={() => setReceiveOpen(true)} disabled={!selectedOutletId}>Receive Stock</Button>
+            <Button
+              variant="outlined"
+              color="info"
+              startIcon={<Iconify icon="solar:restart-bold" />}
+              onClick={() => setTransferOpen(true)}
+              disabled={!selectedOutletId || outlets.length < 2}
             >
-              {outlets.map((o: any) => (
-                <MenuItem key={o.id || o._id} value={o.id || o._id}>{o.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />} onClick={() => setReceiveOpen(true)} disabled={!selectedOutletId}>Receive Stock</Button>
-          <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:settings-bold-duotone" />} onClick={() => setAdjustOpen(true)} disabled={!selectedOutletId}>Adjust Stock</Button>
-        </Stack>
-      </Stack>
+              Transfer
+            </Button>
+            <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:settings-bold-duotone" />} onClick={() => setAdjustOpen(true)} disabled={!selectedOutletId}>Adjust Stock</Button>
+          </Stack>
+        }
+      />
+
+      {(syncStale || offlineStatus.pendingOps > 0 || !offlineStatus.online) && (
+        <Alert severity={offlineStatus.online ? 'warning' : 'info'} sx={{ mb: 2 }}>
+          {!offlineStatus.online
+            ? 'Offline — stock receive/transfer will queue and sync when you reconnect.'
+            : syncStale
+              ? `Catalog sync looks stale (last synced ${fDateTime(offlineStatus.lastSyncedAt)}). Refresh or check the network.`
+              : `${offlineStatus.pendingOps} change(s) waiting to sync.`}
+        </Alert>
+      )}
+
+      {discrepancies.length > 0 && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            isOwner || appData?.role === 'outlet_admin' || appData?.role === 'store_executive' ? (
+              <Button color="inherit" size="small" onClick={() => handleResolveDiscrepancy(discrepancies[0]._id)}>
+                Resolve first
+              </Button>
+            ) : undefined
+          }
+        >
+          {discrepancies.length} open stock discrepanc{discrepancies.length === 1 ? 'y' : 'ies'} for this
+          outlet — sync/merge would have gone negative. Review before more transfers.
+        </Alert>
+      )}
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab label="Stock Levels" />
@@ -222,7 +394,18 @@ export function InventoryView() {
 
       {tab === 0 && (
         <>
-          <Card>
+          <Card sx={appPanelSx}>
+            <Box sx={{ px: { xs: 2, sm: 2.5 }, pt: { xs: 2, sm: 2.5 } }}>
+              <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.75 }}>
+                Levels
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700, mb: 2 }}
+              >
+                Stock levels
+              </Typography>
+            </Box>
             <Scrollbar>
               <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
                 <Table>
@@ -256,7 +439,7 @@ export function InventoryView() {
                         return (
                           <TableRow key={p._id || p.productId?._id}>
                             <TableCell>
-                              <Typography variant="subtitle2" noWrap>{p.name || p.productId?.name || '—'}</Typography>
+                              <Typography variant="subtitle2" noWrap className="sm-name">{p.name || p.productId?.name || '—'}</Typography>
                               <Typography variant="caption" color="text.secondary">{p.sku || p.productId?.sku || '—'}</Typography>
                             </TableCell>
                             <TableCell align="right">{fNumber(qty)}</TableCell>
@@ -281,7 +464,18 @@ export function InventoryView() {
 
       {tab === 1 && (
         <>
-          <Card>
+          <Card sx={appPanelSx}>
+            <Box sx={{ px: { xs: 2, sm: 2.5 }, pt: { xs: 2, sm: 2.5 } }}>
+              <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.75 }}>
+                History
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{ fontFamily: (t) => t.typography.fontSecondaryFamily, fontWeight: 700, mb: 2 }}
+              >
+                Movement history
+              </Typography>
+            </Box>
             <Scrollbar>
               <TableContainer sx={{ overflow: 'unset', minHeight: 400 }}>
                 <Table>
@@ -365,6 +559,77 @@ export function InventoryView() {
         <DialogActions>
           <Button onClick={() => setReceiveOpen(false)} color="inherit">Cancel</Button>
           <LoadingButton variant="contained" loading={submitting} onClick={handleReceiveStock} disabled={!receiveForm.productId || receiveForm.quantity <= 0}>Receive</LoadingButton>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={transferOpen} onClose={() => setTransferOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Transfer Stock</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2.5} sx={{ pt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              From: {outlets.find((o: any) => (o.id || o._id) === selectedOutletId)?.name || 'Selected outlet'}
+            </Typography>
+            <Autocomplete
+              fullWidth
+              options={products}
+              getOptionLabel={(o) => o.name || o.productId?.name || ''}
+              value={products.find((p) => (p._id || p.productId?._id) === transferForm.productId) || null}
+              onChange={(_, v) =>
+                setTransferForm({
+                  ...transferForm,
+                  productId: v ? v._id || v.productId?._id : '',
+                })
+              }
+              renderInput={(p) => <TextField {...p} label="Product" required />}
+            />
+            <FormControl fullWidth required>
+              <InputLabel>To outlet</InputLabel>
+              <Select
+                label="To outlet"
+                value={transferForm.toOutletId}
+                onChange={(e) => setTransferForm({ ...transferForm, toOutletId: e.target.value })}
+              >
+                {outlets
+                  .filter((o: any) => (o.id || o._id) !== selectedOutletId)
+                  .map((o: any) => (
+                    <MenuItem key={o.id || o._id} value={o.id || o._id}>
+                      {o.name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+            <NumericInput
+              fullWidth
+              required
+              label="Quantity"
+              value={transferForm.quantity}
+              onChangeValue={(v) => setTransferForm({ ...transferForm, quantity: v })}
+            />
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              label="Notes"
+              value={transferForm.notes}
+              onChange={(e) => setTransferForm({ ...transferForm, notes: e.target.value })}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTransferOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <LoadingButton
+            variant="contained"
+            color="info"
+            loading={submitting}
+            onClick={handleTransferStock}
+            disabled={
+              !transferForm.productId || !transferForm.toOutletId || transferForm.quantity <= 0
+            }
+          >
+            Transfer
+          </LoadingButton>
         </DialogActions>
       </Dialog>
 

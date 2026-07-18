@@ -5,11 +5,13 @@ import { varAlpha } from 'minimal-shared/utils';
 import SvgIcon from '@mui/material/SvgIcon';
 
 // ----------------------------------------------------------------------
+// Whimsical component chrome — plum CTAs, 12px radius, 40/44px heights
+// ----------------------------------------------------------------------
 
 const MuiBackdrop: Components<Theme>['MuiBackdrop'] = {
   styleOverrides: {
     root: ({ theme }) => ({
-      backgroundColor: varAlpha(theme.vars.palette.grey['900Channel'], 0.8),
+      backgroundColor: varAlpha(theme.vars.palette.primary.mainChannel, 0.48),
     }),
     invisible: {
       background: 'transparent',
@@ -22,17 +24,53 @@ const MuiButton: Components<Theme>['MuiButton'] = {
     disableElevation: true,
   },
   styleOverrides: {
-    containedInherit: ({ theme }) => ({
-      color: theme.vars.palette.common.white,
-      backgroundColor: theme.vars.palette.grey[800],
-      '&:hover': {
-        color: theme.vars.palette.common.white,
-        backgroundColor: theme.vars.palette.grey[800],
-      },
-    }),
+    root: {
+      borderRadius: 12,
+      minHeight: 40,
+      paddingLeft: 18,
+      paddingRight: 18,
+      fontSize: 13,
+      fontWeight: 700,
+      letterSpacing: '0.12px',
+    },
+    sizeSmall: {
+      minHeight: 32,
+      paddingLeft: 12,
+      paddingRight: 12,
+      borderRadius: 8,
+    },
     sizeLarge: {
       minHeight: 48,
+      paddingLeft: 24,
+      paddingRight: 24,
     },
+    containedPrimary: ({ theme }) => ({
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.common.white,
+      '&:hover': {
+        backgroundColor: theme.vars.palette.primary.dark,
+        boxShadow: `0 8px 16px -4px ${varAlpha(theme.vars.palette.primary.mainChannel, 0.24)}`,
+      },
+    }),
+    containedInherit: ({ theme }) => ({
+      color: theme.vars.palette.common.white,
+      backgroundColor: theme.vars.palette.primary.main,
+      '&:hover': {
+        color: theme.vars.palette.common.white,
+        backgroundColor: theme.vars.palette.primary.dark,
+      },
+    }),
+    outlinedPrimary: ({ theme }) => ({
+      borderColor: varAlpha(theme.vars.palette.primary.mainChannel, 0.24),
+      color: theme.vars.palette.primary.main,
+      '&:hover': {
+        borderColor: theme.vars.palette.primary.main,
+        backgroundColor: varAlpha(theme.vars.palette.primary.mainChannel, 0.04),
+      },
+    }),
+    textPrimary: ({ theme }) => ({
+      color: theme.vars.palette.primary.main,
+    }),
   },
 };
 
@@ -42,7 +80,8 @@ const MuiCard: Components<Theme>['MuiCard'] = {
       zIndex: 0,
       position: 'relative',
       boxShadow: theme.vars.customShadows.card,
-      borderRadius: theme.shape.borderRadius * 2,
+      borderRadius: 16,
+      border: `1px solid ${varAlpha(theme.vars.palette.primary.mainChannel, 0.06)}`,
     }),
   },
 };
@@ -61,9 +100,27 @@ const MuiCardHeader: Components<Theme>['MuiCardHeader'] = {
 
 const MuiOutlinedInput: Components<Theme>['MuiOutlinedInput'] = {
   styleOverrides: {
-    notchedOutline: ({ theme }) => ({
-      borderColor: varAlpha(theme.vars.palette.grey['500Channel'], 0.2),
+    root: ({ theme }) => ({
+      borderRadius: 12,
+      minHeight: 44,
+      backgroundColor: theme.vars.palette.common.white,
+      ...theme.applyStyles('dark', {
+        backgroundColor: theme.vars.palette.background.paper,
+      }),
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: theme.vars.palette.primary.light,
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: theme.vars.palette.primary.main,
+        borderWidth: 1.5,
+      },
     }),
+    notchedOutline: ({ theme }) => ({
+      borderColor: theme.vars.palette.primary.light,
+    }),
+    input: {
+      padding: '12px 16px',
+    },
   },
 };
 
@@ -72,7 +129,8 @@ const MuiPaper: Components<Theme>['MuiPaper'] = {
   styleOverrides: {
     root: { backgroundImage: 'none' },
     outlined: ({ theme }) => ({
-      borderColor: varAlpha(theme.vars.palette.grey['500Channel'], 0.16),
+      borderColor: varAlpha(theme.vars.palette.primary.mainChannel, 0.12),
+      borderRadius: 12,
     }),
   },
 };
@@ -80,11 +138,42 @@ const MuiPaper: Components<Theme>['MuiPaper'] = {
 const MuiTableCell: Components<Theme>['MuiTableCell'] = {
   styleOverrides: {
     head: ({ theme }) => ({
-      fontSize: theme.typography.pxToRem(14),
+      fontSize: theme.typography.pxToRem(12),
       color: theme.vars.palette.text.secondary,
-      fontWeight: theme.typography.fontWeightSemiBold,
+      fontWeight: 700,
+      letterSpacing: '0.02em',
+      textTransform: 'uppercase',
       backgroundColor: theme.vars.palette.background.neutral,
     }),
+  },
+};
+
+const MuiChip: Components<Theme>['MuiChip'] = {
+  styleOverrides: {
+    root: {
+      borderRadius: 9999,
+      fontWeight: 700,
+      fontSize: 9,
+      letterSpacing: '1.35px',
+      textTransform: 'uppercase',
+      height: 20,
+    },
+    sizeMedium: {
+      height: 24,
+      fontSize: 10,
+    },
+    filledPrimary: ({ theme }) => ({
+      backgroundColor: theme.vars.palette.primary.light,
+      color: theme.vars.palette.primary.main,
+    }),
+  },
+};
+
+const MuiDialog: Components<Theme>['MuiDialog'] = {
+  styleOverrides: {
+    paper: {
+      borderRadius: 16,
+    },
   },
 };
 
@@ -92,6 +181,8 @@ const MuiMenuItem: Components<Theme>['MuiMenuItem'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       ...theme.typography.body2,
+      borderRadius: 8,
+      marginInline: 4,
     }),
   },
 };
@@ -157,10 +248,12 @@ const MuiRadio: Components<Theme>['MuiRadio'] = {
 
 export const components = {
   MuiCard,
+  MuiChip,
   MuiLink,
   MuiPaper,
   MuiRadio,
   MuiButton,
+  MuiDialog,
   MuiBackdrop,
   MuiMenuItem,
   MuiCheckbox,
