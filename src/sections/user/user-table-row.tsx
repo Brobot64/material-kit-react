@@ -153,6 +153,18 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
       };
 
       if (isOwner && (editData.role === 'sales_rep' || editData.role === 'outlet_admin')) {
+        const previousRole = currentRole === 'store_executive' ? 'outlet_admin' : String(currentRole);
+        const isDowngrade =
+          previousRole === 'outlet_admin' && editData.role === 'sales_rep';
+        if (
+          isDowngrade &&
+          !window.confirm(
+            'Downgrade this outlet admin to sales representative? Their active sessions will be signed out so permissions refresh.'
+          )
+        ) {
+          setSavingHR(false);
+          return;
+        }
         payload.role = editData.role;
       }
 
@@ -393,6 +405,29 @@ export function UserTableRow({ row, selected, onSelectRow, onRefresh }: UserTabl
                 <MuiMenuItem value="outlet_admin">Outlet Admin</MuiMenuItem>
               </Select>
             </FormControl>
+          )}
+
+          {isOwner && Array.isArray((row as any).roleHistory) && (row as any).roleHistory.length > 0 && (
+            <Box sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+                Role history
+              </Typography>
+              {(row as any).roleHistory
+                .slice()
+                .reverse()
+                .slice(0, 5)
+                .map((entry: any, idx: number) => (
+                  <Typography key={idx} variant="caption" display="block">
+                    {roleLabel(entry.role)}
+                    {entry.effectiveFrom
+                      ? ` · from ${new Date(entry.effectiveFrom).toLocaleDateString()}`
+                      : ''}
+                    {entry.effectiveTo
+                      ? ` → ${new Date(entry.effectiveTo).toLocaleDateString()}`
+                      : ' (current)'}
+                  </Typography>
+                ))}
+            </Box>
           )}
 
           {isOwner && (

@@ -233,7 +233,7 @@ export function BargainingAnalyticsView() {
                   {(data?.topNegotiatedProducts ?? []).map((p: any) => (
                     <TableRow key={p._id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={500}>{p.productName || 'Unknown'}</Typography>
+                        <Typography variant="body2" fontWeight={500} className="sm-name">{p.productName || 'Unknown'}</Typography>
                         {p.sku && <Typography variant="caption" color="text.secondary">{p.sku}</Typography>}
                       </TableCell>
                       <TableCell align="right">{p.overrideCount}</TableCell>

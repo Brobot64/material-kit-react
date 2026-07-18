@@ -1,10 +1,11 @@
-import type { Theme, SystemStyleObject } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
+import type { SystemStyleObject } from '@mui/system';
 
 import { varAlpha } from 'minimal-shared/utils';
 
 // ----------------------------------------------------------------------
 // Shared Whimsical surface styles for /app screens (not KPI widgets)
-// Typed as theme callbacks (not SxProps) so they compose safely in sx arrays.
+// Typed as theme → SystemStyleObject so they compose safely in sx arrays.
 // ----------------------------------------------------------------------
 
 export type AppSxCallback = (theme: Theme) => SystemStyleObject<Theme>;

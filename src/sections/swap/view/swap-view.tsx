@@ -481,7 +481,7 @@ export function SwapView() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" fontWeight={500}>
-                          {swap.tradeIn.productName}
+                          <Box component="span" className="sm-name">{swap.tradeIn.productName}</Box>
                         </Typography>
                         {swap.tradeIn.description && (
                           <Typography variant="caption" color="text.secondary">

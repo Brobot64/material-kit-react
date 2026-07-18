@@ -611,6 +611,7 @@ export function ReceiptPreviewModal({
 
       printThermalReceipt({
         receiptNumber: data.receiptNumber,
+        saleId: data.saleId || saleId,
         status: data.status || getStatusLabel(data.amountPaid ?? 0, data.total ?? 0).label,
         outlet: {
           ...data.outlet,
@@ -620,10 +621,11 @@ export function ReceiptPreviewModal({
         cashier: cashierName ? { name: toTitleCase(cashierName) } : undefined,
         customer: customerName
           ? { name: toTitleCase(customerName), phone: data.customer?.phone }
-          : data.customer,
+          : null,
         items: (data.items ?? []).map((item: any) => ({
           ...item,
           name: toTitleCase(item.name),
+          category: item.categoryName || item.category || undefined,
         })),
         subtotal: data.subtotal,
         discountTotal: data.discountTotal,

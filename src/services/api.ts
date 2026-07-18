@@ -566,6 +566,19 @@ export const api = {
   }) => request<any>(`/outlets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Stock / Inventory
+  transferStock: (data: {
+    businessId: string;
+    fromOutletId: string;
+    toOutletId: string;
+    productId: string;
+    quantity: number;
+    notes?: string;
+  }) =>
+    request<any>('/stock/transfer', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   receiveStock: (data: {
     businessId: string;
     outletId: string;
@@ -574,7 +587,7 @@ export const api = {
     unitCost: number;
     notes?: string;
     expiryDate?: string;
-  }) => request<any>('/stock/movements', {
+  }) => request<any>('/stock/receive', {
     method: 'POST',
     body: JSON.stringify({ ...data, type: 'purchase', totalCost: data.quantity * data.unitCost }),
   }),
@@ -775,4 +788,43 @@ export const api = {
     Object.entries(params).forEach(([k, v]) => { if (v !== undefined) query.append(k, v.toString()); });
     return request<any>(`/reporting/bargaining-analytics?${query.toString()}`);
   },
+
+  getReceivables: (params?: {
+    outletId?: string;
+    customerId?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([k, v]) => {
+      if (v !== undefined) query.append(k, String(v));
+    });
+    const qs = query.toString();
+    return request<{ data: any[]; pagination: any }>(`/receivables${qs ? `?${qs}` : ''}`);
+  },
+  getReceivablesAging: (params?: { asOf?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.asOf) query.append('asOf', params.asOf);
+    const qs = query.toString();
+    return request<{ asOf: string; buckets: any[] }>(`/receivables/aging${qs ? `?${qs}` : ''}`);
+  },
+  payReceivable: (id: string, data: { amount: number; paymentMethod: string; notes?: string }) =>
+    request<any>(`/receivables/${id}/payments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getStockDiscrepancies: (params?: { outletId?: string; status?: string }) => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([k, v]) => {
+      if (v !== undefined) query.append(k, String(v));
+    });
+    const qs = query.toString();
+    return request<{ data: any[] }>(`/stock/discrepancies${qs ? `?${qs}` : ''}`);
+  },
+  resolveStockDiscrepancy: (id: string, data?: { notes?: string }) =>
+    request<any>(`/stock/discrepancies/${id}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
 };

@@ -34,8 +34,8 @@ import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
-import { appPanelSx, appFilterBarSx } from 'src/theme/app-surface';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { appPanelSx, appFilterBarSx } from 'src/theme/app-surface';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -406,14 +406,14 @@ export function SaleHistoryView() {
                                                 </Tooltip>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell className="sm-name">
                                                 {sale.customerName
                                                     || sale.customerId?.fullName
                                                     || sale.customerId?.name
                                                     || 'Walk-in'}
                                             </TableCell>
 
-                                            <TableCell>{sale.cashierName || '—'}</TableCell>
+                                            <TableCell className="sm-name">{sale.cashierName || '—'}</TableCell>
 
                                             <TableCell>{fCurrency(sale.total)}</TableCell>
                                             <TableCell>{fCurrency(sale.amountPaid)}</TableCell>
@@ -559,7 +559,12 @@ export function SaleHistoryView() {
                             ].map(({ label, value }) => (
                                 <Stack key={label} direction="row" justifyContent="space-between">
                                     <Typography variant="subtitle2">{label}:</Typography>
-                                    <Typography variant="body2">{value}</Typography>
+                                    <Typography
+                                      variant="body2"
+                                      className={label === 'Customer' || label === 'Cashier' ? 'sm-name' : undefined}
+                                    >
+                                      {value}
+                                    </Typography>
                                 </Stack>
                             ))}
                             <Stack direction="row" justifyContent="space-between">

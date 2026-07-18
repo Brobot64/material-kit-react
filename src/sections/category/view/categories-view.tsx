@@ -208,13 +208,13 @@ export function CategoriesView() {
                   <TableRow hover key={category._id}>
                     <TableCell>
                       <Typography variant="subtitle2" noWrap>
-                        {category.name}
+                        <Box component="span" className="sm-name">{category.name}</Box>
                       </Typography>
                     </TableCell>
 
                     <TableCell>{category.description || 'No description'}</TableCell>
 
-                    <TableCell>
+                    <TableCell className="sm-name">
                       {categories.find((c: Category) => c._id === category.parentId)?.name || 'None'}
                     </TableCell>
 

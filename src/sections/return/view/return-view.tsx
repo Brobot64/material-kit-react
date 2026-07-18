@@ -4,6 +4,7 @@ import type { ReturnStatus, ProductReturn, WarrantyStatus, ReturnTimelineEntry }
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Link from '@mui/material/Link';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
@@ -72,6 +73,17 @@ const WARRANTY_LABELS: Record<WarrantyStatus, string> = {
   out_of_warranty: 'Out of Warranty',
   unknown: 'Unknown',
 };
+
+function returnCustomerContact(ret: ProductReturn | any) {
+  const populated =
+    ret?.customerId && typeof ret.customerId === 'object' ? ret.customerId : null;
+  const raw = ret?.customerName || populated?.fullName || '—';
+  return {
+    name: raw === '—' ? '—' : String(raw),
+    phone: ret?.customerPhone || populated?.phone || '',
+    email: ret?.customerEmail || populated?.email || '',
+  };
+}
 
 // ─── New Return Dialog ──────────────────────────────────────────────────────
 
@@ -181,7 +193,27 @@ function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose:
                     {saleData.sale.saleNumber || saleData.sale._id.slice(-8).toUpperCase()} — {fCurrency(saleData.sale.total)} on {fDate(saleData.sale.createdAt)}
                   </Typography>
                   {saleData.sale.customerId?.fullName && (
-                    <Typography variant="caption">Customer: {saleData.sale.customerId.fullName}</Typography>
+                    <Stack spacing={0.25} sx={{ mt: 0.75 }}>
+                      <Typography variant="caption" display="block" className="sm-name">
+                        Customer: {saleData.sale.customerId.fullName}
+                      </Typography>
+                      {saleData.sale.customerId.phone && (
+                        <Typography variant="caption" display="block">
+                          Phone:{' '}
+                          <Link href={`tel:${saleData.sale.customerId.phone}`}>
+                            {saleData.sale.customerId.phone}
+                          </Link>
+                        </Typography>
+                      )}
+                      {saleData.sale.customerId.email && (
+                        <Typography variant="caption" display="block">
+                          Email:{' '}
+                          <Link href={`mailto:${saleData.sale.customerId.email}`}>
+                            {saleData.sale.customerId.email}
+                          </Link>
+                        </Typography>
+                      )}
+                    </Stack>
                   )}
                 </Card>
               )}
@@ -349,7 +381,13 @@ function ReceiveFromDistributorDialog({ open, onClose, onDone, returnId }: Actio
   );
 }
 
-function NotifyCustomerDialog({ open, onClose, onDone, returnId }: ActionDialogProps) {
+function NotifyCustomerDialog({
+  open,
+  onClose,
+  onDone,
+  returnId,
+  customer,
+}: ActionDialogProps & { customer?: { name: string; phone: string; email: string } }) {
   const { showError } = useAppSnackbar();
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -369,7 +407,24 @@ function NotifyCustomerDialog({ open, onClose, onDone, returnId }: ActionDialogP
       <DialogTitle>Notify Customer</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <Alert severity="info" sx={{ fontSize: 13 }}>If the customer has an account, they will receive an in-app notification automatically.</Alert>
+          {customer && customer.name !== '—' && (
+            <Box sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1.5 }}>
+              <Typography variant="subtitle2" className="sm-name">{customer.name}</Typography>
+              {customer.phone && (
+                <Typography variant="body2">
+                  <Link href={`tel:${customer.phone}`}>{customer.phone}</Link>
+                </Typography>
+              )}
+              {customer.email && (
+                <Typography variant="body2">
+                  <Link href={`mailto:${customer.email}`}>{customer.email}</Link>
+                </Typography>
+              )}
+            </Box>
+          )}
+          <Alert severity="info" sx={{ fontSize: 13 }}>
+            Call or email the customer using the details above. If they have an account, they also get an in-app notification.
+          </Alert>
           <TextField fullWidth label="Message / Note" value={note} onChange={(e) => setNote(e.target.value)} size="small" multiline rows={3} placeholder="e.g. Your Hisense TV has been repaired. Please come in during business hours." />
         </Stack>
       </DialogContent>
@@ -508,6 +563,7 @@ function ReturnDetailDrawer({
   const canCancel = ['received', 'sent_to_distributor'].includes(ret.status);
 
   const meta = STATUS_META[ret.status];
+  const customer = returnCustomerContact(ret);
 
   return (
     <Drawer
@@ -533,23 +589,36 @@ function ReturnDetailDrawer({
       {/* Product & Customer */}
       <Card variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: 1 }}>Product</Typography>
-        <Typography variant="body2" fontWeight={600}>{ret.productNameSnapshot}</Typography>
+        <Typography variant="body2" fontWeight={600} className="sm-name">{ret.productNameSnapshot}</Typography>
         {ret.skuSnapshot && <Typography variant="caption" color="text.secondary">SKU: {ret.skuSnapshot}</Typography>}
         {ret.serialNumber && <><br /><Typography variant="caption" color="text.secondary">S/N: {ret.serialNumber}</Typography></>}
         <Divider sx={{ my: 1 }} />
         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Fault Reported</Typography>
         <Typography variant="body2" color="text.secondary">{ret.faultDescription}</Typography>
         <Divider sx={{ my: 1 }} />
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
           <Box>
             <Typography variant="caption" color="text.disabled">Warranty</Typography>
             <Typography variant="body2">{WARRANTY_LABELS[ret.warrantyStatus]}</Typography>
           </Box>
-          {ret.customerName && (
+          {customer.name !== '—' && (
             <Box>
               <Typography variant="caption" color="text.disabled">Customer</Typography>
-              <Typography variant="body2">{ret.customerName}</Typography>
-              {ret.customerPhone && <Typography variant="caption" color="text.secondary"> · {ret.customerPhone}</Typography>}
+              <Typography variant="body2" className="sm-name">{customer.name}</Typography>
+              {customer.phone && (
+                <Typography variant="caption" color="text.secondary" display="block">
+                  <Link href={`tel:${customer.phone}`} underline="hover">
+                    {customer.phone}
+                  </Link>
+                </Typography>
+              )}
+              {customer.email && (
+                <Typography variant="caption" color="text.secondary" display="block">
+                  <Link href={`mailto:${customer.email}`} underline="hover">
+                    {customer.email}
+                  </Link>
+                </Typography>
+              )}
             </Box>
           )}
         </Stack>
@@ -635,7 +704,9 @@ function ReturnDetailDrawer({
       {/* Action dialogs */}
       {activeDialog === 'send' && <SendToDistributorDialog {...actionDialogProps} />}
       {activeDialog === 'receive' && <ReceiveFromDistributorDialog {...actionDialogProps} />}
-      {activeDialog === 'notify' && <NotifyCustomerDialog {...actionDialogProps} />}
+      {activeDialog === 'notify' && (
+        <NotifyCustomerDialog {...actionDialogProps} customer={customer} />
+      )}
       {activeDialog === 'complete' && <CompleteReturnDialog {...actionDialogProps} />}
       {activeDialog === 'refund' && <ProcessRefundDialog {...actionDialogProps} />}
       {activeDialog === 'cancel' && (
@@ -800,6 +871,7 @@ export function ReturnView() {
                 <TableBody>
                   {returns.map((ret) => {
                     const meta = STATUS_META[ret.status];
+                    const customer = returnCustomerContact(ret);
                     return (
                       <TableRow
                         key={ret._id}
@@ -813,13 +885,36 @@ export function ReturnView() {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={500}>{ret.productNameSnapshot}</Typography>
+                          <Typography variant="body2" fontWeight={500} className="sm-name">{ret.productNameSnapshot}</Typography>
                           {ret.skuSnapshot && <Typography variant="caption" color="text.secondary">{ret.skuSnapshot}</Typography>}
                           {ret.serialNumber && <><br /><Typography variant="caption" color="text.disabled">S/N: {ret.serialNumber}</Typography></>}
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2">{ret.customerName || '—'}</Typography>
-                          {ret.customerPhone && <Typography variant="caption" color="text.secondary">{ret.customerPhone}</Typography>}
+                          <Typography variant="body2" className="sm-name">{customer.name}</Typography>
+                          {customer.phone && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Link href={`tel:${customer.phone}`} underline="hover" color="inherit">
+                                {customer.phone}
+                              </Link>
+                            </Typography>
+                          )}
+                          {customer.email && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Link href={`mailto:${customer.email}`} underline="hover" color="inherit">
+                                {customer.email}
+                              </Link>
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Chip

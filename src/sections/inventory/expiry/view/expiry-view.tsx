@@ -158,7 +158,7 @@ export function ExpiryView() {
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Button
             variant="outlined"
-            startIcon={<Iconify icon="solar:wallet-money-bold" />}
+            startIcon={<Iconify icon="solar:receipt-bold" />}
             onClick={() => setClearanceOpen(true)}
           >
             Record clearance cash
@@ -218,7 +218,7 @@ export function ExpiryView() {
                   {items.map((item) => (
                     <TableRow key={item._id}>
                       <TableCell>
-                        <Typography variant="subtitle2">{item.productName}</Typography>
+                        <Typography variant="subtitle2" className="sm-name">{item.productName}</Typography>
                         <Typography variant="caption" color="text.secondary">{item.sku}</Typography>
                       </TableCell>
                       <TableCell>{fDateTime(item.receivedAt)}</TableCell>
@@ -272,7 +272,7 @@ export function ExpiryView() {
         <DialogTitle>Update Expiry Date</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ py: 1 }}>
-            <Typography variant="body2" sx={{ mb: 2 }}>{editItem?.productName}</Typography>
+            <Typography variant="body2" className="sm-name" sx={{ mb: 2 }}>{editItem?.productName}</Typography>
             <TextField
               fullWidth
               label="New Expiry Date"

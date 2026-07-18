@@ -18,9 +18,9 @@ import { formatError } from 'src/utils/format-error';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
+import { DashboardContent } from 'src/layouts/dashboard';
 import { useAppSnackbar } from 'src/contexts/snackbar-context';
 import { appPanelSx, appFilterBarSx } from 'src/theme/app-surface';
-import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';

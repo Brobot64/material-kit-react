@@ -227,6 +227,11 @@ input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
 }
 
+/* Display names, usernames, and product titles in title case */
+.sm-name {
+  text-transform: capitalize;
+}
+
 /* Responsive helpers */
 @media (max-width: 639px) {
   .w-display-hero {

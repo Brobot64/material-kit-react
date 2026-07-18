@@ -129,7 +129,7 @@ export function OutletsView() {
               <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
                 <Box>
                   <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-                    <Typography variant="subtitle1" fontWeight="bold">{outlet.name}</Typography>
+                    <Typography variant="subtitle1" fontWeight="bold" className="sm-name">{outlet.name}</Typography>
                     {outlet.isMain && (
                       <Label color="primary" variant="soft">Main</Label>
                     )}

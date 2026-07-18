@@ -372,10 +372,10 @@ export function ProductsView() {
                             {product.name.charAt(0)}
                           </Avatar>
                           <Box>
-                            <Typography variant="subtitle2" noWrap>
+                            <Typography variant="subtitle2" noWrap className="sm-name">
                               {product.name}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>        
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap className="sm-name">
                               {product.categoryName ||
                                 categories.find((c) => c._id === product.categoryId)?.name ||
                                 'No Category'}

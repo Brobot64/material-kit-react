@@ -7,18 +7,22 @@ import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Select from '@mui/material/Select';
+import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 
+import { RouterLink } from 'src/routes/components';
+
+import { fCurrency } from 'src/utils/format-number';
 import { timelineRangeToQuery, createDefaultTimelineRange } from 'src/utils/timeline-range';
 
 import { api } from 'src/services/api';
 import { useAuth } from 'src/contexts/auth-context';
-import { appPanelSx, appStatTileSx } from 'src/theme/app-surface';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { appPanelSx, appStatTileSx } from 'src/theme/app-surface';
 
 import { PageHeader } from 'src/components/page-header';
 import { TimelineFilter } from 'src/components/timeline-filter';
@@ -42,6 +46,11 @@ export function OverviewAnalyticsView() {
   const [incomeExpenseData, setIncomeExpenseData] = useState<any[]>([]);
   const [expenseBreakdown, setExpenseBreakdown] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [fraudSignal, setFraudSignal] = useState<{
+    overrideCount: number;
+    marginImpact: number;
+    topCashier?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +60,7 @@ export function OverviewAnalyticsView() {
     setError(null);
     try {
       const dateParams = timelineRangeToQuery(timeline);
-      const [overviewData, graphData, breakdownData, logsData] = await Promise.all([
+      const [overviewData, graphData, breakdownData, logsData, bargaining] = await Promise.all([
         api.getFinancialOverview({ outletId: selectedOutletId, ...dateParams }),
         api.getIncomeExpenseGraph({ outletId: selectedOutletId, ...dateParams }),
         api.getExpenseBreakdownGraph({ outletId: selectedOutletId, ...dateParams }),
@@ -61,6 +70,7 @@ export function OverviewAnalyticsView() {
           startDate: dateParams.startDate,
           endDate: dateParams.endDate,
         }),
+        api.getBargainingAnalytics({ outletId: selectedOutletId, ...dateParams }).catch(() => null),
       ]);
 
       setOverview(overviewData);
@@ -69,6 +79,22 @@ export function OverviewAnalyticsView() {
       if (logsData) {
         setAuditLogs(logsData.data || []);
       }
+
+      const summary = bargaining?.summary || bargaining;
+      const overrideCount =
+        Number(summary?.totalOverrides ?? summary?.overrideCount ?? bargaining?.totalOverrides) || 0;
+      const marginImpact =
+        Number(
+          summary?.totalMarginImpact ??
+            summary?.revenueImpact ??
+            summary?.marginLoss ??
+            bargaining?.totalMarginImpact
+        ) || 0;
+      const topCashier =
+        summary?.topCashierName ||
+        bargaining?.byCashier?.[0]?.cashierName ||
+        bargaining?.topStaff?.[0]?.name;
+      setFraudSignal({ overrideCount, marginImpact, topCashier });
     } catch (err: any) {
       console.error('Failed to fetch analytics:', err);
       setError(err.message || 'Failed to load dashboard data');
@@ -196,6 +222,44 @@ export function OverviewAnalyticsView() {
             chart={{ categories: [], series: [] }}
           />
         </Grid>
+
+        {isOwner && fraudSignal && (
+          <Grid size={{ xs: 12 }}>
+            <Card sx={[{ p: { xs: 2, md: 2.5 } }, appPanelSx]}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+                alignItems={{ sm: 'center' }}
+                justifyContent="space-between"
+              >
+                <Box>
+                  <Typography variant="overline" sx={{ color: 'error.main' }}>
+                    Price override signal
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {fraudSignal.overrideCount} below-floor overrides
+                    {fraudSignal.marginImpact
+                      ? ` · ${fCurrency(fraudSignal.marginImpact)} margin impact`
+                      : ''}
+                  </Typography>
+                  {fraudSignal.topCashier && (
+                    <Typography variant="body2" color="text.secondary" className="sm-name">
+                      Top staff: {fraudSignal.topCashier}
+                    </Typography>
+                  )}
+                </Box>
+                <Button
+                  component={RouterLink}
+                  href="/app/bargaining-analytics"
+                  variant="outlined"
+                  color="error"
+                >
+                  Open bargaining analytics
+                </Button>
+              </Stack>
+            </Card>
+          </Grid>
+        )}
 
         <Grid size={{ xs: 12, md: 6, lg: 8 }}>
           <AnalyticsWebsiteVisits

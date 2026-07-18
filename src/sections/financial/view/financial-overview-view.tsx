@@ -34,18 +34,10 @@ import { formatError } from 'src/utils/format-error';
 import { timelineRangeToQuery, createDefaultTimelineRange } from 'src/utils/timeline-range';
 
 import { api } from 'src/services/api';
-import { useAuth } from 'src/contexts/auth-context';
-import { useAppSnackbar } from 'src/contexts/snackbar-context';
 import { appPanelSx } from 'src/theme/app-surface';
+import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
-
-const appChartPanelSx = (theme: Theme) => ({
-  ...appPanelSx(theme),
-  '& .MuiCardHeader-title': {
-    fontFamily: theme.typography.fontSecondaryFamily,
-    fontWeight: 700,
-  },
-});
+import { useAppSnackbar } from 'src/contexts/snackbar-context';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -55,6 +47,14 @@ import { TimelineFilter } from 'src/components/timeline-filter';
 import { AnalyticsWidgetSummary } from '../../overview/analytics-widget-summary';
 import { AnalyticsWebsiteVisits } from '../../overview/analytics-website-visits';
 import { AnalyticsCurrentVisits } from '../../overview/analytics-current-visits';
+
+const appChartPanelSx = (theme: Theme) => ({
+  ...appPanelSx(theme),
+  '& .MuiCardHeader-title': {
+    fontFamily: theme.typography.fontSecondaryFamily,
+    fontWeight: 700,
+  },
+});
 
 // ----------------------------------------------------------------------
 

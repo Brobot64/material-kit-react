@@ -1,6 +1,10 @@
 /**
  * 80mm thermal / terminal POS receipt print helpers.
  * Uses a hidden iframe so printing is not blocked by pop-up policies.
+ *
+ * Layout outline borrows clarity from common POS receipts (header → meta →
+ * customer → ITEMS → totals → PAYMENT → footer) while keeping ShopMaster's
+ * monospace thermal style.
  */
 
 export type ThermalReceiptItem = {
@@ -9,10 +13,13 @@ export type ThermalReceiptItem = {
   qty: number;
   unitPrice: number;
   lineTotal: number;
+  category?: string;
 };
 
 export type ThermalReceiptData = {
   receiptNumber?: string;
+  /** Short sale id for the meta block (e.g. last 6 chars). */
+  saleId?: string;
   status?: string;
   outlet?: { name?: string; address?: string | Record<string, unknown>; phone?: string };
   cashier?: { name?: string };
@@ -28,11 +35,14 @@ export type ThermalReceiptData = {
   paymentMethod?: string;
   timestamp?: string | Date;
   template?: {
+    logoUrl?: string;
+    headerText?: string;
     footerText?: string;
     showTaxBreakdown?: boolean;
     sections?: {
       showCustomerInfo?: boolean;
       showCashierName?: boolean;
+      showSaleNumber?: boolean;
     };
   };
 };
@@ -79,13 +89,25 @@ function escapeHtml(s: string) {
     .replace(/"/g, '&quot;');
 }
 
+function shortSaleId(saleId?: string, receiptNumber?: string): string {
+  const raw = (saleId || receiptNumber || '').replace(/^#/, '');
+  if (!raw) return '';
+  return raw.length > 6 ? raw.slice(-6).toUpperCase() : raw.toUpperCase();
+}
+
+function cashierFirstName(full?: string): string {
+  if (!full?.trim()) return '';
+  return full.trim().split(/\s+/)[0];
+}
+
 /** Build monospace thermal receipt HTML (80mm). */
 export function buildThermalReceiptHtml(data: ThermalReceiptData): string {
   const outletName = data.outlet?.name || 'Store';
   const address = formatAddress(data.outlet?.address);
   const phone = data.outlet?.phone || '';
-  const receiptNo = data.receiptNumber || '';
-  const status = (data.status || '').toUpperCase();
+  const receiptNo = (data.receiptNumber || '').replace(/^#/, '');
+  const saleShort = shortSaleId(data.saleId, receiptNo);
+  const status = (data.status || 'SALE').toUpperCase();
   const items = data.items ?? [];
   const total = data.total ?? 0;
   const amountPaid = data.amountPaid ?? 0;
@@ -95,25 +117,49 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData): string {
     data.amountPending != null ? data.amountPending : Math.max(0, total - amountPaid);
   const showCustomer = data.template?.sections?.showCustomerInfo !== false;
   const showCashier = data.template?.sections?.showCashierName !== false;
+  const showSaleNumber = data.template?.sections?.showSaleNumber !== false;
   const showTax = data.template?.showTaxBreakdown && (data.taxTotal ?? 0) > 0;
+  const payMethod = String(data.paymentMethod || 'Cash');
+  const logoUrl = data.template?.logoUrl;
+  const headerExtra = data.template?.headerText;
 
-  const itemLines = items
-    .map((item) => {
-      const name = escapeHtml(item.name || 'Item');
-      const sku = item.sku ? `<div class="muted">SKU: ${escapeHtml(item.sku)}</div>` : '';
-      const qtyLine = escapeHtml(
-        padRow(`${item.qty} x ${fmtNgn(item.unitPrice)}`, fmtNgn(item.lineTotal))
+  // Group items by category when present (Cravings-style outline)
+  const grouped = new Map<string, ThermalReceiptItem[]>();
+  for (const item of items) {
+    const key = (item.category || '').trim();
+    const list = grouped.get(key) || [];
+    list.push(item);
+    grouped.set(key, list);
+  }
+
+  const itemBlocks: string[] = [];
+  for (const [category, groupItems] of grouped) {
+    if (category) {
+      itemBlocks.push(
+        `<div class="cat">${escapeHtml(category.toUpperCase())}</div>`
       );
-      return `<div class="item"><div class="item-name">${name}</div>${sku}<div class="mono">${qtyLine}</div></div>`;
-    })
-    .join('');
+    }
+    for (const item of groupItems) {
+      const name = escapeHtml(item.name || 'Item');
+      const sku = item.sku
+        ? `<div class="muted">SKU: ${escapeHtml(item.sku)}</div>`
+        : '';
+      const qtyLine = escapeHtml(
+        padRow(
+          `${item.qty} * ${fmtNgn(item.unitPrice)}/pcs`,
+          fmtNgn(item.lineTotal)
+        )
+      );
+      itemBlocks.push(
+        `<div class="item"><div class="item-name">${name}</div>${sku}<div class="mono">${qtyLine}</div></div>`
+      );
+    }
+  }
 
   const totals: string[] = [];
-  if ((data.discountTotal ?? 0) > 0 || (data.taxTotal ?? 0) > 0) {
-    totals.push(
-      `<div class="mono">${escapeHtml(padRow('Subtotal', fmtNgn(data.subtotal ?? 0)))}</div>`
-    );
-  }
+  totals.push(
+    `<div class="mono">${escapeHtml(padRow('Subtotal', fmtNgn(data.subtotal ?? total)))}</div>`
+  );
   if ((data.discountTotal ?? 0) > 0) {
     totals.push(
       `<div class="mono">${escapeHtml(padRow('Discount', `-${fmtNgn(data.discountTotal!)}`))}</div>`
@@ -122,30 +168,25 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData): string {
   if (showTax) {
     totals.push(`<div class="mono">${escapeHtml(padRow('VAT', fmtNgn(data.taxTotal!)))}</div>`);
   }
+  totals.push(`<div class="rule mono">${dashLine('=')}</div>`);
   totals.push(`<div class="mono total">${escapeHtml(padRow('TOTAL', fmtNgn(total)))}</div>`);
-  totals.push(`<div class="mono">${escapeHtml(padRow('Paid', fmtNgn(amountPaid)))}</div>`);
-  if (balance > 0) {
-    totals.push(`<div class="mono">${escapeHtml(padRow('Balance', fmtNgn(balance)))}</div>`);
+
+  const customerName =
+    showCustomer && data.customer?.name?.trim()
+      ? data.customer.name.trim()
+      : 'Walk-In Customer';
+  const customerPhone =
+    showCustomer && data.customer?.phone ? data.customer.phone : '';
+
+  const cashierName = showCashier ? cashierFirstName(data.cashier?.name) : '';
+
+  const footerLines: string[] = [];
+  footerLines.push(
+    escapeHtml(data.template?.footerText?.trim() || 'Thanks For Your Patronage.')
+  );
+  if (headerExtra && /https?:\/\/|\.com|\.ng|\.co/i.test(headerExtra)) {
+    footerLines.push(escapeHtml(headerExtra.trim()));
   }
-  if (change > 0) {
-    totals.push(`<div class="mono">${escapeHtml(padRow('Change', fmtNgn(change)))}</div>`);
-  }
-
-  const customerBlock =
-    showCustomer && data.customer?.name
-      ? `<div class="section">Customer: ${escapeHtml(data.customer.name)}${
-          data.customer.phone ? `<br/>${escapeHtml(data.customer.phone)}` : ''
-        }</div>`
-      : `<div class="section">Customer: Walk-in</div>`;
-
-  const cashierBlock =
-    showCashier && data.cashier?.name
-      ? `<div>Cashier: ${escapeHtml(data.cashier.name)}</div>`
-      : '';
-
-  const footer = data.template?.footerText
-    ? `<div class="footer">${escapeHtml(data.template.footerText)}</div>`
-    : `<div class="footer">Thank you for your patronage</div>`;
 
   return `<!DOCTYPE html>
 <html>
@@ -170,15 +211,30 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData): string {
     }
     .center { text-align: center; }
     .store { font-size: 14px; font-weight: 700; text-transform: uppercase; }
+    .logo {
+      display: block;
+      max-width: 42mm;
+      max-height: 18mm;
+      margin: 0 auto 4px;
+      object-fit: contain;
+    }
     .muted { color: #333; font-size: 11px; }
     .rule { margin: 6px 0; white-space: pre; letter-spacing: 0; }
     .mono { white-space: pre; font-family: "Courier New", Courier, monospace; }
     .item { margin-bottom: 6px; }
-    .item-name { font-weight: 700; word-break: break-word; }
-    .section { margin: 6px 0; }
-    .total { font-weight: 700; font-size: 13px; margin-top: 4px; }
+    .item-name { font-weight: 700; word-break: break-word; text-transform: capitalize; }
+    .cat { font-weight: 700; font-size: 11px; margin: 6px 0 2px; letter-spacing: 0.04em; }
+    .section { margin: 4px 0; }
+    .section-title {
+      text-align: center;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      margin: 4px 0 6px;
+      font-size: 11px;
+    }
+    .total { font-weight: 700; font-size: 13px; margin-top: 2px; }
     .status { font-weight: 700; letter-spacing: 0.08em; }
-    .footer { text-align: center; margin-top: 10px; font-size: 11px; }
+    .footer { text-align: center; margin-top: 8px; font-size: 11px; }
     @media print {
       html, body { width: 80mm; margin: 0; padding: 2mm; }
     }
@@ -186,23 +242,73 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData): string {
 </head>
 <body>
   <div class="center">
+    ${
+      logoUrl
+        ? `<img class="logo" src="${escapeHtml(logoUrl)}" alt="" />`
+        : ''
+    }
     <div class="store">${escapeHtml(outletName)}</div>
     ${address ? `<div class="muted">${escapeHtml(address)}</div>` : ''}
-    ${phone ? `<div class="muted">${escapeHtml(phone)}</div>` : ''}
+    ${phone ? `<div class="muted">Tel: ${escapeHtml(phone)}</div>` : ''}
+    ${
+      headerExtra && !/https?:\/\/|\.com|\.ng|\.co/i.test(headerExtra)
+        ? `<div class="muted">${escapeHtml(headerExtra)}</div>`
+        : ''
+    }
   </div>
+
   <div class="rule mono">${dashLine()}</div>
-  <div class="center status">${escapeHtml(status || 'SALE')}</div>
-  <div class="mono">${escapeHtml(padRow('Receipt', `#${receiptNo}`))}</div>
+  <div class="center status">${escapeHtml(status)}</div>
+  ${
+    showSaleNumber && receiptNo
+      ? `<div class="mono">${escapeHtml(padRow('Invoice', receiptNo))}</div>`
+      : ''
+  }
   <div class="mono">${escapeHtml(padRow('Date', formatDateTime(data.timestamp)))}</div>
-  ${cashierBlock ? `<div class="section">${cashierBlock}</div>` : ''}
-  ${customerBlock}
-  <div class="mono">${escapeHtml(padRow('Pay', String(data.paymentMethod || 'cash').toUpperCase()))}</div>
+  ${
+    cashierName
+      ? `<div class="mono">${escapeHtml(padRow('Cashier', cashierName))}</div>`
+      : ''
+  }
+  ${
+    saleShort
+      ? `<div class="mono">${escapeHtml(padRow('Sale ID', `#${saleShort}`))}</div>`
+      : ''
+  }
+
   <div class="rule mono">${dashLine()}</div>
-  ${itemLines || '<div class="muted">No items</div>'}
-  <div class="rule mono">${dashLine('=')}</div>
+  <div class="section">
+    <div class="mono">${escapeHtml(padRow('Customer', customerName))}</div>
+    ${
+      customerPhone
+        ? `<div class="muted">${escapeHtml(customerPhone)}</div>`
+        : ''
+    }
+  </div>
+
+  <div class="rule mono">${dashLine()}</div>
+  <div class="section-title">ITEMS</div>
+  ${itemBlocks.join('') || '<div class="muted">No items</div>'}
+
+  <div class="rule mono">${dashLine()}</div>
   ${totals.join('')}
+
   <div class="rule mono">${dashLine()}</div>
-  ${footer}
+  <div class="section-title">PAYMENT</div>
+  <div class="mono">${escapeHtml(padRow(payMethod, fmtNgn(amountPaid)))}</div>
+  ${
+    balance > 0
+      ? `<div class="mono">${escapeHtml(padRow('Balance', fmtNgn(balance)))}</div>`
+      : ''
+  }
+  ${
+    change > 0
+      ? `<div class="mono">${escapeHtml(padRow('Change', fmtNgn(change)))}</div>`
+      : ''
+  }
+
+  <div class="rule mono">${dashLine()}</div>
+  <div class="footer">${footerLines.join('<br/>')}</div>
   <div class="center muted" style="margin-top:8px">*** END OF RECEIPT ***</div>
 </body>
 </html>`;
@@ -243,7 +349,6 @@ export function printThermalReceipt(data: ThermalReceiptData): void {
   const doc = frame.contentDocument || frame.contentWindow?.document;
   if (!doc) {
     cleanupPrintFrame(frame);
-    // Fallback: blob URL window (still avoid noopener so we keep the handle)
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const w = window.open(url, '_blank', 'width=360,height=720');
@@ -260,7 +365,6 @@ export function printThermalReceipt(data: ThermalReceiptData): void {
         setTimeout(revoke, 1000);
       }
     });
-    // Some browsers won't fire load for blob docs — force print shortly after
     setTimeout(() => {
       try {
         w.focus();
@@ -287,12 +391,10 @@ export function printThermalReceipt(data: ThermalReceiptData): void {
       win.focus();
       win.print();
     } finally {
-      // Keep frame briefly so the print dialog can read content, then remove
       setTimeout(() => cleanupPrintFrame(frame), 1000);
     }
   };
 
-  // Wait a tick so layout/styles apply before print
   if (typeof win.requestAnimationFrame === 'function') {
     win.requestAnimationFrame(() => setTimeout(runPrint, 50));
   } else {

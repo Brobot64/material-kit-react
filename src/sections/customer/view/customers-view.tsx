@@ -44,7 +44,7 @@ import { Breadcrumbs } from 'src/components/breadcrumbs';
 // ----------------------------------------------------------------------
 
 export function CustomersView() {
-    const { getOfflineCustomers } = useOffline();
+    const { getOfflineCustomers, mutate, status: offlineStatus } = useOffline();
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +73,7 @@ export function CustomersView() {
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
-        severity: 'success' as 'success' | 'error',
+        severity: 'success' as 'success' | 'error' | 'warning' | 'info',
     });
 
     const fetchCustomers = useCallback(async () => {
@@ -167,6 +167,30 @@ export function CustomersView() {
                     isActive: customerData.isActive,
                 });
                 setSnackbar({ open: true, message: 'Customer updated successfully', severity: 'success' });
+            } else if (!offlineStatus.online || !navigator.onLine) {
+                const localCustomerId =
+                    typeof crypto !== 'undefined' && crypto.randomUUID
+                        ? crypto.randomUUID()
+                        : `cust-${Date.now()}`;
+                await mutate({
+                    collection: 'customers',
+                    entityId: localCustomerId,
+                    patch: {
+                        fullName: customerData.fullName,
+                        phone: customerData.phone,
+                        email: customerData.email || undefined,
+                        notes: customerData.notes || undefined,
+                        tags: customerData.tags,
+                        _pending: true,
+                        clientCustomerId: localCustomerId,
+                        createdAt: new Date().toISOString(),
+                    },
+                });
+                setSnackbar({
+                    open: true,
+                    message: 'Customer saved offline — will sync when you are back online',
+                    severity: 'warning',
+                });
             } else {
                 await api.createCustomer({
                     fullName: customerData.fullName,

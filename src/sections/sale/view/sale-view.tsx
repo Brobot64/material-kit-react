@@ -32,8 +32,8 @@ import { formatError } from 'src/utils/format-error';
 import { api } from 'src/services/api';
 import { useOffline } from 'src/offline';
 import { useAuth } from 'src/contexts/auth-context';
-import { appPanelSx, appProductTileSx } from 'src/theme/app-surface';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { appPanelSx, appProductTileSx } from 'src/theme/app-surface';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -504,7 +504,7 @@ export function SaleView() {
                           onClick={() => !isOutOfStock && addToCart(p)}
                         >
                           <Typography variant="subtitle2" noWrap fontWeight={700}>
-                            {p.name || p.productId?.name}
+                            <Box component="span" className="sm-name">{p.name || p.productId?.name}</Box>
                           </Typography>
 
                           <Stack
@@ -579,7 +579,7 @@ export function SaleView() {
                 return (
                   <TableRow key={i.productId} sx={{ verticalAlign: 'top' }}>
                     <TableCell sx={{ minWidth: 140 }}>
-                      <Typography variant="body2" noWrap>{i.name}</Typography>
+                      <Typography variant="body2" noWrap className="sm-name">{i.name}</Typography>
                       <Label color={getPricingLabel(i).color} variant="soft">{getPricingLabel(i).label}</Label>
                       {i.pricingWarning && (
                         <Typography variant="caption" color="warning.main" display="block" sx={{ mt: 0.5 }}>
@@ -591,11 +591,7 @@ export function SaleView() {
                           size="small"
                           fullWidth
                           required
-                          multiline
-                          minRows={1}
-                          maxRows={3}
-                          label="Below-floor reason"
-                          placeholder="Why is this sold below floor? (20–200 chars)"
+                          placeholder="Below-floor reason (20–200 chars)"
                           value={i.overrideReason || ''}
                           onChange={(e) => updateOverrideReason(i.productId, e.target.value.slice(0, OVERRIDE_REASON_MAX))}
                           error={
@@ -609,7 +605,27 @@ export function SaleView() {
                                 ? `${OVERRIDE_REASON_MIN - (i.overrideReason?.trim().length || 0)} more characters needed`
                                 : `${i.overrideReason.trim().length}/${OVERRIDE_REASON_MAX}`
                           }
-                          sx={{ mt: 1, minWidth: 160 }}
+                          inputProps={{ 'aria-label': 'Below-floor reason' }}
+                          sx={{
+                            mt: 1,
+                            minWidth: 160,
+                            '& .MuiOutlinedInput-root': {
+                              height: 30,
+                              maxHeight: 30,
+                            },
+                            '& .MuiInputBase-input': {
+                              py: 0,
+                              px: 1,
+                              fontSize: 12,
+                              height: 30,
+                              boxSizing: 'border-box',
+                            },
+                            '& .MuiFormHelperText-root': {
+                              mt: 0.25,
+                              mx: 0,
+                              fontSize: 11,
+                            },
+                          }}
                         />
                       )}
                     </TableCell>
