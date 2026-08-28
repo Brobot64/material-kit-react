@@ -47,6 +47,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const { socket } = useSocket();
 
   const fetchNotifications = useCallback(async () => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/subscription')) {
+      return;
+    }
     try {
       const response = await api.getNotifications();
       setNotifications(response.notifications.map(mapBackendNotification));

@@ -59,7 +59,7 @@ export function SubscriptionCancelView() {
               size="large"
               variant="outlined"
               color="inherit"
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/app')}
             >
               Go to Dashboard
             </Button>

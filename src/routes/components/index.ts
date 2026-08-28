@@ -7,3 +7,5 @@ export * from './router-link';
 export * from './error-boundary';
 
 export * from './subscription-guard';
+
+export * from './subscription-route-guard';

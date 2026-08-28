@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -21,18 +21,28 @@ import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
+function isAppDataExpired(data: any): boolean {
+  if (!data) return true;
+  if (data.isExpired) return true;
+  if (!data.subscriptionEnd) return Boolean(data.mustRenewSubscription ?? true);
+  return new Date(data.subscriptionEnd).getTime() <= Date.now();
+}
+
 export function SubscriptionSuccessView() {
   const router = useRouter();
-  const { refreshProfile, subscriptionStatus } = useAuth();
-  
+  const { refreshProfile, isAuthenticated } = useAuth();
+
   const [polling, setPolling] = useState(true);
   const [attempts, setAttempts] = useState(0);
   const [sessionData, setSessionData] = useState<any>(null);
   const [loadingSession, setLoadingSession] = useState(true);
+  const [stillExpired, setStillExpired] = useState(true);
+  const refreshProfileRef = useRef(refreshProfile);
+  refreshProfileRef.current = refreshProfile;
 
   useEffect(() => {
     const sessionId = sessionStorage.getItem('checkoutSessionId');
-    
+
     if (sessionId) {
       api.getPublicCheckoutSession(sessionId)
         .then((data) => {
@@ -50,30 +60,41 @@ export function SubscriptionSuccessView() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
 
-    const pollStatus = async () => {
-      if (attempts > 10) {
+    const pollStatus = async (attempt: number) => {
+      if (cancelled) return;
+
+      const nextAppData = await refreshProfileRef.current();
+      const expired = isAppDataExpired(nextAppData);
+
+      if (cancelled) return;
+
+      if (!expired) {
+        setStillExpired(false);
         setPolling(false);
         return;
       }
 
-      await refreshProfile();
-      
-      // If subscription is no longer expired, we can stop polling
-      if (!subscriptionStatus.isExpired) {
+      if (attempt >= 10) {
+        setStillExpired(true);
+        setAttempts(attempt);
         setPolling(false);
-      } else {
-        setAttempts((prev) => prev + 1);
-        timer = setTimeout(pollStatus, 3000); // Poll every 3 seconds
+        return;
       }
+
+      setAttempts(attempt);
+      timer = setTimeout(() => pollStatus(attempt + 1), 3000);
     };
 
-    pollStatus();
+    pollStatus(0);
 
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempts, subscriptionStatus.isExpired]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
 
   const renderSessionInfo = () => {
     if (loadingSession) return <CircularProgress size={24} />;
@@ -84,7 +105,7 @@ export function SubscriptionSuccessView() {
         <Typography variant="subtitle2" gutterBottom>
           Payment Details
         </Typography>
-        
+
         <Stack spacing={1.5} sx={{ mt: 2 }}>
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>Status</Typography>
@@ -110,10 +131,10 @@ export function SubscriptionSuccessView() {
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>Amount</Typography>
             <Typography variant="subtitle2">
-              {fCurrency(sessionData.amountTotal / 100)} {sessionData.currency?.toUpperCase()}
+              {fCurrency(sessionData.amountTotal)} {sessionData.currency?.toUpperCase()}
             </Typography>
           </Stack>
-          
+
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>Transaction ID</Typography>
             <Typography variant="caption" sx={{ wordBreak: 'break-all', maxWidth: 150 }}>
@@ -166,23 +187,25 @@ export function SubscriptionSuccessView() {
           ) : (
             <Box sx={{ py: 3, width: 1 }}>
               <Typography variant="subtitle1" color="success.main" gutterBottom>
-                Subscription Reactivated
+                {stillExpired ? 'Payment received' : 'Subscription Reactivated'}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-                You can now access all your dashboard features.
+                {stillExpired
+                  ? 'Sign in again if your dashboard still shows as expired.'
+                  : 'You can now access all your dashboard features.'}
               </Typography>
               <Button
                 fullWidth
                 size="large"
                 variant="contained"
-                onClick={() => router.push('/')}
+                onClick={() => router.push(isAuthenticated && !stillExpired ? '/app' : '/sign-in')}
               >
-                Go to Dashboard
+                {isAuthenticated && !stillExpired ? 'Go to Dashboard' : 'Sign In'}
               </Button>
             </Box>
           )}
 
-          {!polling && attempts > 10 && subscriptionStatus.isExpired && (
+          {!polling && stillExpired && attempts >= 10 && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="body2" color="warning.main">
                 It&apos;s taking a bit longer to sync your status. Please wait a few moments and refresh.
