@@ -4,6 +4,7 @@ import { useState, useEffect, useContext, useCallback, createContext, type React
 
 import { api } from 'src/services/api';
 import { platformAdminApi } from 'src/platform-admin/api/platform-admin-api';
+import { isSubscriptionPath } from 'src/utils/subscription-path';
 import {
   loadPlatformSession,
   savePlatformSession,
@@ -35,7 +36,7 @@ type AuthContextType = {
   outlets: Outlet[];
   refreshCategories: () => Promise<void>;
   refreshOutlets: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<any>;
   toggleTheme: () => Promise<void>;
   startImpersonation: (params: {
     businessId: string;
@@ -73,7 +74,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const getSubscriptionStatus = useCallback(() => {
     const endDateStr = appData?.subscriptionEnd;
     if (!endDateStr) {
-      return { isExpired: false, isExpiringSoon: false, daysLeft: 0, endDate: null };
+      const flagged = Boolean(appData?.isExpired || appData?.mustRenewSubscription);
+      return { isExpired: flagged, isExpiringSoon: false, daysLeft: 0, endDate: null };
     }
 
     const endDate = new Date(endDateStr);
@@ -82,58 +84,73 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     return {
-      isExpired: diffTime <= 0,
+      isExpired: diffTime <= 0 || Boolean(appData?.isExpired),
       isExpiringSoon: diffDays > 0 && diffDays <= 5,
       daysLeft: Math.max(0, diffDays),
       endDate: endDateStr,
     };
-  }, [appData?.subscriptionEnd]);
+  }, [appData?.subscriptionEnd, appData?.isExpired, appData?.mustRenewSubscription]);
 
   const subscriptionStatus = getSubscriptionStatus();
 
+  const shouldSkipTenantBootstrap = useCallback(() => {
+    if (typeof window !== 'undefined' && isSubscriptionPath()) {
+      return true;
+    }
+    if (appData?.mustRenewSubscription || appData?.isExpired) {
+      return true;
+    }
+    if (appData?.subscriptionEnd && new Date(appData.subscriptionEnd).getTime() <= Date.now()) {
+      return true;
+    }
+    return false;
+  }, [appData?.mustRenewSubscription, appData?.isExpired, appData?.subscriptionEnd]);
+
   const fetchCategories = useCallback(async () => {
-    if (appData?.businessId) {
+    if (!appData?.businessId || shouldSkipTenantBootstrap()) {
+      return;
+    }
+    try {
+      const data = await api.getCategories(appData.businessId);
+      setCategories(data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
       try {
-        const data = await api.getCategories(appData.businessId);
-        setCategories(data);
-      } catch (error) {
-        console.error('Failed to fetch categories:', error);
-        try {
-          const { readOfflineCollection } = await import('src/offline/read-offline');
-          const cached = await readOfflineCollection('categories');
-          if (cached.length) setCategories(cached as any);
-        } catch {
-          /* ignore offline miss */
-        }
+        const { readOfflineCollection } = await import('src/offline/read-offline');
+        const cached = await readOfflineCollection('categories');
+        if (cached.length) setCategories(cached as any);
+      } catch {
+        /* ignore offline miss */
       }
     }
-  }, [appData?.businessId]);
+  }, [appData?.businessId, shouldSkipTenantBootstrap]);
 
   const fetchOutlets = useCallback(async () => {
-    if (appData?.businessId) {
+    if (!appData?.businessId || shouldSkipTenantBootstrap()) {
+      return;
+    }
+    try {
+      const data = await api.getOutlets(appData.businessId);
+      setOutlets(data.map((o: any) => ({ ...o, id: o._id })));
+    } catch (error) {
+      console.error('Failed to fetch outlets:', error);
       try {
-        const data = await api.getOutlets(appData.businessId);
-        setOutlets(data.map((o: any) => ({ ...o, id: o._id })));
-      } catch (error) {
-        console.error('Failed to fetch outlets:', error);
-        try {
-          const { readOfflineCollection } = await import('src/offline/read-offline');
-          const cached = await readOfflineCollection('outlets');
-          if (cached.length) {
-            setOutlets(cached.map((o: any) => ({ ...o, id: o._id || o.id })));
-          }
-        } catch {
-          /* ignore offline miss */
+        const { readOfflineCollection } = await import('src/offline/read-offline');
+        const cached = await readOfflineCollection('outlets');
+        if (cached.length) {
+          setOutlets(cached.map((o: any) => ({ ...o, id: o._id || o.id })));
         }
+      } catch {
+        /* ignore offline miss */
       }
     }
-  }, [appData?.businessId]);
+  }, [appData?.businessId, shouldSkipTenantBootstrap]);
 
   const refreshProfile = useCallback(async () => {
     try {
       const response = await api.getProfile();
-      const { user: userData, settings, appData: profileAppData } = response;
-      
+      const { user: userData, appData: profileAppData } = response;
+
       const mappedUser: User = {
         ...userData,
         id: userData._id,
@@ -142,19 +159,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       };
 
       setUser(mappedUser);
-      
-      // Merge new data with existing appData to ensure we don't lose businessId etc.
+
       const finalAppData = {
         ...appData,
-        ...(settings || {}),
         ...(profileAppData || {}),
       };
-      
+
       setAppData(finalAppData);
       localStorage.setItem('user', JSON.stringify(mappedUser));
       localStorage.setItem('appData', JSON.stringify(finalAppData));
+      return finalAppData;
     } catch (error) {
       console.error('Failed to refresh profile:', error);
+      return appData;
     }
   }, [user?.avatar, appData]);
 

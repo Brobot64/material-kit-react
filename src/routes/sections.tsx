@@ -11,7 +11,7 @@ import { AuthLayout } from 'src/layouts/auth';
 import { DashboardLayout } from 'src/layouts/dashboard';
 import { platformAdminRoutes } from 'src/platform-admin/routes';
 
-import { AuthGuard, GuestGuard, SubscriptionGuard } from './components';
+import { AuthGuard, GuestGuard, SubscriptionGuard, SubscriptionRouteGuard } from './components';
 
 // ----------------------------------------------------------------------
 
@@ -126,13 +126,13 @@ export const routesSection: RouteObject[] = [
   {
     path: 'subscription',
     element: (
-      <GuestGuard>
+      <SubscriptionRouteGuard>
         <AuthLayout>
           <Suspense fallback={renderFallback()}>
             <Outlet />
           </Suspense>
         </AuthLayout>
-      </GuestGuard>
+      </SubscriptionRouteGuard>
     ),
     children: [
       { path: 'renew', element: <SubscriptionRenewPage /> },

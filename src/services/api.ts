@@ -4,6 +4,8 @@ import type { AssignProductToOutletPayload } from 'src/types/product';
 import type { Swap, SwapStatus, CreateSwapPayload } from 'src/types/swap';
 import type { ReturnStatus, ProductReturn, CreateReturnPayload } from 'src/types/return';
 
+import { isSubscriptionPath } from 'src/utils/subscription-path';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/v1';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -28,10 +30,12 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     if (response.status === 401 && !url.includes('/auth/login')) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('appData');
-      window.location.href = '/sign-in';
+      if (!isSubscriptionPath()) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('appData');
+        window.location.href = '/sign-in';
+      }
     }
 
     if (response.status === 403) {
@@ -43,6 +47,9 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         errorData.code === 'SUBSCRIPTION_EXPIRED' ||
         errorData.code === 'SUBSCRIPTION_EXPIRED_STAFF';
       if (isSubExpired) {
+        if (isSubscriptionPath()) {
+          throw new Error(errorData.message || `Access Denied: ${response.statusText}`);
+        }
         let role: string | undefined;
         try {
           role = JSON.parse(localStorage.getItem('appData') || 'null')?.role;
@@ -53,7 +60,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         if (role === 'owner' || role === 'system_admin') {
           const businessId = errorData.data?.businessId || '';
           const userId = errorData.data?.userId || '';
-          window.location.href = `/subscription/renew?businessId=${businessId}&userId=${userId}`;
+          window.location.assign(`/subscription/renew?businessId=${businessId}&userId=${userId}`);
         }
       }
       throw new Error(errorData.message || `Access Denied: ${response.statusText}`);
