@@ -2,9 +2,10 @@ import type { User, Outlet, Category } from 'src/types';
 
 import { useState, useEffect, useContext, useCallback, createContext, type ReactNode } from 'react';
 
+import { isSubscriptionPath } from 'src/utils/subscription-path';
+
 import { api } from 'src/services/api';
 import { platformAdminApi } from 'src/platform-admin/api/platform-admin-api';
-import { isSubscriptionPath } from 'src/utils/subscription-path';
 import {
   loadPlatformSession,
   savePlatformSession,
